@@ -1,0 +1,6 @@
+dgl==v0.4.3.post2
+Jinja2>=2
+pynvrtc
+pydot
+networkx
+sympy

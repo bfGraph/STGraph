@@ -1,0 +1,6 @@
+python train.py --dataset=Cora --alpha=0.1
+python train.py --dataset=Cora --alpha=0.1 --random_splits=True
+python train.py --dataset=CiteSeer --alpha=0.1
+python train.py --dataset=CiteSeer --alpha=0.1 --random_splits=True
+python train.py --dataset=PubMed --alpha=0.1
+python train.py --dataset=PubMed --alpha=0.1 --random_splits=True
