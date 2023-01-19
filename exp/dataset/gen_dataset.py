@@ -83,16 +83,16 @@ def extract_dataset():
             print("Now PATH IS ", os.getcwd())
             
             data = load_data(args)
-            features = data.features
-            labels = data.labels
-            graph = data.graph
-            edges = graph.edges
-            train_mask = data.train_mask
-            val_mask = data.val_mask
-            test_mask = data.test_mask
+            graph = data[0]
+            edges = graph.edges()
+            features = graph.ndata["feat"]
+            labels = graph.ndata["label"]
+            train_mask = graph.ndata["train_mask"]
+            val_mask = graph.ndata["val_mask"]
+            test_mask = graph.ndata["test_mask"]
 
             n_nodes = features.shape[0]
-            n_edges = data.graph.number_of_edges
+            n_edges = graph.number_of_edges()
             
             if args.dataset == 'reddit':
                 graph, features, labels, train_mask, val_mask, test_mask = cut_graph(graph, n_nodes, n_edges, features, labels, train_mask, val_mask, test_mask, 0.85)

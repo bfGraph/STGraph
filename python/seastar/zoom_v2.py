@@ -67,18 +67,18 @@ class Context():
         if not (self._graph_info_cache != None
                 and self._graph_info_cache.number_of_nodes == graph.number_of_nodes()
                 and self._graph_info_cache.number_of_edges == graph.number_of_edges()):
-            in_csr = graph.get_in_csr()
-            out_csr = graph.get_out_csr()
+            in_csr = graph.adj_sparse(fmt="csr")
+            out_csr = graph.reverse().adj_sparse(fmt="csr")
             self._graph_info_cache = Context.GraphInfo(
                 graph.number_of_nodes(),
                 graph.number_of_edges(),
-                in_csr(0).copy_to_gpu(0),
-                in_csr(1).copy_to_gpu(0),
-                in_csr(2).copy_to_gpu(0),
-                out_csr(0).copy_to_gpu(0),
-                out_csr(1).copy_to_gpu(0),
-                out_csr(2).copy_to_gpu(0),
-                graph.nbits())
+                in_csr[0],
+                in_csr[1],
+                in_csr[2],
+                out_csr[0],
+                out_csr[1],
+                out_csr[2],
+                graph._graph.bits_needed(0)) #TODO: Setting this to graph._graph.bits_needed(0), since function not there in DGL and the number plays no role in seastar, but this wont work for homogenous
             reset = True
         return self._graph_info_cache, reset
 

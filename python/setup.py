@@ -15,7 +15,6 @@ setuptools.setup(
     ],
     python_requires='>=3.5',
     install_requires=[
-        'dgl==v0.4.3.post2',
         'Jinja2>=2',
         'pynvrtc',
         'pydot',

@@ -1,8 +1,11 @@
 import math
-
+import snoop
 from .code_gen.cuda_driver import *
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
+
+# TODO: remove
+import numpy as np
 
 class ExecutionUnit(object):
     unit_count = 0
@@ -335,12 +338,17 @@ class ExecutionUnit(object):
 
 class Kernel():
     def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
-        self.const_kernel_args[0] = row_offsets
-        self.const_kernel_args[1] = eids
-        self.const_kernel_args[2] = col_indices
+        self.const_kernel_args[0] = np.array([row_offsets.data_ptr()]).ctypes.data
+        self.const_kernel_args[1] = np.array([eids.data_ptr()]).ctypes.data
+        self.const_kernel_args[2] = np.array([col_indices.data_ptr()]).ctypes.data
         self.const_kernel_args[3] = c_int(number_of_nodes)
-        for i in range(4):
-            self.const_kernel_ptrs[i] = c_void_p(addressof(self.const_kernel_args[i]))
+
+        # for row offsets, eids, col_indices
+        for i in range(3):
+            self.const_kernel_ptrs[i] = c_void_p(self.const_kernel_args[i])
+        
+        # for number of nodes
+        self.const_kernel_ptrs[3] = c_void_p(addressof(self.const_kernel_args[3]))
 
     def run(self, tensor_list):
         try:
@@ -373,8 +381,9 @@ class V2Kernel(Kernel):
 class FeatureAdaptiveKernel(Kernel):
     def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
-        self.const_kernel_args =  [row_offsets, eids, col_indices] + self.scalar_args
-        self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
+        self.const_kernel_args =  [np.array([row_offsets.data_ptr()]).ctypes.data, np.array([eids.data_ptr()]).ctypes.data, np.array([col_indices.data_ptr()]).ctypes.data] + self.scalar_args
+        self.const_kernel_ptrs = [c_void_p(self.const_kernel_args[i]) for i in range(3)] + [c_void_p(addressof(self.const_kernel_args[i])) for i in range(3,len(self.const_kernel_args))]
+
         self.K = c_void_p(0)
         ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
         if ret:

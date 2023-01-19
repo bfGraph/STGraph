@@ -4,8 +4,8 @@ import networkx as nx
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import dgl
 from dgl import DGLGraph
-from dgl import transform
 from dgl.data import register_data_args, load_data
 
 from gcn_spmv import EglGCN
@@ -87,12 +87,11 @@ def main(args):
     '''
     u = edges[:,0]
     v = edges[:,1]
-    g = DGLGraph()
-    g.add_nodes(num_nodes)
-    g.add_edges(u, v)
+    g = dgl.graph((u,v), num_nodes=num_nodes)
     # add self loop
     if args.self_loop:
-        g = transform.add_self_loop(g)
+        g = dgl.add_self_loop(g)
+    g = g.to(features.device)
 
     # normalization
     degs = g.in_degrees().float()
@@ -125,7 +124,8 @@ def main(args):
 
     for epoch in range(args.num_epochs):
         model.train()
-        torch.cuda.synchronize()
+        if cuda:
+            torch.cuda.synchronize()
         t0 = time.time()
         # forward
         logits = model(features)
@@ -137,7 +137,9 @@ def main(args):
         loss.backward()
         optimizer.step()
 
-        torch.cuda.synchronize()
+        if cuda:
+            torch.cuda.synchronize()
+
         run_time_this_epoch = time.time() - t0
 
         if epoch >= 3:

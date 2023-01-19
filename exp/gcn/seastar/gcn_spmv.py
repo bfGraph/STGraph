@@ -11,7 +11,7 @@ import torch.nn as nn
 import dgl
 import dgl.function as fn
 from seastar import CtxManager
-
+from seastar.backend.pytorch_backend import run_egl
 
 class EglGCNLayer(nn.Module):
     def __init__(self,
@@ -35,7 +35,7 @@ class EglGCNLayer(nn.Module):
         else:
             self.dropout = 0.
         self.reset_parameters()
-        self.cm = CtxManager(dgl.backend.run_egl)
+        self.cm = CtxManager(run_egl)
 
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight.size(1))
@@ -46,15 +46,18 @@ class EglGCNLayer(nn.Module):
     def forward(self, h):
         if self.dropout:
             h = self.dropout(h)
-        dgl_context = dgl.utils.to_dgl_context(h.device)
-        graph = self.g._graph.get_immutable_gidx(dgl_context)
+        
+        # REMOVE AFTER CONFIRMING to() is sufficient
+        # dgl_context = dgl.utils.to_dgl_context(h.device)
+        # graph = self.g._graph.get_immutable_gidx(dgl_context)
+
         h = torch.mm(h, self.weight)
         @self.cm.zoomIn(nspace=[self, torch])
         def nb_compute(v):
             h = sum([nb.h*nb.norm for nb in v.innbs])
             h = h * v.norm
             return h
-        h = nb_compute(g=graph, n_feats={'norm': self.norm, 'h' : h})
+        h = nb_compute(g=self.g, n_feats={'norm': self.norm, 'h' : h})
         # bias
         if self.bias is not None:
             h = h + self.bias
