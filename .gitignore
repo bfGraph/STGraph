@@ -1,0 +1,11 @@
+exp/dataset/citeseer/
+exp/dataset/Coauthor_cs/
+exp/dataset/Coauthor_physics/
+exp/dataset/cora/
+exp/dataset/CoraFull/
+exp/dataset/pubmed/
+exp/dataset/reddit/
+python/egl.egg-info/
+python/egl/__pycache__/
+python/build/
+python/dist/
