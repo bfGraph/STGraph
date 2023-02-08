@@ -116,4 +116,6 @@ def gen_cuda(configs):
         else:
             raise NotImplementedError('Have not implement template for', configs['template_name'])
         h += rendered_tpl
+    # UNCOMMENT IF KERNEL IS TO BE PRINTED    
+    # print(h)
     return compile_cuda(h)

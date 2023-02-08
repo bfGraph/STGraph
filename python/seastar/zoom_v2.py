@@ -12,6 +12,10 @@ from .autodiff import diff
 from .code_gen import code_gen 
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
+import snoop
+
+# REMOVE THIS
+import torch
 
 class Context():
     GraphInfo = namedtuple('GraphInfo', ['number_of_nodes',
@@ -34,6 +38,7 @@ class Context():
         self._graph_info_cache = None
         self._executor_cache = None
 
+    @snoop
     def __call__(self, **kwargs):
         executor = self._setup_executor(**kwargs)
         ret = self._run_cb(executor)
@@ -61,23 +66,25 @@ class Context():
         self._executor_cache.restart(self._input_cache, graph_info if need_reset else None)
         self._entry_count += 1
         return self._executor_cache
-        
+
+    @snoop  
     def _update_graph_info(self, graph):
         reset = False
         if not (self._graph_info_cache != None
                 and self._graph_info_cache.number_of_nodes == graph.number_of_nodes()
                 and self._graph_info_cache.number_of_edges == graph.number_of_edges()):
-            in_csr = graph.adj_sparse(fmt="csr")
-            out_csr = graph.reverse().adj_sparse(fmt="csr")
+            out_csr = graph.adj_sparse(fmt="csr")
+            in_csr = graph.reverse().adj_sparse(fmt="csr")
+
             self._graph_info_cache = Context.GraphInfo(
                 graph.number_of_nodes(),
                 graph.number_of_edges(),
-                in_csr[0],
-                in_csr[1],
-                in_csr[2],
-                out_csr[0],
-                out_csr[1],
-                out_csr[2],
+                in_csr[0].type(torch.int32),
+                in_csr[1].type(torch.int32),
+                in_csr[2].type(torch.int32),
+                out_csr[0].type(torch.int32),
+                out_csr[1].type(torch.int32),
+                out_csr[2].type(torch.int32),
                 graph._graph.bits_needed(0)) #TODO: Setting this to graph._graph.bits_needed(0), since function not there in DGL and the number plays no role in seastar, but this wont work for homogenous
             reset = True
         return self._graph_info_cache, reset
@@ -103,7 +110,7 @@ class Context():
         for var in vars:
             grads.append(Var.create_var(var_shape=var.var_shape, var_dtype=var.var_dtype, val_type=var.val_type, device=var.device))
         backward_exe_units = diff(vars, grads, forward_exe_units, fprog)
-        #visualize.plot_exec_units(forward_exe_units + backward_exe_units)
+        visualize.plot_exec_units(forward_exe_units + backward_exe_units)
         compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int' if graph.nbits == 32 else 'long long int')
         return Executor(graph, forward_exe_units, backward_exe_units, compiled_module, vars)
         

@@ -1,4 +1,5 @@
 import torch
+import snoop
 
 class KernelWrapper(torch.autograd.Function):
     @staticmethod
@@ -11,10 +12,12 @@ class KernelWrapper(torch.autograd.Function):
     def backward(ctx, *gradout):
         executor, kid = ctx.backward_cache
         return (None, None, None, None) +  executor.backward_cb(kid, gradout)
-
+@snoop
 def run_egl(executor):
+    @snoop
     def new_zeros_call_back(size, dtype, device, requires_grad=True):
         return torch.zeros(size=size, dtype=dtype, device=device, requires_grad=requires_grad)
+    @snoop    
     def tensor_raw_ptr(tensor):
         import ctypes
         return ctypes.c_void_p(tensor.data_ptr())

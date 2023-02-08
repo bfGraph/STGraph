@@ -3,10 +3,12 @@ from pynvrtc.compiler import Program, ProgramException
 from .device_info import deviceinfo
 import subprocess
 import ctypes
+import snoop
 
 PTX_PATH='./egl_kernel.ptx'
 CU_PATH='./egl_kernel.cu'
 
+@snoop
 def compile_with_nvcc(cuda_text):
     with open(CU_PATH, 'w+') as f:
         f.write(cuda_text)
@@ -27,6 +29,7 @@ def compile_with_nvrtc(cuda_text):
     with open(PTX_PATH, 'w+') as f:
         f.write(ptx)
 
+@snoop
 def compile_cuda(cuda_text):
     try:
         compile_with_nvcc(cuda_text)

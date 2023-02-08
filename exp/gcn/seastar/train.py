@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import dgl
 from dgl import DGLGraph
 from dgl.data import register_data_args, load_data
+import snoop
 
 from gcn_spmv import EglGCN
 
@@ -27,7 +28,7 @@ def evaluate(model, features, labels, mask):
 
 def main(args):
     # load and preprocess dataset
-    path = './dataset/' + str(args.dataset) + '/'
+    path = '../../dataset/' + str(args.dataset) + '/'
     '''
     edges = np.loadtxt(path + 'edges.txt')
     edges = edges.astype(int)
@@ -158,6 +159,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='GCN')
     #add_argument --dataset
     register_data_args(parser)
+
+    # COMMENT IF SNOOP IS TO BE ENABLED
+    snoop.install(enabled=False)
 
     parser.add_argument("--dropout", type=float, default=0.5,
             help="dropout probability")

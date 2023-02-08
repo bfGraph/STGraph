@@ -1,5 +1,6 @@
 import torch
 from .utils import is_const_scalar, ParallelMode
+import snoop
 
 class ExeState(object):
     def __init__(self):
@@ -103,6 +104,7 @@ class MergedUnit(object):
             self._union_of_rets = var_set
         return self._union_of_rets
     
+    @snoop
     def kernel_arg_list(self):
         if not self._kernel_args:
             args = self.joint_args()
@@ -209,7 +211,7 @@ class Executor(object):
                                                device=var.device,
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.tensor_map}
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
-
+    @snoop
     def execute_unit(self, unit, tensor_list):
         arg_ptr = [self.raw_ptr(arg) for arg in tensor_list]
         unit.kernel_run(arg_ptr)
@@ -226,7 +228,8 @@ class Executor(object):
         # Therefore we need to replace the tensors in self.tensor_map with the return values
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
-
+    
+    @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
         '''FuncWrapper will call this function in forward pass'''
         units = self.forward_exec_units[uid]
@@ -234,6 +237,7 @@ class Executor(object):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
         return tuple([self.ts.tensor_map[ret.id] for ret in rets])
 
+    @snoop
     def backward_cb(self, kid, grad_list):
         '''FuncWrapper will call this function in backward pass'''
         # which backward kernel to call? un-executed kernel that has all dependency satisfied. 

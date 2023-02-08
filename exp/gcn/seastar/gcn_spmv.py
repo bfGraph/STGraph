@@ -46,10 +46,6 @@ class EglGCNLayer(nn.Module):
     def forward(self, h):
         if self.dropout:
             h = self.dropout(h)
-        
-        # REMOVE AFTER CONFIRMING to() is sufficient
-        # dgl_context = dgl.utils.to_dgl_context(h.device)
-        # graph = self.g._graph.get_immutable_gidx(dgl_context)
 
         h = torch.mm(h, self.weight)
         @self.cm.zoomIn(nspace=[self, torch])
