@@ -1,0 +1,165 @@
+import argparse, time
+import numpy as np
+import networkx as nx
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import dgl
+from dgl import DGLGraph
+from dgl.data import register_data_args, load_data
+import json
+import urllib
+from tqdm import tqdm
+from tgcn import SeastarGCNLayer
+import snoop
+
+
+class WikiMathsDGLDatasetLoader(object):
+    def __init__(self):
+        self._read_web_data()
+
+    def _read_web_data(self):
+        url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/wikivital_mathematics.json"
+        self._dataset = json.loads(urllib.request.urlopen(url).read())
+
+    def _get_edges(self):
+        self._edges = np.array(self._dataset["edges"]).T
+
+    def _get_edge_weights(self):
+        self._edge_weights = np.array(self._dataset["weights"]).T
+
+    def _get_targets_and_features(self):
+
+        targets = []
+        for time in range(self._dataset["time_periods"]):
+            targets.append(np.array(self._dataset[str(time)]["y"]))
+        stacked_target = np.stack(targets)
+        standardized_target = (
+            stacked_target - np.mean(stacked_target, axis=0)
+        ) / np.std(stacked_target, axis=0)
+        self.features = [
+            standardized_target[i : i + self.lags, :].T
+            for i in range(len(targets) - self.lags)
+        ]
+        self.targets = [
+            standardized_target[i + self.lags, :].T
+            for i in range(len(targets) - self.lags)
+        ]
+
+    def get_dataset(self, lags: int = 8):
+            """Returning the Wikipedia Vital Mathematics data iterator.
+
+            Args types:
+                * **lags** *(int)* - The number of time lags.
+            Return types:
+                * **dataset** *(StaticGraphTemporalSignal)* - The Wiki Maths dataset.
+            """
+            self.lags = lags # how many time stamps before prediction has to be made
+            self._get_edges()
+            self._get_edge_weights()
+            self._get_targets_and_features()
+            return self._edges, self._edge_weights, self.features, self.targets
+
+# GPU | CPU
+def get_default_device():
+    
+    if torch.cuda.is_available():
+        return torch.device('cuda:0')
+    else:
+        return torch.device('cpu')
+
+def to_default_device(data):
+    
+    if isinstance(data,(list,tuple)):
+        return [to_default_device(x,get_default_device()) for x in data]
+    
+    return data.to(get_default_device(),non_blocking = True)
+
+def main(args):
+
+    # Data
+    dataset = WikiMathsDGLDatasetLoader()
+    edges, edge_weights, all_features, all_targets = dataset.get_dataset()
+
+    G = dgl.graph((torch.from_numpy(edges[0]),torch.from_numpy(edges[1]))) # Graph object
+    G = to_default_device(dgl.add_self_loop(G))
+
+    edge_weights = torch.from_numpy(edge_weights).type(torch.float32)
+    edge_weights = to_default_device(torch.cat((edge_weights,torch.ones(G.number_of_nodes())),0))
+    all_features = [to_default_device(torch.from_numpy(feature).type(torch.float32)) for feature in all_features]
+    all_targets = [to_default_device(torch.from_numpy(target).type(torch.float32)) for target in all_targets]
+
+    # normalization
+    degs = G.in_degrees().float()
+    norm = torch.pow(degs, -0.5)
+    norm[torch.isinf(norm)] = 0
+    norm = to_default_device(norm)
+    G.ndata['norm'] = norm.unsqueeze(1)
+
+    # Hyperparameters
+    train_test_split = 0.8
+
+    # train_test_split
+    train_features = all_features[:int(len(all_features) * train_test_split)]
+    train_targets = all_targets[:int(len(all_targets) * train_test_split)]
+    test_features = all_features[int(len(all_features) * train_test_split):]
+    test_targets = all_targets[int(len(all_targets) * train_test_split):]
+
+    # model
+    model = to_default_device(SeastarGCNLayer(8,1,activation=None,dropout=None))
+
+    # use optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    # train
+    print("Training...\n")
+    model.train()
+    for epoch in tqdm(range(args.num_epochs)):
+        cost = 0
+        hidden_state = None
+        optimizer.zero_grad()
+        for index, features in enumerate(train_features):
+            # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
+            y_hat, hidden_state = model(G, features, edge_weights)
+            cost = cost + torch.mean((y_hat-train_targets[index])**2)
+        cost = cost / (index+1)
+        cost.backward()
+        optimizer.step()
+
+    # evaluate
+    print("Evaluating...\n")
+    model.eval()
+    cost = 0
+
+    predictions = []
+    true_y = []
+
+    for index, features in enumerate(test_features):
+        # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
+        y_hat, hidden_state = model(G, features, edge_weights)
+        cost = cost + torch.mean((y_hat-test_targets[index])**2)
+        predictions.append(y_hat)
+        true_y.append(test_targets[index])
+    cost = cost / (index+1)
+    cost = cost.item()
+    print("MSE: {:.4f}".format(cost))
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='GCN')
+    #add_argument --dataset
+    register_data_args(parser)
+
+    # COMMENT IF SNOOP IS TO BE ENABLED
+    # snoop.install(enabled=False)
+
+
+    parser.add_argument("--lr", type=float, default=1e-2,
+            help="learning rate")
+    parser.add_argument("--num_epochs", type=int, default=200,
+            help="number of training epochs")
+    args = parser.parse_args()
+    print(args)
+
+    main(args)

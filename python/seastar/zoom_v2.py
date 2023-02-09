@@ -89,6 +89,7 @@ class Context():
             reset = True
         return self._graph_info_cache, reset
 
+    @snoop
     def _trace(self, nfeats, efeats, input_cache, fprog):
         backend = self.find_backend(self._nspace)
         central_node = self._init_central_node(nfeats, efeats, fprog, backend)
