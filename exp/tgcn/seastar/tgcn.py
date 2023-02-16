@@ -35,17 +35,13 @@ class SeastarGCNLayer(nn.Module):
         self.weight.data.uniform_(-stdv, stdv)
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
-    @snoop
+
     def forward(self, g, h, edge_weight=None):
         if self.dropout:
             h = self.dropout(h)
         h = torch.mm(h, self.weight)
 
-        print("Shape")
-        print(g.ndata['norm'].shape)
-
         @self.cm.zoomIn(nspace=[self, torch])
-        @snoop
         def nb_compute(v):
             # The nb_edge.src returns a list with one element, this element is an object of NbNode type
             # hence the translation. Can be cleaned up later.

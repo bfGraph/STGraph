@@ -39,7 +39,6 @@ class Context():
         self._graph_info_cache = None
         self._executor_cache = None
 
-    @snoop
     def __call__(self, **kwargs):
         executor = self._setup_executor(**kwargs)
         ret = self._run_cb(executor)
@@ -69,7 +68,6 @@ class Context():
         self._entry_count += 1
         return self._executor_cache
 
-    @snoop  
     def _update_graph_info(self, graph):
         reset = False
         if not (self._graph_info_cache != None
@@ -91,11 +89,10 @@ class Context():
             reset = True
         return self._graph_info_cache, reset
 
-    @snoop
     def _trace(self, nfeats, efeats, input_cache, fprog):
         backend = self.find_backend(self._nspace)
         central_node = self._init_central_node(nfeats, efeats, fprog, backend)
-        pretty_print_Central_Node(central_node=central_node, print_tensors=True)
+        pretty_print_Central_Node(central_node=central_node, print_tensors=False)
         old_libs = defaultdict(dict)
         self._monkey_patch_namespace(old_libs, input_cache, fprog, backend)
         ret = self._f(central_node)

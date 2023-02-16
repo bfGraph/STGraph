@@ -86,6 +86,9 @@ def main(args):
 
     edge_weights = torch.from_numpy(edge_weights).type(torch.float32)
     edge_weights = to_default_device(torch.cat((edge_weights,torch.ones(G.number_of_nodes())),0))
+
+    # Seastar expects inputs to be of format (edge_weight,1)
+    edge_weights = torch.unsqueeze(edge_weights,1)
     all_features = [to_default_device(torch.from_numpy(feature).type(torch.float32)) for feature in all_features]
     all_targets = [to_default_device(torch.from_numpy(target).type(torch.float32)) for target in all_targets]
 
@@ -120,7 +123,7 @@ def main(args):
         optimizer.zero_grad()
         for index, features in enumerate(train_features):
             # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
-            y_hat, hidden_state = model(G, features, edge_weights)
+            y_hat = model(G, features, edge_weights)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)
         cost.backward()
@@ -136,7 +139,7 @@ def main(args):
 
     for index, features in enumerate(test_features):
         # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
-        y_hat, hidden_state = model(G, features, edge_weights)
+        y_hat = model(G, features, edge_weights)
         cost = cost + torch.mean((y_hat-test_targets[index])**2)
         predictions.append(y_hat)
         true_y.append(test_targets[index])
