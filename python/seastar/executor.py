@@ -211,10 +211,14 @@ class Executor(object):
                                                device=var.device,
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.tensor_map}
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
-    @snoop
+    # NOTE: Original Code
+    # def execute_unit(self, unit, tensor_list):
+    #     breakpoint()
+    #     arg_ptr = [self.raw_ptr(arg) for arg in tensor_list]
+    #     unit.kernel_run(arg_ptr)
+
     def execute_unit(self, unit, tensor_list):
-        arg_ptr = [self.raw_ptr(arg) for arg in tensor_list]
-        unit.kernel_run(arg_ptr)
+        unit.kernel_run(tensor_list)
 
     def execute_compiled(self, uid, FuncWrapper):
         units = self.forward_exec_units[uid]

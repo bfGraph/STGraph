@@ -152,12 +152,12 @@ $L__BB0_3:
 	// begin inline asm
 	ld.global.nc.s32 %r35, [%rd4];
 	// end inline asm
-	shl.b32 	%r36, %r34, 4;
-	add.s32 	%r37, %r36, %r71;
-	add.s32 	%r38, %r34, %r15;
-	mul.wide.s32 	%rd33, %r37, 4;
+	add.s32 	%r36, %r34, %r15;
+	shl.b32 	%r37, %r34, 4;
+	add.s32 	%r38, %r37, %r71;
+	mul.wide.s32 	%rd33, %r38, 4;
 	add.s64 	%rd34, %rd2, %rd33;
-	mul.wide.s32 	%rd35, %r38, 4;
+	mul.wide.s32 	%rd35, %r36, 4;
 	add.s64 	%rd36, %rd1, %rd35;
 	ld.global.f32 	%f12, [%rd36];
 	ld.global.f32 	%f13, [%rd34];
@@ -173,12 +173,12 @@ $L__BB0_3:
 	// begin inline asm
 	ld.global.nc.s32 %r40, [%rd6];
 	// end inline asm
-	shl.b32 	%r41, %r39, 4;
-	add.s32 	%r42, %r41, %r71;
-	add.s32 	%r43, %r39, %r15;
-	mul.wide.s32 	%rd39, %r42, 4;
+	add.s32 	%r41, %r39, %r15;
+	shl.b32 	%r42, %r39, 4;
+	add.s32 	%r43, %r42, %r71;
+	mul.wide.s32 	%rd39, %r43, 4;
 	add.s64 	%rd40, %rd2, %rd39;
-	mul.wide.s32 	%rd41, %r43, 4;
+	mul.wide.s32 	%rd41, %r41, 4;
 	add.s64 	%rd42, %rd1, %rd41;
 	ld.global.f32 	%f15, [%rd42];
 	ld.global.f32 	%f16, [%rd40];
@@ -193,12 +193,12 @@ $L__BB0_3:
 	// begin inline asm
 	ld.global.nc.s32 %r45, [%rd8];
 	// end inline asm
-	shl.b32 	%r46, %r44, 4;
-	add.s32 	%r47, %r46, %r71;
-	add.s32 	%r48, %r44, %r15;
-	mul.wide.s32 	%rd45, %r47, 4;
+	add.s32 	%r46, %r44, %r15;
+	shl.b32 	%r47, %r44, 4;
+	add.s32 	%r48, %r47, %r71;
+	mul.wide.s32 	%rd45, %r48, 4;
 	add.s64 	%rd46, %rd2, %rd45;
-	mul.wide.s32 	%rd47, %r48, 4;
+	mul.wide.s32 	%rd47, %r46, 4;
 	add.s64 	%rd48, %rd1, %rd47;
 	ld.global.f32 	%f18, [%rd48];
 	ld.global.f32 	%f19, [%rd46];
@@ -221,12 +221,12 @@ $L__BB0_10:
 	// begin inline asm
 	ld.global.nc.s32 %r50, [%rd50];
 	// end inline asm
-	shl.b32 	%r57, %r49, 4;
-	add.s32 	%r58, %r57, %r71;
-	add.s32 	%r59, %r49, %r15;
-	mul.wide.s32 	%rd57, %r58, 4;
+	add.s32 	%r57, %r49, %r15;
+	shl.b32 	%r58, %r49, 4;
+	add.s32 	%r59, %r58, %r71;
+	mul.wide.s32 	%rd57, %r59, 4;
 	add.s64 	%rd58, %rd2, %rd57;
-	mul.wide.s32 	%rd59, %r59, 4;
+	mul.wide.s32 	%rd59, %r57, 4;
 	add.s64 	%rd60, %rd1, %rd59;
 	ld.global.f32 	%f21, [%rd60];
 	ld.global.f32 	%f22, [%rd58];
@@ -240,12 +240,12 @@ $L__BB0_10:
 	// begin inline asm
 	ld.global.nc.s32 %r52, [%rd52];
 	// end inline asm
-	shl.b32 	%r60, %r51, 4;
-	add.s32 	%r61, %r60, %r71;
-	add.s32 	%r62, %r51, %r15;
-	mul.wide.s32 	%rd61, %r61, 4;
+	add.s32 	%r60, %r51, %r15;
+	shl.b32 	%r61, %r51, 4;
+	add.s32 	%r62, %r61, %r71;
+	mul.wide.s32 	%rd61, %r62, 4;
 	add.s64 	%rd62, %rd2, %rd61;
-	mul.wide.s32 	%rd63, %r62, 4;
+	mul.wide.s32 	%rd63, %r60, 4;
 	add.s64 	%rd64, %rd1, %rd63;
 	ld.global.f32 	%f25, [%rd64];
 	ld.global.f32 	%f26, [%rd62];
@@ -259,12 +259,12 @@ $L__BB0_10:
 	// begin inline asm
 	ld.global.nc.s32 %r54, [%rd54];
 	// end inline asm
-	shl.b32 	%r63, %r53, 4;
-	add.s32 	%r64, %r63, %r71;
-	add.s32 	%r65, %r53, %r15;
-	mul.wide.s32 	%rd65, %r64, 4;
+	add.s32 	%r63, %r53, %r15;
+	shl.b32 	%r64, %r53, 4;
+	add.s32 	%r65, %r64, %r71;
+	mul.wide.s32 	%rd65, %r65, 4;
 	add.s64 	%rd66, %rd2, %rd65;
-	mul.wide.s32 	%rd67, %r65, 4;
+	mul.wide.s32 	%rd67, %r63, 4;
 	add.s64 	%rd68, %rd1, %rd67;
 	ld.global.f32 	%f29, [%rd68];
 	ld.global.f32 	%f30, [%rd66];
@@ -278,12 +278,12 @@ $L__BB0_10:
 	// begin inline asm
 	ld.global.nc.s32 %r56, [%rd56];
 	// end inline asm
-	shl.b32 	%r66, %r55, 4;
-	add.s32 	%r67, %r66, %r71;
-	add.s32 	%r68, %r55, %r15;
-	mul.wide.s32 	%rd69, %r67, 4;
+	add.s32 	%r66, %r55, %r15;
+	shl.b32 	%r67, %r55, 4;
+	add.s32 	%r68, %r67, %r71;
+	mul.wide.s32 	%rd69, %r68, 4;
 	add.s64 	%rd70, %rd2, %rd69;
-	mul.wide.s32 	%rd71, %r68, 4;
+	mul.wide.s32 	%rd71, %r66, 4;
 	add.s64 	%rd72, %rd1, %rd71;
 	ld.global.f32 	%f33, [%rd72];
 	ld.global.f32 	%f34, [%rd70];

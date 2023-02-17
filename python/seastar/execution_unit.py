@@ -1,6 +1,10 @@
 import math
 import snoop
-from .code_gen.cuda_driver import *
+
+# from .code_gen.cuda_driver import *
+from .code_gen.cuda_python.cuda_driver import *
+from .code_gen.cuda_python.cuda_error import ASSERT_DRV
+from .code_gen.cuda_python.cuda_helper import copy_arguments_to_gpu
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 
@@ -337,54 +341,112 @@ class ExecutionUnit(object):
         return self._kernel_name
 
 class Kernel():
+    # def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
+    #     breakpoint()
+    #     self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
+    #     self.const_kernel_args[1] = c_void_p(eids.data_ptr())
+    #     self.const_kernel_args[2] = c_void_p(col_indices.data_ptr())
+    #     self.const_kernel_args[3] = c_int(number_of_nodes)
+
+    #     # for row offsets, eids, col_indices
+    #     for i in range(4):
+    #         self.const_kernel_ptrs[i] = c_void_p(addressof(self.const_kernel_args[i]))
+
     def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
-        self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
-        self.const_kernel_args[1] = c_void_p(eids.data_ptr())
-        self.const_kernel_args[2] = c_void_p(col_indices.data_ptr())
-        self.const_kernel_args[3] = c_int(number_of_nodes)
+        self.const_kernel_args[0] = row_offsets
+        self.const_kernel_args[1] = eids
+        self.const_kernel_args[2] = col_indices
+        self.const_kernel_args[3] = number_of_nodes
 
-        # for row offsets, eids, col_indices
-        for i in range(4):
-            self.const_kernel_ptrs[i] = c_void_p(addressof(self.const_kernel_args[i]))
-
-    @snoop
-    def run(self, tensor_list):
-        try:
-            kernel_ptrs = [c_void_p(addressof(arg)) for arg in tensor_list] + self.const_kernel_ptrs
-            params =  (c_void_p * len(kernel_ptrs))(*kernel_ptrs)
-            ret = cuLaunchKernel(self.K, 
-                                 self.launch_config[0], 
-                                 self.launch_config[1],
-                                 self.launch_config[2], 
-                                 self.launch_config[3],
-                                 self.launch_config[4],
-                                 self.launch_config[5],
-                                 0, None, params, None)
+    # NOTE: Original Code
+    # def run(self, tensor_list):
+    #     breakpoint()
+    #     try:
+    #         kernel_ptrs = [c_void_p(addressof(arg)) for arg in tensor_list] + self.const_kernel_ptrs
+    #         params =  (c_void_p * len(kernel_ptrs))(*kernel_ptrs)
+    #         ret = cuLaunchKernel(self.K, 
+    #                              self.launch_config[0], 
+    #                              self.launch_config[1],
+    #                              self.launch_config[2], 
+    #                              self.launch_config[3],
+    #                              self.launch_config[4],
+    #                              self.launch_config[5],
+    #                              0, None, params, None)
             
-            if ret:
-                raise Exception('cuLaunchKernel', ret)
-        except Exception as e:
-            raise e
+    #         if ret:
+    #             raise Exception('cuLaunchKernel', ret)
+    #     except Exception as e:
+    #         raise e
 
-class V2Kernel(Kernel):
-    def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
-        self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
-        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
-        self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
-        self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
+    def run(self, tensor_list):
+    
+        argument_list = tensor_list + self.const_kernel_args
+
+        err, stream = cuStreamCreate(0)
+        ASSERT_DRV(err)
+
+        kernel_arguments, result_vector_info = copy_arguments_to_gpu(argument_list, stream)
+        
+        err, = cuLaunchKernel(
+            self.kernel_function,
+            self.launch_config[0],
+            self.launch_config[1],
+            self.launch_config[2],
+            self.launch_config[3],
+            self.launch_config[4],
+            self.launch_config[5],
+            0,
+            stream,
+            kernel_arguments.ctypes.data,
+            0
+        )
+
+        # DEBUG: Viewing result stored in V2
+        host_V2 = result_vector_info[0]
+        V2_class = result_vector_info[1]
+        V2_size = result_vector_info[2]
+
+        err, = cuMemcpyDtoHAsync(host_V2.ctypes.data, V2_class, V2_size, stream)
+        err, = cuStreamSynchronize(stream)
+
+        print(host_V2)
+
+        breakpoint()
+
+
+# NOTE: Original Code
+# class V2Kernel(Kernel):
+#     def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
+#         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
+#         self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
+#         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
+#         self.K = c_void_p(0)
+#         ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
+#         if ret:
+#             raise Exception('cuModuleGetFunction', ret)
+#         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
+
+# NOTE: Original Code
+# class FeatureAdaptiveKernel(Kernel):
+#     def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config):
+#         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
+#         self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
+#         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
+
+#         self.K = c_void_p(0)
+#         ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
+#         if ret:
+#             raise Exception('cuModuleGetFunction', ret)
+        # self.launch_config = launch_config[0],1,1,launch_config[1],1,1
 
 class FeatureAdaptiveKernel(Kernel):
     def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config):
-        self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
-        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
-        self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
+        self.scalar_args = [num_nodes, max_dims[1], max_dims[0], launch_config[2], launch_config[3]]
+        self.const_kernel_args = [row_offsets, eids, col_indices] + self.scalar_args
 
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
+        # TODO: Maybe make self.const_kernel_ptrs
+
+        err, self.kernel_function = cuModuleGetFunction(compiled_module, kernel_name.encode("utf-8"))
+        ASSERT_DRV(err)
+        
         self.launch_config = launch_config[0],1,1,launch_config[1],1,1

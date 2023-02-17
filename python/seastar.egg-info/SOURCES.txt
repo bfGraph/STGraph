@@ -31,6 +31,7 @@ seastar/code_gen/cuda_python/__init__.py
 seastar/code_gen/cuda_python/compiler.py
 seastar/code_gen/cuda_python/cuda_driver.py
 seastar/code_gen/cuda_python/cuda_error.py
+seastar/code_gen/cuda_python/cuda_helper.py
 seastar/code_gen/cuda_python/device_info.py
 seastar/passes/__init__.py
 seastar/passes/cf.py

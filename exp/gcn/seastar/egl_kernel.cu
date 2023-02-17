@@ -20,10 +20,10 @@ extern "C" __global__ void K0(float *Vhinb, float *Vnormcen, float *Vnorminb, fl
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset0 = src_id * 16 + tx;int offset1 = src_id * 1 + tx/16;
+                int offset0 = src_id * 1 + tx/16;int offset1 = src_id * 16 + tx;
                 
                 
-                float V0_tmp = Vhinb[offset0]*Vnorminb[offset1];
+                float V0_tmp = Vhinb[offset1]*Vnorminb[offset0];
                 
                 
                 V1_tmp += V0_tmp;

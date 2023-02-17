@@ -40,7 +40,6 @@ def compile_with_cuda_python(cuda_code):
     return np.char.array(ptx)
 
 def compile_cuda(cuda_code):
-    # print(cuda_code)
 
     ptx = compile_with_cuda_python(cuda_code)
 
