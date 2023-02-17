@@ -70,8 +70,10 @@ class DeviceInfo:
         log_table.add_row(["Total Memory", str(self.totalMem/1024**2) + colored(" MiB", "dark_grey")])
         log_table.add_row(["Free Memory", str(self.freeMem/1024**2) + colored(" MiB", "dark_grey")])
 
+        print("\n")
         print(log_table)
         print(colored("\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device", "dark_grey"))
+        print("\n")
 
 if __name__ == "__main__":
     device = DeviceInfo(print_log=True)

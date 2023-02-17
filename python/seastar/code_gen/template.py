@@ -2,7 +2,8 @@ from jinja2 import Template
 
 from collections import namedtuple
 
-from .compiler import compile_cuda
+# from .compiler import compile_cuda
+from .cuda_python.compiler import compile_cuda
 
 header_tpl = Template(
 """
@@ -106,16 +107,34 @@ NodeInfo = namedtuple('NodeInfo', ['load', 'compute', 'inner_write'])
 ArgInfo = namedtuple('ArgInfo', ['name', 'type', 'is_ptr'])
 AggInfo = namedtuple('AggInfo', ['init', 'compute', 'inner_write', 'outter_write'])
 
+# TODO: ORIGINAL gen_cuda() function
+# def gen_cuda(configs):
+#     h = ''
+#     breakpoint()
+#     for config in configs:
+#         if config['template_name'] == 'fa':
+#             rendered_tpl = tpl_fa.render(**config)
+#         elif config['template_name'] == 'v2':
+#             rendered_tpl = tpl_v2.render(**config)
+#         else:
+#             raise NotImplementedError('Have not implement template for', configs['template_name'])
+#         h += rendered_tpl
+#     # UNCOMMENT IF KERNEL IS TO BE PRINTED    
+#     # print(h)
+#     return compile_cuda(h)
+
+# TODO: Add documentation
 def gen_cuda(configs):
-    h = ''
+    kernel_cuda_code = ""
     for config in configs:
-        if config['template_name'] == 'fa':
-            rendered_tpl = tpl_fa.render(**config)
-        elif config['template_name'] == 'v2':
-            rendered_tpl = tpl_v2.render(**config)
+        template_name = config['template_name']
+        if template_name == 'fa':
+            rendered_template = tpl_fa.render(**config)
+        elif template_name == 'v2':
+            rendered_template = tpl_v2.render(**config)
         else:
             raise NotImplementedError('Have not implement template for', configs['template_name'])
-        h += rendered_tpl
-    # UNCOMMENT IF KERNEL IS TO BE PRINTED    
-    # print(h)
-    return compile_cuda(h)
+
+        kernel_cuda_code += rendered_template
+        
+    return compile_cuda(kernel_cuda_code)
