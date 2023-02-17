@@ -10,6 +10,7 @@ cuMemGetInfo = cuda.cuMemGetInfo
 cuCtxCreate = cuda.cuCtxCreate
 cuModuleLoad = cuda.cuModuleLoad
 cuCtxSynchronize = cuda.cuCtxSynchronize
+cuModuleLoadData = cuda.cuModuleLoadData
 cuModuleGetFunction = cuda.cuModuleGetFunction
 cuMemAlloc = cuda.cuMemAlloc
 cuMemcpyHtoD = cuda.cuMemcpyHtoD

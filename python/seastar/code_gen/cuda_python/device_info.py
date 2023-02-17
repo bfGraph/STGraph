@@ -4,7 +4,7 @@ from cuda import cuda
 from prettytable import PrettyTable, HEADER, NONE, SINGLE_BORDER
 from termcolor import colored
 
-from cuda_driver import *
+from .cuda_driver import *
 
 class DeviceInfo:
     def __init__(self, print_log=False):
@@ -34,15 +34,18 @@ class DeviceInfo:
         # Going to get certain parameters for only the first GPU
         # i.e ordinal = 0 for cuDeviceGet
         ordinal = 0
-        err, device = cuDeviceGet(ordinal)
-        err, device_name = cuDeviceGetName(25, device)
+        err, self.device = cuDeviceGet(ordinal)
+        err, self.context = cuCtxCreate(0, self.device)
+
+        err, device_name = cuDeviceGetName(25, self.device)
         self.name = device_name.decode("utf-8")
-        err, self.cc_major = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MAJOR, device)
-        err, self.cc_minor = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MINOR, device)
-        err, self.cores = cuDeviceGetAttribute(MULTIPROCESSOR_COUNT, device)
-        err, self.thread_per_core = cuDeviceGetAttribute(MAX_THREAD_PER_MULTIPROCESSOR, device)
-        err, self.gpu_clockrate = cuDeviceGetAttribute(CLOCK_RATE, device)
-        err, self.memory_clockrate = cuDeviceGetAttribute(MEMORY_CLOCK_RATE, device)
+        
+        err, self.cc_major = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MAJOR, self.device)
+        err, self.cc_minor = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MINOR, self.device)
+        err, self.cores = cuDeviceGetAttribute(MULTIPROCESSOR_COUNT, self.device)
+        err, self.thread_per_core = cuDeviceGetAttribute(MAX_THREAD_PER_MULTIPROCESSOR, self.device)
+        err, self.gpu_clockrate = cuDeviceGetAttribute(CLOCK_RATE, self.device)
+        err, self.memory_clockrate = cuDeviceGetAttribute(MEMORY_CLOCK_RATE, self.device)
         err, self.freeMem, self.totalMem = cuMemGetInfo()
 
         if print_log:
