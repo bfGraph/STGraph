@@ -10,7 +10,7 @@ from dgl.data import register_data_args, load_data
 import json
 import urllib
 from tqdm import tqdm
-from tgcn import SeastarGCNLayer
+from tgcn import SeastarTGCN
 import snoop
 
 
@@ -84,13 +84,13 @@ def main(args):
     G = dgl.graph((torch.from_numpy(edges[0]),torch.from_numpy(edges[1]))) # Graph object
     G = to_default_device(dgl.add_self_loop(G))
 
-    edge_weights = torch.from_numpy(edge_weights).type(torch.float32)
+    edge_weights = torch.FloatTensor(edge_weights)
     edge_weights = to_default_device(torch.cat((edge_weights,torch.ones(G.number_of_nodes())),0))
 
     # Seastar expects inputs to be of format (edge_weight,1)
     edge_weights = torch.unsqueeze(edge_weights,1)
-    all_features = [to_default_device(torch.from_numpy(feature).type(torch.float32)) for feature in all_features]
-    all_targets = [to_default_device(torch.from_numpy(target).type(torch.float32)) for target in all_targets]
+    all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
+    all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
 
     # normalization
     degs = G.in_degrees().float()
@@ -109,7 +109,7 @@ def main(args):
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
     # model
-    model = to_default_device(SeastarGCNLayer(8,1,activation=None,dropout=None))
+    model = to_default_device(SeastarTGCN(G,8))
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -121,9 +121,8 @@ def main(args):
         cost = 0
         hidden_state = None
         optimizer.zero_grad()
-        for index, features in enumerate(train_features):
-            # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
-            y_hat = model(G, features, edge_weights)
+        for index in range(train_features.shape[0]):
+            y_hat, hidden_state = model(train_features[index], edge_weights, hidden_state)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)
         cost.backward()
@@ -131,21 +130,21 @@ def main(args):
 
     # evaluate
     print("Evaluating...\n")
-    model.eval()
-    cost = 0
+    # model.eval()
+    # cost = 0
 
-    predictions = []
-    true_y = []
+    # predictions = []
+    # true_y = []
 
-    for index, features in enumerate(test_features):
-        # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
-        y_hat = model(G, features, edge_weights)
-        cost = cost + torch.mean((y_hat-test_targets[index])**2)
-        predictions.append(y_hat)
-        true_y.append(test_targets[index])
-    cost = cost / (index+1)
-    cost = cost.item()
-    print("MSE: {:.4f}".format(cost))
+    # for index, features in enumerate(test_features):
+    #     # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
+    #     y_hat = model(G, features, edge_weights)
+    #     cost = cost + torch.mean((y_hat-test_targets[index])**2)
+    #     predictions.append(y_hat)
+    #     true_y.append(test_targets[index])
+    # cost = cost / (index+1)
+    # cost = cost.item()
+    # print("MSE: {:.4f}".format(cost))
 
 
 
