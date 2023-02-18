@@ -64,6 +64,8 @@ class Context():
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
         for k, v in edge_feats.items():
             self._input_cache[var_prefix+k] = v
+        # print("🔴 Input Cache")
+        # print(self._input_cache)
         self._executor_cache.restart(self._input_cache, graph_info if need_reset else None)
         self._entry_count += 1
         return self._executor_cache
