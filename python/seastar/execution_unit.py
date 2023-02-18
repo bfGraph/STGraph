@@ -271,7 +271,7 @@ class ExecutionUnit(object):
             col_indices = graph_info.out_col_indices.data
             eids = graph_info.out_eids.data
         self._K.reset_graph_info(graph_info.number_of_nodes, row_offsets, col_indices, eids)
-    @snoop
+
     def kernel_run(self, tensor_list):
         assert self._K, 'Must call prepare_compiled_kernel before call kernel_run.'
         self._K.run(tensor_list)
@@ -347,7 +347,6 @@ class Kernel():
         for i in range(4):
             self.const_kernel_ptrs[i] = c_void_p(addressof(self.const_kernel_args[i]))
 
-    @snoop
     def run(self, tensor_list):
         try:
             kernel_ptrs = [c_void_p(addressof(arg)) for arg in tensor_list] + self.const_kernel_ptrs

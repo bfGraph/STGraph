@@ -1,6 +1,21 @@
 import torch
 from .utils import is_const_scalar, ParallelMode
 import snoop
+from collections import deque
+
+class stack:
+    def __init__(self, val):
+        self.content = deque()
+        self.content.append(val)
+    
+    def push(self, val):
+        self.content.append(val)
+    
+    def pop(self):
+        return self.content.pop()
+    
+    def top(self):
+        return self.content[-1]
 
 class ExeState(object):
     def __init__(self):
@@ -25,7 +40,7 @@ class ExeState(object):
         #print('dependency map', self.dep_map)
         self.num_bunits = len(bunits)
         self.tensor_map.clear()
-        self.tensor_map = {key:val for key,val in input_map.items()}
+        self.tensor_map = {key: stack(val) for key,val in input_map.items()}
         self.executed_bunit.clear()
     
     def track_executed_bu(self, bu):
@@ -38,7 +53,11 @@ class ExeState(object):
         return len(self.executed_bunit) == self.num_bunits
     
     def track_tensor(self, key, val):
-        self.tensor_map[key] = val
+        
+        if key in self.tensor_map:
+            self.tensor_map[key].push(val)
+        else:
+            self.tensor_map[key] = stack(val)
     
     def clear_cache(self):
         rmv_list = []
@@ -198,17 +217,17 @@ class Executor(object):
                 self.execute_compiled(i, FuncWrapper)
             else:
                 self.execute_prog(unit)
-        ret = tuple([self.ts.tensor_map[ret.id] for ret in self._rets])
+        ret = tuple([self.ts.tensor_map[ret.id].top() for ret in self._rets])
         self.ts.clear_cache()
-        bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
+        # bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
         return  ret
     
     def create_tensor_for_vars(self, var_list):
-        ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
+        ret_tensors = {var.id : stack(self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
-                                               requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.tensor_map}
+                                               requires_grad=var.requires_grad)) for var in var_list if var.id not in self.ts.tensor_map}
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
 
     def execute_unit(self, unit, tensor_list):
@@ -222,7 +241,7 @@ class Executor(object):
         for unit in units:
             self.create_tensor_for_vars(unit.unit_rets())
         kernel_arg_list = units.kernel_arg_list()
-        ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id] for var in args])
+        ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id].top() for var in args])
         # Only the return values returned by the function will have grad_fn set properly.
         # Therefore we need to replace the tensors in self.tensor_map with the return values
         for i,ret in enumerate(rets):
@@ -233,8 +252,9 @@ class Executor(object):
         units = self.forward_exec_units[uid]
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
-        return tuple([self.ts.tensor_map[ret.id] for ret in rets])
+        return tuple([self.ts.tensor_map[ret.id].top() for ret in rets])
 
+    @snoop
     def backward_cb(self, kid, grad_list):
         '''FuncWrapper will call this function in backward pass'''
         # which backward kernel to call? un-executed kernel that has all dependency satisfied. 
@@ -254,21 +274,24 @@ class Executor(object):
                     continue
                 self.create_tensor_for_vars(bu.unit_rets())
 
-                self.execute_unit(bu, [self.ts.tensor_map[arg.id] for arg in bu.kernel_args()])
+                self.execute_unit(bu, [self.ts.tensor_map[arg.id].top() for arg in bu.kernel_args()])
                 for ret in bu.unit_rets():
                     # We track the bu.unit_rets as all of them are known after execute unit
                     self.ts.track_tensor(ret.id, self.ts.tensor_map[ret.id])
+                
+                for arg in bu.kernel_args():
+                    self.ts.tensor_map[arg.id].pop()
                 self.ts.track_executed_bu(bu)
             else:
                 # The backward pass of some forward unit may be splitted into compiled and uncompiled parts
                 self.execute_prog([bu])
 
-        ret = tuple([self.ts.tensor_map[grad.id] if grad != None else None for grad in arg_grads] + [None for grad in ret_grads])
-        if self.ts.all_bu_executed():
-            self.ts.tensor_map.clear()
+        ret = tuple([self.ts.tensor_map[grad.id].top() if grad != None else None for grad in arg_grads] + [None for grad in ret_grads])
+        # if self.ts.all_bu_executed():
+        #     self.ts.tensor_map.clear()
         return ret
 
     def execute_prog(self, units):
         for unit in  units:
             for stmt in unit.program:
-                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))
+                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.tensor_map[arg.id].top() if not is_const_scalar(arg) else arg for arg in stmt.args]))

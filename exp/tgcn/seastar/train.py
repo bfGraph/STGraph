@@ -108,16 +108,32 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split):]
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
+    # train_features = all_features[:2]
+    # train_targets = all_targets[:2]
+    # print("Features")
+    # print(train_features.shape)
+    # print(train_targets.shape)
+
     # model
     model = to_default_device(SeastarTGCN(G,8))
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    # metrics
+    dur = []
+    Used_memory = 0
+    cuda = True
+
     # train
     print("Training...\n")
-    model.train()
     for epoch in tqdm(range(args.num_epochs)):
+
+        model.train()
+        if cuda:
+            torch.cuda.synchronize()
+        t0 = time.time()
+
         cost = 0
         hidden_state = None
         optimizer.zero_grad()
@@ -125,26 +141,44 @@ def main(args):
             y_hat, hidden_state = model(train_features[index], edge_weights, hidden_state)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)
+
+        now_mem = torch.cuda.max_memory_allocated(0)
+        Used_memory = max(now_mem, Used_memory)
+
         cost.backward()
         optimizer.step()
 
+        if cuda:
+            torch.cuda.synchronize()
+
+        run_time_this_epoch = time.time() - t0
+
+        if epoch >= 3:
+            dur.append(run_time_this_epoch)
+
+        print('Epoch {:05d} | Time(s) {:.4f} | MSE {:.6f} | Used_Memory {:.6f} mb'.format(
+            epoch, run_time_this_epoch, cost, (now_mem * 1.0 / (1024**2))
+        ))
+
+    Used_memory /= (1024**3)
+    print('^^^{:6f}^^^{:6f}'.format(Used_memory, np.mean(dur)))
+
     # evaluate
     print("Evaluating...\n")
-    # model.eval()
-    # cost = 0
+    model.eval()
+    cost = 0
 
-    # predictions = []
-    # true_y = []
+    predictions = []
+    true_y = []
 
-    # for index, features in enumerate(test_features):
-    #     # y_hat, hidden_state = model(G, features, edge_weights, hidden_state)
-    #     y_hat = model(G, features, edge_weights)
-    #     cost = cost + torch.mean((y_hat-test_targets[index])**2)
-    #     predictions.append(y_hat)
-    #     true_y.append(test_targets[index])
-    # cost = cost / (index+1)
-    # cost = cost.item()
-    # print("MSE: {:.4f}".format(cost))
+    for index in range(test_features.shape[0]):
+        y_hat, hidden_state = model(test_features[index], edge_weights, hidden_state)
+        cost = cost + torch.mean((y_hat-test_targets[index])**2)
+        predictions.append(y_hat)
+        true_y.append(test_targets[index])
+    cost = cost / (index+1)
+    cost = cost.item()
+    print("MSE: {:.4f}".format(cost))
 
 
 
@@ -154,7 +188,7 @@ if __name__ == '__main__':
     register_data_args(parser)
 
     # COMMENT IF SNOOP IS TO BE ENABLED
-    # snoop.install(enabled=False)
+    snoop.install(enabled=False)
 
 
     parser.add_argument("--lr", type=float, default=1e-2,

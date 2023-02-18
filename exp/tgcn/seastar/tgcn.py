@@ -20,8 +20,6 @@ class SeastarGCNLayer(nn.Module):
         super(SeastarGCNLayer, self).__init__()
         self.g = g
         self.norm = self.g.ndata['norm']
-        print("Out Feats")
-        print(out_feats)
         self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_feats))
@@ -83,16 +81,14 @@ class SeastarTGCNCell(torch.nn.Module):
         # Update linear layer
         self.linear_z = torch.nn.Linear(2 * self.out_channels, self.out_channels)
 
-        self.test_linear_z = torch.nn.Linear(self.out_channels, self.out_channels)
-
         # Reset GCN layer
-        self.conv_r = SeastarGCNLayer(self.g, self.in_channels,self.out_channels,activation=F.relu)
+        self.conv_r = SeastarGCNLayer(self.g, self.in_channels,self.out_channels)
         
         # Reset linear layer
         self.linear_r = torch.nn.Linear(2 * self.out_channels, self.out_channels)
 
         # Candidate (Current Memory Content) GCN layer
-        self.conv_h = SeastarGCNLayer(self.g, self.in_channels,self.out_channels,activation=F.relu)
+        self.conv_h = SeastarGCNLayer(self.g, self.in_channels,self.out_channels)
 
         # Candidate linear layer
         self.linear_h = torch.nn.Linear(2 * self.out_channels, self.out_channels)
@@ -134,11 +130,10 @@ class SeastarTGCNCell(torch.nn.Module):
 
         H = self._set_hidden_state(X, H)
         Z = self._calculate_update_gate(X, edge_weight, H)
-        # R = self._calculate_reset_gate(X, edge_weight, H)
-        # H_tilde = self._calculate_candidate_state(X, edge_weight, H, R)
-        # H = self._calculate_hidden_state(Z, H, H_tilde)
-        # return H
-        return Z
+        R = self._calculate_reset_gate(X, edge_weight, H)
+        H_tilde = self._calculate_candidate_state(X, edge_weight, H, R)
+        H = self._calculate_hidden_state(Z, H, H_tilde)
+        return H
 
 class SeastarTGCN(torch.nn.Module):
   def __init__(self, g, node_features):
