@@ -3,17 +3,17 @@ from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque
 
-class stack:
-    def __init__(self, val):
+class Stack:
+    def __init__(self, val=None):
         self.content = deque()
-        self.content.append(val)
+        if val is not None:
+            self.content.append(val)
     
     def push(self, val):
         self.content.append(val)
     
     def pop(self):
-        val = self.content.pop()
-        del val
+        self.content.pop()
     
     def top(self):
         return self.content[-1]
@@ -27,13 +27,10 @@ class ExeState(object):
     def __init__(self):
 
         # contains tensors for all previous execution of nb_compute
-        self.tensor_map = {}
+        self.tensor_map_stack = Stack()
 
         # contains arg tensors for the current execution of nb_compute only
-        self.current_tensor_arg_map = {}
-
-        # contains current grad tensors
-        self.current_tensor_grad_map = {}
+        self.current_tensor_map = {}
 
         self.dep_map = {}
         self.executed_bunit = set()
@@ -54,7 +51,8 @@ class ExeState(object):
                     self.dep_map[arg.id] = 1
         #print('dependency map', self.dep_map)
         self.num_bunits = len(bunits)
-        self.current_tensor_arg_map = {key: val for key,val in input_map.items()}
+        # deletes all tensors that were previously stored here (verified)
+        self.current_tensor_map = {key: val for key,val in input_map.items()}
         self.executed_bunit.clear()
     
     def track_executed_bu(self, bu):
@@ -67,20 +65,16 @@ class ExeState(object):
         return len(self.executed_bunit) == self.num_bunits
     
     def track_tensor(self, key, val):
-        
-        if key in self.tensor_map:
-            self.tensor_map[key].push(val)
-        else:
-            self.tensor_map[key] = stack(val)
+            self.current_tensor_map[key] = val
     
-    def clear_cache(self):
-        rmv_list = []
-        for k in self.tensor_map:
-            if not k in self.dep_map:
-                rmv_list.append(k)
-        #print('clear cache', rmv_list, self.tensor_map.keys())
-        for k in rmv_list:
-            self.tensor_map.pop(k)
+    # def clear_cache(self):
+    #     rmv_list = []
+    #     for k in self.tensor_map:
+    #         if not k in self.dep_map:
+    #             rmv_list.append(k)
+    #     #print('clear cache', rmv_list, self.tensor_map.keys())
+    #     for k in rmv_list:
+    #         self.tensor_map.pop(k)
 
 class MergedUnit(object):
     def __init__(self, units):
@@ -179,11 +173,6 @@ class Executor(object):
             if u.compiled:
                 u.prepare_compiled_kernel(graph_info, compiled_module)
     
-    def clear_maps(self):
-        self.ts.current_tensor_grad_map.clear()
-        self.ts.current_tensor_arg_map.clear()
-        self.ts.tensor_map.clear()
-    
     def construct_backward_mappping(self, funits, bunits):
         ret = {}
         for mu in funits:
@@ -237,7 +226,7 @@ class Executor(object):
                 self.execute_compiled(i, FuncWrapper)
             else:
                 self.execute_prog(unit)
-        ret = tuple([self.ts.tensor_map[ret.id].top() for ret in self._rets])
+        ret = tuple([self.ts.current_tensor_map[ret.id] for ret in self._rets])
         
         # TODO: Will need to uncomment this one line
         # self.ts.clear_cache()
@@ -245,25 +234,31 @@ class Executor(object):
 
         # bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
+
+        self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+
+        # print("🔴 After ForwardProp status of tensor_map")
+        # for index in range(len(self.ts.tensor_map_stack.content)):
+        #     print("Index: {}".format(index))
+        #     print(self.ts.tensor_map_stack.content[index])
+
         return  ret
     
     def create_tensor_for_vars(self, var_list):
-        for var in var_list:
-            tensor_var = self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
+        ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
-                                               requires_grad=var.requires_grad)
-            if var.id in self.ts.tensor_map:
-                self.ts.tensor_map[var.id].push(tensor_var)
-            else:
-                self.ts.tensor_map[var.id] = stack(tensor_var)
-    
-    def add_arg_tensors(self,arg_list):
-        for arg in arg_list:
-            if arg.id in self.ts.tensor_map:
-                self.ts.tensor_map[arg.id].push(self.ts.current_tensor_arg_map[arg.id])
-            else:
-                self.ts.tensor_map[arg.id] = stack(self.ts.current_tensor_arg_map[arg.id])
+                                               requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.current_tensor_map}
+        self.ts.current_tensor_map = {**self.ts.current_tensor_map, **ret_tensors}
+
+    @snoop
+    def create_tensor_for_grad_vars(self, var_list, tensor_map):
+        ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
+                                               dtype=var.var_dtype,
+                                               device=var.device,
+                                               requires_grad=var.requires_grad) for var in var_list if var.id not in tensor_map}
+        tensor_map = {**tensor_map, **ret_tensors}
+        return tensor_map
 
     def execute_unit(self, unit, tensor_list):
         arg_ptr = [self.raw_ptr(arg) for arg in tensor_list]
@@ -274,11 +269,10 @@ class Executor(object):
         args = units.joint_args()
         rets =  units.joint_rets()
         for unit in units:
-            self.add_arg_tensors(unit.unit_args())
             self.create_tensor_for_vars(unit.unit_rets())
             
         kernel_arg_list = units.kernel_arg_list()
-        ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id].top() for var in args])
+        ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.current_tensor_map[var.id] for var in args])
         # Only the return values returned by the function will have grad_fn set properly.
         # Therefore we need to replace the tensors in self.tensor_map with the return values
         for i,ret in enumerate(rets):
@@ -291,11 +285,7 @@ class Executor(object):
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
 
-        # print("🔴 After ForwardProp status of tensor_map")
-        # for key, val in self.ts.tensor_map.items():
-        #     print("Key: {}".format(key))
-        #     val.print()
-        return tuple([self.ts.tensor_map[ret.id].top() for ret in rets])
+        return tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
 
     @snoop
     def backward_cb(self, kid, grad_list):
@@ -307,41 +297,37 @@ class Executor(object):
         rets = funits.joint_rets()
         inputs = funits.joint_inputs()
         ret_grads = [ret._grad for ret in rets] # ret_grads corresponds vars in grad_list
+        tensor_map = self.ts.tensor_map_stack.top()
+
         for i,grad in enumerate(ret_grads):
             # We track the ret_grads as its value is fixed to grad_list
-            self.ts.track_tensor(grad.id, grad_list[i])
+            tensor_map[grad.id] = grad_list[i]
         arg_grads = [arg._grad if arg in inputs and arg.requires_grad else None for arg in args] # arg_grads corresponds to the grads of funit.unit_args
         for bu in self.bulist:
             if bu.compiled:
                 # if self.ts.is_executed_bu(bu):
                 #     continue
-                self.create_tensor_for_vars(bu.unit_rets())
+                tensor_map = self.create_tensor_for_grad_vars(bu.unit_rets(),tensor_map)
 
-                self.execute_unit(bu, [self.ts.tensor_map[arg.id].top() for arg in bu.kernel_args()])
-                for ret in bu.unit_rets():
-                    # We track the bu.unit_rets as all of them are known after execute unit
-                    self.ts.current_tensor_grad_map[ret.id] = self.ts.tensor_map[ret.id].top()
+                self.execute_unit(bu, [tensor_map[arg.id] for arg in bu.kernel_args()])
                 
-                for arg in args:
-                    self.ts.tensor_map[arg.id].pop()
-                for ret in rets:
-                    self.ts.tensor_map[ret.id].pop()
                 # self.ts.track_executed_bu(bu)
             else:
                 # The backward pass of some forward unit may be splitted into compiled and uncompiled parts
                 self.execute_prog([bu])
 
-        ret = tuple([self.ts.current_tensor_grad_map[grad.id] if grad != None else None for grad in arg_grads] + [None for grad in ret_grads])
-        # if self.ts.all_bu_executed():
-        #     self.ts.tensor_map.clear()
+        ret = tuple([tensor_map[grad.id] if grad != None else None for grad in arg_grads] + [None for grad in ret_grads])
+        
+        del tensor_map
+        self.ts.tensor_map_stack.pop()
 
         # print("🔴 After Backprop status of tensor_map")
-        # for key, val in self.ts.tensor_map.items():
-        #     print("Key: {}".format(key))
-        #     val.print()
+        # for index in range(len(self.ts.tensor_map_stack.content)):
+        #     print("Index: {}".format(index))
+        #     print(self.ts.tensor_map_stack.content[index])
         return ret
 
     def execute_prog(self, units):
         for unit in  units:
             for stmt in unit.program:
-                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.tensor_map[arg.id].top() if not is_const_scalar(arg) else arg for arg in stmt.args]))
+                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.current_tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))
