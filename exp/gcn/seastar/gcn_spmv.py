@@ -44,6 +44,7 @@ class EglGCNLayer(nn.Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, h):
+        breakpoint()
         if self.dropout:
             h = self.dropout(h)
 
@@ -54,11 +55,16 @@ class EglGCNLayer(nn.Module):
             h = h * v.norm
             return h
         h = nb_compute(g=self.g, n_feats={'norm': self.norm, 'h' : h})
+        breakpoint()
+        # TODO: POSSIBLE ERROR
+        # h after forward is being just 0 for some reason
         # bias
+
+        # TODO: UNCOMMENT THIS PART
         if self.bias is not None:
             h = h + self.bias
-        if self.activation:
-            h = self.activation(h)
+        # if self.activation:
+            # h = self.activation(h)
         return h
 
 class EglGCN(nn.Module):
@@ -80,6 +86,8 @@ class EglGCN(nn.Module):
             self.layers.append(EglGCNLayer(g, n_hidden, n_hidden, activation, dropout))
         # output layer
         self.layers.append(EglGCNLayer(g, n_hidden, n_classes, None, dropout))
+        breakpoint()
+
 
     def forward(self, features):
         h = features

@@ -45,7 +45,13 @@ def main(args):
     features = np.load(path + 'features.npy')
     train_mask = np.load(path + 'train_mask.npy')
     labels = np.load(path + 'labels.npy')
-    
+
+    print("❤️")
+    # print(edges)
+    # print(features)
+    # print(train_mask)
+    # print(labels)
+
     num_edges = edges.shape[0]
     num_nodes = features.shape[0]
     num_feats = features.shape[1]
@@ -66,6 +72,8 @@ def main(args):
 
     else:
         train_mask = torch.ByteTensor(train_mask)
+
+    print(f'🪲 Train mask: {train_mask}')
 
     if args.gpu < 0:
         cuda = False

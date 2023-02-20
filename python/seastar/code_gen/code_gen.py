@@ -1,5 +1,6 @@
 from .template import gen_cuda, EdgeInfo, AggInfo, ArgInfo, NodeInfo
 from ..utils import is_const_scalar, ParallelMode
+from ..debugging.pp_kernel_function import store_kernel_argument_names
 
 const_id = 0
 def gen_arg_info(arg):
@@ -72,4 +73,8 @@ def gen_code(exe_units, index_type):
             'init_inner_offset': (ctx.src_var_offset_init if dst_parallel else ctx.dst_var_offset_init) + ctx.edge_var_offset_init,
             'template_name': ctx.template_name,
         })
+
+    # breakpoint()
+    for config in configs:
+        store_kernel_argument_names(config['kernel_name'], config['args'], config['template_name'])
     return gen_cuda(configs)

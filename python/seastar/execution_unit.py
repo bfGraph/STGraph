@@ -1,5 +1,10 @@
+import sys
 import math
+
 import snoop
+# TODO: remove
+import numpy as np
+np.set_printoptions(threshold=sys.maxsize)
 
 # from .code_gen.cuda_driver import *
 from .code_gen.cuda_python.cuda_driver import *
@@ -7,9 +12,7 @@ from .code_gen.cuda_python.cuda_error import ASSERT_DRV
 from .code_gen.cuda_python.cuda_helper import copy_arguments_to_gpu
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
-
-# TODO: remove
-import numpy as np
+from .debugging.pp_kernel_function import pp_kernel_function
 
 class ExecutionUnit(object):
     unit_count = 0
@@ -386,7 +389,9 @@ class Kernel():
         ASSERT_DRV(err)
 
         kernel_arguments, result_vector_info = copy_arguments_to_gpu(argument_list, stream)
-        
+
+        pp_kernel_function(self, argument_list)
+
         err, = cuLaunchKernel(
             self.kernel_function,
             self.launch_config[0],
@@ -409,9 +414,12 @@ class Kernel():
         err, = cuMemcpyDtoHAsync(host_V2.ctypes.data, V2_class, V2_size, stream)
         err, = cuStreamSynchronize(stream)
 
-        print(host_V2)
+        host_V2 = np.array(host_V2)
 
+        print(host_V2)
         breakpoint()
+
+        # breakpoint()
 
 
 # NOTE: Original Code
@@ -446,6 +454,7 @@ class FeatureAdaptiveKernel(Kernel):
 
         # TODO: Maybe make self.const_kernel_ptrs
 
+        self.kernel_name = kernel_name
         err, self.kernel_function = cuModuleGetFunction(compiled_module, kernel_name.encode("utf-8"))
         ASSERT_DRV(err)
         

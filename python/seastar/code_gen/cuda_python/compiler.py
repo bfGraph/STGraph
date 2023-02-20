@@ -41,6 +41,7 @@ def compile_with_cuda_python(cuda_code):
 
 def compile_cuda(cuda_code):
 
+    print(cuda_code)
     ptx = compile_with_cuda_python(cuda_code)
 
     err, module = cuModuleLoadData(ptx.ctypes.data)
