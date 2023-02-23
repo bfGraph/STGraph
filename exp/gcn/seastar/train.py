@@ -46,8 +46,6 @@ def main(args):
     train_mask = np.load(path + 'train_mask.npy')
     labels = np.load(path + 'labels.npy')
 
-    # breakpoint()
-
     print("❤️")
     # print(edges)
     # print(features)
@@ -140,7 +138,6 @@ def main(args):
         t0 = time.time()
         # forward
         logits = model(features)
-        # breakpoint()
         loss = loss_fcn(logits[train_mask], labels[train_mask])
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)

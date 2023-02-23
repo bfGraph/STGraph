@@ -2,8 +2,6 @@ import torch
 from .utils import is_const_scalar, ParallelMode
 import snoop
 
-from .code_gen.cuda_python.cuda_result import *
-
 class ExeState(object):
     def __init__(self):
         self.tensor_map = {}
@@ -196,31 +194,22 @@ class Executor(object):
     
     def execute(self, FuncWrapper):
         ''' Execute forward pass'''
-
-        init_result_tensors(self._rets)
-        display_result_tensors()
-
         for i,unit in enumerate(self.forward_exec_units):
             if unit.last().compiled:
                 self.execute_compiled(i, FuncWrapper)
             else:
                 self.execute_prog(unit)
-        
-        # breakpoint()
         ret = tuple([self.ts.tensor_map[ret.id] for ret in self._rets])
         self.ts.clear_cache()
         bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
-        return ret
+        return  ret
     
     def create_tensor_for_vars(self, var_list):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.tensor_map}
-
-        update_result_tensors(ret_tensors)
-        # breakpoint()
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
     # NOTE: Original Code
     # def execute_unit(self, unit, tensor_list):
@@ -229,37 +218,25 @@ class Executor(object):
     #     unit.kernel_run(arg_ptr)
 
     def execute_unit(self, unit, tensor_list):
-        # breakpoint()
         unit.kernel_run(tensor_list)
 
     def execute_compiled(self, uid, FuncWrapper):
         units = self.forward_exec_units[uid]
         args = units.joint_args()
         rets =  units.joint_rets()
-
-        # TODO: Continue from here
-        # breakpoint()
         for unit in units:
             self.create_tensor_for_vars(unit.unit_rets())
         kernel_arg_list = units.kernel_arg_list()
         ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id] for var in args])
-
-        for ret_tensor_name, ret_tensor in cuda_result_tensors.items():
-            self.ts.track_tensor(ret_tensor_name, ret_tensor)
-
-        # breakpoint()
-
         # Only the return values returned by the function will have grad_fn set properly.
         # Therefore we need to replace the tensors in self.tensor_map with the return values
-        # breakpoint()
-        # for i,ret in enumerate(rets):
-        #     self.ts.track_tensor(ret.id, ret_tensors[i])
+        for i,ret in enumerate(rets):
+            self.ts.track_tensor(ret.id, ret_tensors[i])
     
     @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
         '''FuncWrapper will call this function in forward pass'''
         units = self.forward_exec_units[uid]
-        # breakpoint()
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
         return tuple([self.ts.tensor_map[ret.id] for ret in rets])

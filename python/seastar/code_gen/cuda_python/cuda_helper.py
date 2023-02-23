@@ -2,7 +2,6 @@ from cuda import cuda, nvrtc
 import numpy as np
 
 from .cuda_error import ASSERT_DRV
-from .cuda_result import *
 
 def createNpArray(array, element_type):
     """
@@ -70,38 +69,25 @@ def get_kernel_args(arg_list):
     """
     return np.array([arg.ctypes.data for arg in arg_list], dtype=np.uint64)
 
-def copy_arguments_to_gpu(kernel_name, argument_list, stream):
-
-    # breakpoint()
-
-    ret_tensor_indices = get_kernel_ret_tensor_indices(kernel_name)
-    # breakpoint()
+def copy_arguments_to_gpu(argument_list, stream):
 
     graph_vector_arguments = argument_list[:-8]
     graph_csr_arguments = argument_list[-8:-5]
     scalar_arguments = argument_list[-5:]
 
     kernel_arguments = []
-    result_tensor_info = []
+    result_vector_info = []
 
     # copying graph vector arguments to GPU Device
     for argument in graph_vector_arguments:
         # breakpoint()
         host_argument, host_argument_size = createNpArray(argument.flatten().tolist(), np.float32)
         device_argument, argument_class = allocAndCopyToDevice(host_argument, host_argument_size, stream)
-
-        # storing return tensor info
-        if len(kernel_arguments) in ret_tensor_indices:
-            arg_index = len(kernel_arguments)
-            ret_tensor_info = (
-                get_kernel_arg_name_from_index(kernel_name, arg_index),
-                host_argument,
-                argument_class,
-                host_argument_size
-            )
-            result_tensor_info.append(ret_tensor_info)
-
         kernel_arguments.append(device_argument)
+
+        # DEBUG: Trying to check values stored in V2
+        if len(kernel_arguments) == 4:
+            result_vector_info = [host_argument, argument_class, host_argument_size]
 
     # copying graph csr arguments to GPU Device
     for argument in graph_csr_arguments:
@@ -119,4 +105,4 @@ def copy_arguments_to_gpu(kernel_name, argument_list, stream):
     # to the kernel function call
     kernel_arguments = get_kernel_args(kernel_arguments)
 
-    return kernel_arguments, result_tensor_info
+    return kernel_arguments, result_vector_info
