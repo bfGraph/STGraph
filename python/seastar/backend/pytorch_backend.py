@@ -1,11 +1,14 @@
 import torch
 import snoop
 
+# TODO: GO THRU THIS MODULE
+
 class KernelWrapper(torch.autograd.Function):
     @staticmethod
     def forward(ctx, executor, kid, kernel_args, rets, *args):
         ctx.backward_cache = executor, kid
         ret = executor.forward_cb(kid, kernel_args, rets, args)
+        # breakpoint()
         return ret
 
     @staticmethod

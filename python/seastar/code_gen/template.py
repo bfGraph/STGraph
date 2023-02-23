@@ -4,6 +4,7 @@ from collections import namedtuple
 
 # from .compiler import compile_cuda
 from .cuda_python.compiler import compile_cuda
+from .cuda_python.cuda_result import get_kernel_tensor_args_indices
 
 header_tpl = Template(
 """
@@ -125,8 +126,16 @@ AggInfo = namedtuple('AggInfo', ['init', 'compute', 'inner_write', 'outter_write
 
 # TODO: Add documentation
 def gen_cuda(configs):
+
     kernel_cuda_code = ""
     for config in configs:
+
+        kernel_name = config['kernel_name']
+        kernel_args = config['args']
+        get_kernel_tensor_args_indices(kernel_name, kernel_args)
+
+        # breakpoint()
+
         template_name = config['template_name']
         if template_name == 'fa':
             rendered_template = tpl_fa.render(**config)

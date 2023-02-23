@@ -11,6 +11,8 @@ from .code_gen.cuda_python.cuda_driver import *
 from .code_gen.cuda_python.cuda_error import ASSERT_DRV
 from .code_gen.cuda_python.cuda_helper import copy_arguments_to_gpu
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
+from .code_gen.cuda_python.cuda_result import create_result_tensor_from_array
+from .code_gen.cuda_python.device_info import DeviceInfo
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 from .debugging.pp_kernel_function import pp_kernel_function
 
@@ -280,6 +282,7 @@ class ExecutionUnit(object):
         self._K.reset_graph_info(graph_info.number_of_nodes, row_offsets, col_indices, eids)
     @snoop
     def kernel_run(self, tensor_list):
+        # breakpoint()
         assert self._K, 'Must call prepare_compiled_kernel before call kernel_run.'
         self._K.run(tensor_list)
     
@@ -382,15 +385,18 @@ class Kernel():
     #         raise e
 
     def run(self, tensor_list):
-    
+
         argument_list = tensor_list + self.const_kernel_args
+        pp_kernel_function(self, argument_list)
 
         err, stream = cuStreamCreate(0)
         ASSERT_DRV(err)
 
-        kernel_arguments, result_vector_info = copy_arguments_to_gpu(argument_list, stream)
+        kernel_arguments, result_tensor_info = copy_arguments_to_gpu(self.kernel_name, argument_list, stream)
+        # breakpoint()
 
-        pp_kernel_function(self, argument_list)
+
+        # breakpoint()
 
         err, = cuLaunchKernel(
             self.kernel_function,
@@ -406,18 +412,41 @@ class Kernel():
             0
         )
 
+        ASSERT_DRV(err)
+
+        for ret_tensor_name, host_tensor, tensor_class, tensor_size in result_tensor_info:
+            # current_gpu_device = DeviceInfo()
+            # current_gpu_device.log()
+            # breakpoint()
+            err, = cuMemcpyDtoHAsync(host_tensor.ctypes.data, tensor_class, tensor_size, stream)
+            # current_gpu_device.log()
+            ASSERT_DRV(err)
+
+            err, = cuStreamSynchronize(stream)
+            ASSERT_DRV(err)
+
+            print(f'{ret_tensor_name}')
+            print(host_tensor)
+            create_result_tensor_from_array(ret_tensor_name, host_tensor)
+            # breakpoint()
+            # err, = cuda.cuMemFree(tensor_class)
+            # ASSERT_DRV(err)
+
+        err, = cuda.cuStreamDestroy(stream)
+        ASSERT_DRV(err)
+
         # DEBUG: Viewing result stored in V2
-        host_V2 = result_vector_info[0]
-        V2_class = result_vector_info[1]
-        V2_size = result_vector_info[2]
+        # host_V2 = result_vector_info[0]
+        # V2_class = result_vector_info[1]
+        # V2_size = result_vector_info[2]
 
-        err, = cuMemcpyDtoHAsync(host_V2.ctypes.data, V2_class, V2_size, stream)
-        err, = cuStreamSynchronize(stream)
+        # err, = cuMemcpyDtoHAsync(host_V2.ctypes.data, V2_class, V2_size, stream)
+        # err, = cuStreamSynchronize(stream)
 
-        host_V2 = np.array(host_V2)
+        # host_V2 = np.array(host_V2)
 
-        print(host_V2)
-        breakpoint()
+        # print(host_V2)
+        # breakpoint()
 
         # breakpoint()
 
@@ -455,6 +484,7 @@ class FeatureAdaptiveKernel(Kernel):
         # TODO: Maybe make self.const_kernel_ptrs
 
         self.kernel_name = kernel_name
+        breakpoint()
         err, self.kernel_function = cuModuleGetFunction(compiled_module, kernel_name.encode("utf-8"))
         ASSERT_DRV(err)
         

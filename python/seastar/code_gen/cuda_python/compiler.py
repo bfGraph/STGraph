@@ -8,6 +8,7 @@ from .cuda_error import ASSERT_DRV
 CU_PATH='./egl_kernel.cu'
 PTX_PATH='./egl_kernel.ptx'
 
+
 def compile_with_cuda_python(cuda_code):
 
     # writing the CUDA Kernel source code
