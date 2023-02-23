@@ -1,6 +1,8 @@
 import torch
-from .utils import is_const_scalar, ParallelMode
 import snoop
+
+from .utils import is_const_scalar, ParallelMode
+from .code_gen.cuda_python.cuda_result import init_result_tensors, free_result_tensors
 
 class ExeState(object):
     def __init__(self):
@@ -194,6 +196,9 @@ class Executor(object):
     
     def execute(self, FuncWrapper):
         ''' Execute forward pass'''
+
+        # init_result_tensors(self._rets)
+
         for i,unit in enumerate(self.forward_exec_units):
             if unit.last().compiled:
                 self.execute_compiled(i, FuncWrapper)
@@ -213,7 +218,7 @@ class Executor(object):
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
     # NOTE: Original Code
     # def execute_unit(self, unit, tensor_list):
-    #     breakpoint()
+    #     ()
     #     arg_ptr = [self.raw_ptr(arg) for arg in tensor_list]
     #     unit.kernel_run(arg_ptr)
 
@@ -225,13 +230,21 @@ class Executor(object):
         args = units.joint_args()
         rets =  units.joint_rets()
         for unit in units:
+            init_result_tensors(list(unit._rets))
             self.create_tensor_for_vars(unit.unit_rets())
         kernel_arg_list = units.kernel_arg_list()
         ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id] for var in args])
         # Only the return values returned by the function will have grad_fn set properly.
         # Therefore we need to replace the tensors in self.tensor_map with the return values
+
+        # NOTE: This is where the return values are updated in the
+        # tensor map. So all we have to do is create the return tensor
+        # after getting the output from the CUDA code and save it
+        # in the tensor_map using this function
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
+
+        free_result_tensors()
     
     @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):

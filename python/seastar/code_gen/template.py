@@ -110,7 +110,7 @@ AggInfo = namedtuple('AggInfo', ['init', 'compute', 'inner_write', 'outter_write
 # TODO: ORIGINAL gen_cuda() function
 # def gen_cuda(configs):
 #     h = ''
-#     breakpoint()
+#     ()
 #     for config in configs:
 #         if config['template_name'] == 'fa':
 #             rendered_tpl = tpl_fa.render(**config)
@@ -125,6 +125,7 @@ AggInfo = namedtuple('AggInfo', ['init', 'compute', 'inner_write', 'outter_write
 
 # TODO: Add documentation
 def gen_cuda(configs):
+
     kernel_cuda_code = ""
     for config in configs:
         template_name = config['template_name']

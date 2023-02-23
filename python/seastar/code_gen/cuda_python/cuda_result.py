@@ -11,19 +11,39 @@ import torch
 
 from ...program import Var
 
+# Dictionary with key-value pair: (tensor_name, tensor_value)
+# stores information about return tensor for all kernels
+# tensor_name is the name of the return tensor
+# tensor_value is a tensor
 cuda_result_tensors = {}
-# cuda_ret_tensor_index = {}
+
+
 cuda_kernel_tensor_args_index = {}
 
 def init_result_tensors(return_vars: list[Var]):
-    """
-        TODO: Add docs
-    """
+    """ Initialises the cuda_result_tensor dictionary
+    
+        Initialises the cuda_result_tensor dictionary for the current
+        kernel by setting the value to None.
 
+        If a certain kernel K0 has V2 as its return tensor, then 
+        cuda_result_tensor would look like {'V2': None}
+    """
     return_var: Var
     for return_var in return_vars:
         var_id = return_var.id
         cuda_result_tensors[var_id] = None
+
+    breakpoint()
+
+def free_result_tensors():
+    """ De-initialises the cuda_result_tensor dictionary
+    
+        To free up space after a single kernel execution and
+        the resulting tensor results are stored back in
+        tensor_map
+    """
+    cuda_result_tensors.clear()
 
 def display_result_tensors():
     print(cuda_result_tensors)
@@ -33,7 +53,7 @@ def update_result_tensors(return_tensors: dict):
         TODO: Add docs
     """
     for tensor_name, tensor in return_tensors.items():
-        # breakpoint()
+        # ()
         cuda_result_tensors[tensor_name] = tensor
 
     # print("🎲 cuda_result_tensor has been updated: ")

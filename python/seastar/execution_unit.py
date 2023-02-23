@@ -345,7 +345,7 @@ class ExecutionUnit(object):
 
 class Kernel():
     # def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
-    #     breakpoint()
+    #     ()
     #     self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
     #     self.const_kernel_args[1] = c_void_p(eids.data_ptr())
     #     self.const_kernel_args[2] = c_void_p(col_indices.data_ptr())
@@ -363,7 +363,7 @@ class Kernel():
 
     # NOTE: Original Code
     # def run(self, tensor_list):
-    #     breakpoint()
+    #     ()
     #     try:
     #         kernel_ptrs = [c_void_p(addressof(arg)) for arg in tensor_list] + self.const_kernel_ptrs
     #         params =  (c_void_p * len(kernel_ptrs))(*kernel_ptrs)
@@ -390,7 +390,7 @@ class Kernel():
 
         kernel_arguments, result_vector_info = copy_arguments_to_gpu(argument_list, stream)
 
-        pp_kernel_function(self, argument_list)
+        # pp_kernel_function(self, argument_list)
 
         err, = cuLaunchKernel(
             self.kernel_function,
@@ -416,10 +416,10 @@ class Kernel():
 
         host_V2 = np.array(host_V2)
 
-        print(host_V2)
-        breakpoint()
+        # print(host_V2)
+        # ()
 
-        # breakpoint()
+        # ()
 
 
 # NOTE: Original Code

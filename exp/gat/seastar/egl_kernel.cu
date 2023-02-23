@@ -1,5 +1,5 @@
 
-extern "C" __global__ void K0(float *Velinb, float *Vercen, float *V2, float *V3, 
+extern "C" __global__ void K4(float *Velinb, float *Vercen, float *V36, float *V37, 
   int *row_offsets,
   int *eids,
   int *column_indices,
@@ -15,33 +15,33 @@ extern "C" __global__ void K0(float *Velinb, float *Vercen, float *V2, float *V3
         int end = __ldg(row_offsets + dst_id + 1);
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
-            float V3_tmp = 0;
-            int offset1 = dst_id * 8 + tx;
+            float V37_tmp = 0;
+            int offset0 = dst_id * 1 + tx;
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset0 = src_id * 8 + tx;int offset2 = eid * 8 + tx;
+                int offset1 = src_id * 1 + tx;int offset2 = eid * 1 + tx;
                 
                 
-                float V0_tmp = Velinb[offset0] + Vercen[offset1];
+                float V34_tmp = Velinb[offset1] + Vercen[offset0];
                 
                 
-                float V1_tmp=V0_tmp>0?V0_tmp:0.2*V0_tmp;
+                float V35_tmp=V34_tmp>0?V34_tmp:0.2*V34_tmp;
                 
                 
-                float V2_tmp = exp(V1_tmp);
-                V2[offset2] = V2_tmp;
+                float V36_tmp = exp(V35_tmp);
+                V36[offset2] = V36_tmp;
                 
-                V3_tmp += V2_tmp;
+                V37_tmp += V36_tmp;
                 
             }
             
-            V3[offset1] = V3_tmp;
+            V37[offset0] = V37_tmp;
             
         }
     }
 }
-extern "C" __global__ void K1(float *V2, float *V3, float *Vfeat_srcinb, float *V6, 
+extern "C" __global__ void K5(float *V36, float *V37, float *Vfeat_srcinb, float *V40, 
   int *row_offsets,
   int *eids,
   int *column_indices,
@@ -57,30 +57,30 @@ extern "C" __global__ void K1(float *V2, float *V3, float *Vfeat_srcinb, float *
         int end = __ldg(row_offsets + dst_id + 1);
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
-            float V6_tmp = 0;
-            int offset1 = dst_id * 8 + tx;
+            float V40_tmp = 0;
+            int offset0 = dst_id * 1 + tx/2;int offset3 = dst_id * 2 + tx;
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset2 = src_id * 8 + tx;int offset0 = eid * 8 + tx;
+                int offset2 = src_id * 2 + tx;int offset1 = eid * 1 + tx/2;
                 
                 
-                float V4_tmp = V2[offset0]/V3[offset1];
+                float V38_tmp = V36[offset1]/V37[offset0];
                 
                 
-                float V5_tmp = V4_tmp*Vfeat_srcinb[offset2];
+                float V39_tmp = V38_tmp*Vfeat_srcinb[offset2];
                 
                 
-                V6_tmp += V5_tmp;
+                V40_tmp += V39_tmp;
                 
             }
             
-            V6[offset1] = V6_tmp;
+            V40[offset3] = V40_tmp;
             
         }
     }
 }
-extern "C" __global__ void K2(float *V2, float *V3, float *V6, float *V7, float *Velinb, float *Vercen, float *Vfeat_srcinb, float *V11, float *V25, float *V27, 
+extern "C" __global__ void K6(float *V36, float *V37, float *V40, float *V41, float *Velinb, float *Vercen, float *Vfeat_srcinb, float *V46, float *V60, float *V62, 
   int *row_offsets,
   int *eids,
   int *column_indices,
@@ -96,64 +96,64 @@ extern "C" __global__ void K2(float *V2, float *V3, float *V6, float *V7, float 
         int end = __ldg(row_offsets + src_id + 1);
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
-            float V25_tmp = 0;float V27_tmp = 0;float V11_tmp = 0;
-            int offset2 = src_id * 8 + tx;
+            float V60_tmp = 0;float V62_tmp = 0;float V46_tmp = 0;
+            int offset3 = src_id * 1 + tx/2;int offset4 = src_id * 2 + tx;
             for (int e=beg;e<end;++e) {
                 int dst_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset1 = dst_id * 8 + tx;int offset0 = eid * 8 + tx;
+                int offset0 = dst_id * 1 + tx/2;int offset2 = dst_id * 2 + tx;int offset1 = eid * 1 + tx/2;
                 
                 
-                float V4_tmp = V2[offset0]/V3[offset1];
+                float V38_tmp = V36[offset1]/V37[offset0];
                 
                 
-                float V10_tmp = V7[offset1]*V4_tmp;
+                float V45_tmp = V41[offset2]*V38_tmp;
                 
                 
-                float V0_tmp = Velinb[offset2] + Vercen[offset1];
+                float V34_tmp = Velinb[offset3] + Vercen[offset0];
                 
                 
-                float V9_tmp = V7[offset1]*Vfeat_srcinb[offset2];
+                float V43_tmp = V41[offset2]*Vfeat_srcinb[offset4];
                 
                 
-                float V12_tmp = 1/V3[offset1];
+                float V47_tmp = 1/V37[offset0];
                 
                 
-                float V13_tmp = V9_tmp*V12_tmp;
+                float V48_tmp = V43_tmp*V47_tmp;
                 
                 
-                float V14_tmp = V7[offset1]/V3[offset1];
+                float V49_tmp = V41[offset2]/V37[offset0];
                 
                 
-                float V15_tmp = V14_tmp*V6[offset1];
+                float V50_tmp = V49_tmp*V40[offset2];
                 
                 
-                float V16_tmp = -1*V15_tmp;
+                float V51_tmp = -1*V50_tmp;
                 
                 
-                float V20_tmp = V13_tmp + V16_tmp;
+                float V55_tmp = V48_tmp + V51_tmp;
                 
                 
-                float V21_tmp = V20_tmp*V2[offset0];
+                float V56_tmp = V55_tmp*V36[offset1];
                 
                 
-                float V22_tmp = V0_tmp>0?1:0.2;
+                float V57_tmp = V34_tmp>0?1:0.2;
                 
                 
-                float V23_tmp = V21_tmp*V22_tmp;
+                float V58_tmp = V56_tmp*V57_tmp;
                 
                 
-                V25_tmp += V23_tmp;
+                V60_tmp += V58_tmp;
                 
-                V27_tmp = V23_tmp;
-                atomicAdd(V27+offset1, V27_tmp);
-                V11_tmp += V10_tmp;
+                V62_tmp = V58_tmp;
+                atomicAdd(V62+offset0, V62_tmp);
+                V46_tmp += V45_tmp;
                 
             }
             
-            V25[offset2] = V25_tmp;
+            atomicAdd(V60+offset3, V60_tmp);
             
-            V11[offset2] = V11_tmp;
+            V46[offset4] = V46_tmp;
             
         }
     }

@@ -80,7 +80,7 @@ def copy_arguments_to_gpu(argument_list, stream):
 
     # copying graph vector arguments to GPU Device
     for argument in graph_vector_arguments:
-        # breakpoint()
+        # ()
         host_argument, host_argument_size = createNpArray(argument.flatten().tolist(), np.float32)
         device_argument, argument_class = allocAndCopyToDevice(host_argument, host_argument_size, stream)
         kernel_arguments.append(device_argument)
@@ -91,7 +91,7 @@ def copy_arguments_to_gpu(argument_list, stream):
 
     # copying graph csr arguments to GPU Device
     for argument in graph_csr_arguments:
-        # breakpoint()
+        # ()
         host_argument, host_argument_size = createNpArray(argument.flatten().tolist(), np.int32)
         device_argument, argument_class = allocAndCopyToDevice(host_argument, host_argument_size, stream)
         kernel_arguments.append(device_argument)
