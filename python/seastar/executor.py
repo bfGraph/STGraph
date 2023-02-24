@@ -160,6 +160,8 @@ class Executor(object):
                                 ret[arg] = bu
         for k, v in ret.items():
             print('k', k, 'v', v.kernel_name)
+            init_result_tensors(v._kernel_name, list(v._rets)) 
+
         return ret
     
     def merge_units(self, exec_units):
@@ -230,7 +232,7 @@ class Executor(object):
         args = units.joint_args()
         rets =  units.joint_rets()
         for unit in units:
-            init_result_tensors(list(unit._rets))
+            init_result_tensors(unit._kernel_name, list(unit._rets))
             self.create_tensor_for_vars(unit.unit_rets())
         kernel_arg_list = units.kernel_arg_list()
         ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id] for var in args])
@@ -244,7 +246,8 @@ class Executor(object):
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
 
-        free_result_tensors()
+        # TODO: FIX CALLING OF free_result_tensor at the right place
+        # free_result_tensors()
     
     @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
@@ -264,6 +267,9 @@ class Executor(object):
         rets = funits.joint_rets()
         inputs = funits.joint_inputs()
         ret_grads = [ret._grad for ret in rets] # ret_grads corresponds vars in grad_list
+
+        # breakpoint()
+
         for i,grad in enumerate(ret_grads):
             # We track the ret_grads as its value is fixed to grad_list
             self.ts.track_tensor(grad.id, grad_list[i])

@@ -388,7 +388,7 @@ class Kernel():
         err, stream = cuStreamCreate(0)
         ASSERT_DRV(err)
 
-        kernel_arguments, result_vector_info = copy_arguments_to_gpu(argument_list, stream)
+        kernel_arguments, result_vector_info = copy_arguments_to_gpu(self.kernel_name, argument_list, stream)
 
         # pp_kernel_function(self, argument_list)
 

@@ -16,7 +16,7 @@ extern "C" __global__ void K2(float *Vhinb, float *Vnormcen, float *Vnorminb, fl
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
             float V9_tmp = 0;
-            int offset2 = dst_id * 1 + tx/2;int offset3 = dst_id * 2 + tx;
+            int offset2 = dst_id * 2 + tx;int offset3 = dst_id * 1 + tx/2;
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
@@ -32,7 +32,7 @@ extern "C" __global__ void K2(float *Vhinb, float *Vnormcen, float *Vnorminb, fl
             
             
             
-            float V10_tmp = V9_tmp*Vnormcen[offset2];V10[offset3] = V10_tmp;
+            float V10_tmp = V9_tmp*Vnormcen[offset3];V10[offset2] = V10_tmp;
         }
     }
 }
@@ -57,10 +57,10 @@ extern "C" __global__ void K3(float *V11, float *Vnormcen, float *Vnorminb, floa
             for (int e=beg;e<end;++e) {
                 int dst_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset0 = dst_id * 1 + tx/2;int offset1 = dst_id * 2 + tx;
+                int offset0 = dst_id * 2 + tx;int offset1 = dst_id * 1 + tx/2;
                 
                 
-                float V12_tmp = V11[offset1]*Vnormcen[offset0];
+                float V12_tmp = V11[offset0]*Vnormcen[offset1];
                 
                 
                 V14_tmp += V12_tmp;

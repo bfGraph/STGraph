@@ -15,12 +15,29 @@ from ...program import Var
 # stores information about return tensor for all kernels
 # tensor_name is the name of the return tensor
 # tensor_value is a tensor
+# {
+#   kernel_name: {
+#       tensor_name: tensor_value,
+#       ...
+#   },
+#   ...
+# }
 cuda_result_tensors = {}
 
+# A dictionary with the following structure:
+# {
+#   "kernel_name" : {
+#       "arg1" : arg1_index,
+#       "arg2" : arg2_index,
+#               .
+#               .
+#               .                
+#   },
+#   . . .
+# }
+cuda_kernel_args_index = {}
 
-cuda_kernel_tensor_args_index = {}
-
-def init_result_tensors(return_vars: list[Var]):
+def init_result_tensors(kernel_name: str, return_vars: list[Var]):
     """ Initialises the cuda_result_tensor dictionary
     
         Initialises the cuda_result_tensor dictionary for the current
@@ -28,13 +45,25 @@ def init_result_tensors(return_vars: list[Var]):
 
         If a certain kernel K0 has V2 as its return tensor, then 
         cuda_result_tensor would look like {'V2': None}
+
+        Arguments:
+            kernel_name: str
+                name of the kernel
+
+            return_vars (list[Program.Var]):
+                A python list containing Var objects, in this
+                case it is the return arguments of a kernel
+
+        Returns:
+            None
     """
+    kernel_result_tensors = {}
     return_var: Var
     for return_var in return_vars:
         var_id = return_var.id
-        cuda_result_tensors[var_id] = None
+        kernel_result_tensors[var_id] = None
 
-    breakpoint()
+    cuda_result_tensors[kernel_name] = kernel_result_tensors
 
 def free_result_tensors():
     """ De-initialises the cuda_result_tensor dictionary
@@ -59,10 +88,32 @@ def update_result_tensors(return_tensors: dict):
     # print("🎲 cuda_result_tensor has been updated: ")
     # display_result_tensors()
 
-def get_kernel_tensor_args_indices(kernel_name, arg_list):
+def create_kernel_args_indices(kernel_name, arg_list):
+    """ Gets argument indices for given kernel
+    
+        Forms a dictionary with named tensor_indices with
+        key-value pair (tensor_name, tensor_indices), which is
+        the argument name and it's index in the argument list
+        of the kernel.
+
+        tensor_indices is then added to cuda_kernel_args_index
+        which contains all the argument indices information of 
+        all the kernels.
+
+        Arguments:
+            kernel_name (str):
+                Name of the kernel
+            
+            arg_list (list[ArgInfo]):
+                Python list containing argument information
+                of the kernel
+
+        Returns:
+            None
     """
-        TODO: Add documentation
-    """
+
+    if kernel_name in cuda_kernel_args_index.keys():
+        return None
 
     tensor_indices = {}
 
@@ -70,21 +121,34 @@ def get_kernel_tensor_args_indices(kernel_name, arg_list):
         tensor_name = arg.name
         tensor_indices[tensor_name] = index
 
-    cuda_kernel_tensor_args_index[kernel_name] = tensor_indices
+    cuda_kernel_args_index[kernel_name] = tensor_indices
 
-    # print("🎲 Tensor indices created: ")
-    # print(cuda_kernel_tensor_args_index)
+def get_kernel_ret_indices(kernel_name):
+    """ Get index of return arguments in a kernel
+    
+        In a given kernel, it returns a list of indices which
+        corresponds to the index of each return argument in a 
+        kernel function in the same order it is mentioned in 
+        the kernel argument list.
 
-def get_kernel_ret_tensor_indices(kernel_name):
-    tensor_arg_indices = cuda_kernel_tensor_args_index[kernel_name]
-    ret_tensor_names = list(cuda_result_tensors.keys())
-    ret_tensor_indices = []
+        Eg. Say for the given kernel K1, this is the kernel signature
+        K1(arg1, arg2, ret_arg1, ret_arg2)
 
-    for tensor_name, tensor_index in tensor_arg_indices.items():
-        if tensor_name in ret_tensor_names:
-            ret_tensor_indices.append(tensor_index)
+        ret_arg1 and ret_arg2 are the return arguments. The return
+        argument indices we would get is [2,3]
 
-    return ret_tensor_indices
+        get_kernel_ret_indices('K1') = list([2,3])
+    """
+    arg_indices = cuda_kernel_args_index[kernel_name]
+    ret_arg_names = list(cuda_result_tensors[kernel_name].keys())
+    ret_arg_indices = []
+
+    for tensor_name, tensor_index in arg_indices.items():
+        if tensor_name in ret_arg_names:
+            ret_arg_indices.append(tensor_index)
+
+    breakpoint()
+    return ret_arg_indices
 
 def get_kernel_arg_name_from_index(kernel_name, index):
     kernel_args = cuda_kernel_tensor_args_index[kernel_name]

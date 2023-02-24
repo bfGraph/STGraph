@@ -16,14 +16,14 @@ extern "C" __global__ void K4(float *Velinb, float *Vercen, float *V36, float *V
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
             float V37_tmp = 0;
-            int offset0 = dst_id * 1 + tx;
+            int offset1 = dst_id * 1 + tx;
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset1 = src_id * 1 + tx;int offset2 = eid * 1 + tx;
+                int offset0 = src_id * 1 + tx;int offset2 = eid * 1 + tx;
                 
                 
-                float V34_tmp = Velinb[offset1] + Vercen[offset0];
+                float V34_tmp = Velinb[offset0] + Vercen[offset1];
                 
                 
                 float V35_tmp=V34_tmp>0?V34_tmp:0.2*V34_tmp;
@@ -36,7 +36,7 @@ extern "C" __global__ void K4(float *Velinb, float *Vercen, float *V36, float *V
                 
             }
             
-            V37[offset0] = V37_tmp;
+            V37[offset1] = V37_tmp;
             
         }
     }
@@ -58,14 +58,14 @@ extern "C" __global__ void K5(float *V36, float *V37, float *Vfeat_srcinb, float
         int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
             float V40_tmp = 0;
-            int offset0 = dst_id * 1 + tx/2;int offset3 = dst_id * 2 + tx;
+            int offset1 = dst_id * 1 + tx/2;int offset3 = dst_id * 2 + tx;
             for (int e=beg;e<end;++e) {
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset2 = src_id * 2 + tx;int offset1 = eid * 1 + tx/2;
+                int offset2 = src_id * 2 + tx;int offset0 = eid * 1 + tx/2;
                 
                 
-                float V38_tmp = V36[offset1]/V37[offset0];
+                float V38_tmp = V36[offset0]/V37[offset1];
                 
                 
                 float V39_tmp = V38_tmp*Vfeat_srcinb[offset2];
@@ -101,28 +101,28 @@ extern "C" __global__ void K6(float *V36, float *V37, float *V40, float *V41, fl
             for (int e=beg;e<end;++e) {
                 int dst_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset0 = dst_id * 1 + tx/2;int offset2 = dst_id * 2 + tx;int offset1 = eid * 1 + tx/2;
+                int offset1 = dst_id * 1 + tx/2;int offset2 = dst_id * 2 + tx;int offset0 = eid * 1 + tx/2;
                 
                 
-                float V38_tmp = V36[offset1]/V37[offset0];
+                float V38_tmp = V36[offset0]/V37[offset1];
                 
                 
                 float V45_tmp = V41[offset2]*V38_tmp;
                 
                 
-                float V34_tmp = Velinb[offset3] + Vercen[offset0];
+                float V34_tmp = Velinb[offset3] + Vercen[offset1];
                 
                 
                 float V43_tmp = V41[offset2]*Vfeat_srcinb[offset4];
                 
                 
-                float V47_tmp = 1/V37[offset0];
+                float V47_tmp = 1/V37[offset1];
                 
                 
                 float V48_tmp = V43_tmp*V47_tmp;
                 
                 
-                float V49_tmp = V41[offset2]/V37[offset0];
+                float V49_tmp = V41[offset2]/V37[offset1];
                 
                 
                 float V50_tmp = V49_tmp*V40[offset2];
@@ -134,7 +134,7 @@ extern "C" __global__ void K6(float *V36, float *V37, float *V40, float *V41, fl
                 float V55_tmp = V48_tmp + V51_tmp;
                 
                 
-                float V56_tmp = V55_tmp*V36[offset1];
+                float V56_tmp = V55_tmp*V36[offset0];
                 
                 
                 float V57_tmp = V34_tmp>0?1:0.2;
@@ -146,7 +146,7 @@ extern "C" __global__ void K6(float *V36, float *V37, float *V40, float *V41, fl
                 V60_tmp += V58_tmp;
                 
                 V62_tmp = V58_tmp;
-                atomicAdd(V62+offset0, V62_tmp);
+                atomicAdd(V62+offset1, V62_tmp);
                 V46_tmp += V45_tmp;
                 
             }

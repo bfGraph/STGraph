@@ -2,6 +2,7 @@ from cuda import cuda, nvrtc
 import numpy as np
 
 from .cuda_error import ASSERT_DRV
+from .cuda_result import get_kernel_ret_indices
 
 def createNpArray(array, element_type):
     """
@@ -69,7 +70,10 @@ def get_kernel_args(arg_list):
     """
     return np.array([arg.ctypes.data for arg in arg_list], dtype=np.uint64)
 
-def copy_arguments_to_gpu(argument_list, stream):
+def copy_arguments_to_gpu(kernel_name, argument_list, stream):
+
+    ret_arg_indices = get_kernel_ret_indices(kernel_name)
+    # breakpoint()
 
     graph_vector_arguments = argument_list[:-8]
     graph_csr_arguments = argument_list[-8:-5]
