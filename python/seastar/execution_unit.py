@@ -11,6 +11,7 @@ from .code_gen.cuda_python.cuda_driver import *
 from .code_gen.cuda_python.cuda_error import ASSERT_DRV
 from .code_gen.cuda_python.cuda_helper import copy_arguments_to_gpu
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
+from .code_gen.cuda_python.cuda_result import update_cuda_result_tensors, cuda_result_tensors
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 from .debugging.pp_kernel_function import pp_kernel_function
 
@@ -389,7 +390,6 @@ class Kernel():
         ASSERT_DRV(err)
 
         kernel_arguments, result_vector_info = copy_arguments_to_gpu(self.kernel_name, argument_list, stream)
-
         # pp_kernel_function(self, argument_list)
 
         err, = cuLaunchKernel(
@@ -406,20 +406,21 @@ class Kernel():
             0
         )
 
-        # DEBUG: Viewing result stored in V2
-        host_V2 = result_vector_info[0]
-        V2_class = result_vector_info[1]
-        V2_size = result_vector_info[2]
+        for ret_tensor_name, host_argument, argument_class, host_argument_size in result_vector_info:
+            err, = cuMemcpyDtoHAsync(
+                host_argument.ctypes.data, 
+                argument_class, 
+                host_argument_size, 
+                stream
+            )
+            ASSERT_DRV(err)
+    
+            err, = cuStreamSynchronize(stream)
+            ASSERT_DRV(err)
 
-        err, = cuMemcpyDtoHAsync(host_V2.ctypes.data, V2_class, V2_size, stream)
-        err, = cuStreamSynchronize(stream)
+            # print(f'{ret_tensor_name}: {host_argument}')
+            update_cuda_result_tensors(self.kernel_name, ret_tensor_name, host_argument)
 
-        host_V2 = np.array(host_V2)
-
-        # print(host_V2)
-        # ()
-
-        # ()
 
 
 # NOTE: Original Code

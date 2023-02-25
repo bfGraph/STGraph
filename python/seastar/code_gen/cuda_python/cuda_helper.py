@@ -2,7 +2,7 @@ from cuda import cuda, nvrtc
 import numpy as np
 
 from .cuda_error import ASSERT_DRV
-from .cuda_result import get_kernel_ret_indices
+from .cuda_result import get_kernel_ret_indices, get_kernel_arg_name_from_index
 
 def createNpArray(array, element_type):
     """
@@ -73,7 +73,6 @@ def get_kernel_args(arg_list):
 def copy_arguments_to_gpu(kernel_name, argument_list, stream):
 
     ret_arg_indices = get_kernel_ret_indices(kernel_name)
-    # breakpoint()
 
     graph_vector_arguments = argument_list[:-8]
     graph_csr_arguments = argument_list[-8:-5]
@@ -84,14 +83,20 @@ def copy_arguments_to_gpu(kernel_name, argument_list, stream):
 
     # copying graph vector arguments to GPU Device
     for argument in graph_vector_arguments:
-        # ()
         host_argument, host_argument_size = createNpArray(argument.flatten().tolist(), np.float32)
         device_argument, argument_class = allocAndCopyToDevice(host_argument, host_argument_size, stream)
-        kernel_arguments.append(device_argument)
 
-        # DEBUG: Trying to check values stored in V2
-        if len(kernel_arguments) == 4:
-            result_vector_info = [host_argument, argument_class, host_argument_size]
+        # adding result tensor info to result_vector_info
+        if len(kernel_arguments) in ret_arg_indices:
+            ret_arg_index = len(kernel_arguments)
+            result_vector_info.append((
+                get_kernel_arg_name_from_index(kernel_name, ret_arg_index),
+                host_argument,
+                argument_class,
+                host_argument_size
+            ))
+
+        kernel_arguments.append(device_argument)
 
     # copying graph csr arguments to GPU Device
     for argument in graph_csr_arguments:

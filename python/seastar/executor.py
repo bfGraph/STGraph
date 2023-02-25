@@ -2,7 +2,7 @@ import torch
 import snoop
 
 from .utils import is_const_scalar, ParallelMode
-from .code_gen.cuda_python.cuda_result import init_result_tensors, free_result_tensors
+from .code_gen.cuda_python.cuda_result import init_result_tensors, free_result_tensors, add_cuda_result_tensor_info, get_kernel_return_tensor
 
 class ExeState(object):
     def __init__(self):
@@ -212,11 +212,18 @@ class Executor(object):
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
         return  ret
     
-    def create_tensor_for_vars(self, var_list):
+    def create_tensor_for_vars(self, var_list, kernel_name):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.tensor_map}
+        for ret_arg_name, ret_arg_tensor in ret_tensors.items():
+            add_cuda_result_tensor_info(
+                kernel_name, 
+                ret_arg_name, 
+                ret_arg_tensor.device, 
+                ret_arg_tensor.size(),
+                ret_arg_tensor.requires_grad)
         self.ts.tensor_map = {**self.ts.tensor_map, **ret_tensors}
     # NOTE: Original Code
     # def execute_unit(self, unit, tensor_list):
@@ -233,7 +240,7 @@ class Executor(object):
         rets =  units.joint_rets()
         for unit in units:
             init_result_tensors(unit._kernel_name, list(unit._rets))
-            self.create_tensor_for_vars(unit.unit_rets())
+            self.create_tensor_for_vars(unit.unit_rets(), unit._kernel_name)
         kernel_arg_list = units.kernel_arg_list()
         ret_tensors = FuncWrapper.apply(self, uid, kernel_arg_list, rets, *[self.ts.tensor_map[var.id] for var in args])
         # Only the return values returned by the function will have grad_fn set properly.
@@ -243,9 +250,11 @@ class Executor(object):
         # tensor map. So all we have to do is create the return tensor
         # after getting the output from the CUDA code and save it
         # in the tensor_map using this function
-        for i,ret in enumerate(rets):
-            self.ts.track_tensor(ret.id, ret_tensors[i])
 
+        for i,ret in enumerate(rets):
+            self.ts.track_tensor(ret.id, get_kernel_return_tensor(unit._kernel_name, ret.id))
+
+        # breakpoint()
         # TODO: FIX CALLING OF free_result_tensor at the right place
         # free_result_tensors()
     
@@ -268,8 +277,6 @@ class Executor(object):
         inputs = funits.joint_inputs()
         ret_grads = [ret._grad for ret in rets] # ret_grads corresponds vars in grad_list
 
-        # breakpoint()
-
         for i,grad in enumerate(ret_grads):
             # We track the ret_grads as its value is fixed to grad_list
             self.ts.track_tensor(grad.id, grad_list[i])
@@ -278,7 +285,7 @@ class Executor(object):
             if bu.compiled:
                 if self.ts.is_executed_bu(bu):
                     continue
-                self.create_tensor_for_vars(bu.unit_rets())
+                self.create_tensor_for_vars(bu.unit_rets(), bu._kernel_name)
 
                 self.execute_unit(bu, [self.ts.tensor_map[arg.id] for arg in bu.kernel_args()])
                 for ret in bu.unit_rets():

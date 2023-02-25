@@ -37,6 +37,18 @@ cuda_result_tensors = {}
 # }
 cuda_kernel_args_index = {}
 
+# A dictionary that contains tensor info about
+# the return argument of each kernel. Info such as
+# tensor.shape, requires_grad and device is stored
+# {
+#   "kernel_name" : {
+#       "ret_arg1" : (device, shape, requires_grad)
+#       ...
+#   }
+#   ...
+# }
+cuda_result_tensor_info = {}
+
 def init_result_tensors(kernel_name: str, return_vars: list[Var]):
     """ Initialises the cuda_result_tensor dictionary
     
@@ -77,16 +89,39 @@ def free_result_tensors():
 def display_result_tensors():
     print(cuda_result_tensors)
 
-def update_result_tensors(return_tensors: dict):
-    """
-        TODO: Add docs
-    """
-    for tensor_name, tensor in return_tensors.items():
-        # ()
-        cuda_result_tensors[tensor_name] = tensor
+def update_cuda_result_tensors(kernel_name: str, ret_arg_name: str, ret_tensor):
+    """ Sets the value of the return argument tensor
+    
+        After launching the kernel and storing the result tensor 
+        into the host device, we have to update cuda_result_tensor
+        with the newly calculated return value.
 
-    # print("🎲 cuda_result_tensor has been updated: ")
-    # display_result_tensors()
+        Arguments:
+            kernel_name (str):
+                Name of the kernel
+
+            ret_arg_name (str):
+                Name of the return argument
+
+            ret_tensor (Tensor):
+                Tensor that holds the return value of the kernel
+
+        Returns:
+            None
+    """
+
+    ret_tensor_info = cuda_result_tensor_info[kernel_name][ret_arg_name]
+
+    ret_tensor = torch.tensor(
+        np.resize(ret_tensor, ret_tensor_info[1]), 
+        device = ret_tensor_info[0],
+        requires_grad = ret_tensor_info[2]
+    )
+
+    cuda_result_tensors[kernel_name][ret_arg_name] = ret_tensor
+
+def get_kernel_return_tensor(kernel_name: str, ret_arg_name: str):
+    return cuda_result_tensors[kernel_name][ret_arg_name]
 
 def create_kernel_args_indices(kernel_name, arg_list):
     """ Gets argument indices for given kernel
@@ -147,17 +182,22 @@ def get_kernel_ret_indices(kernel_name):
         if tensor_name in ret_arg_names:
             ret_arg_indices.append(tensor_index)
 
-    breakpoint()
     return ret_arg_indices
 
 def get_kernel_arg_name_from_index(kernel_name, index):
-    kernel_args = cuda_kernel_tensor_args_index[kernel_name]
+    kernel_args = cuda_kernel_args_index[kernel_name]
 
     for arg_name, arg_index in kernel_args.items():
         if arg_index == index:
             return arg_name
 
     return None
+
+def add_cuda_result_tensor_info(kernel_name: str, ret_arg_name: str, tensor_device, tensor_shape, tensor_grad: bool):
+    if kernel_name not in cuda_result_tensor_info.keys():
+        cuda_result_tensor_info[kernel_name] = {}
+
+    cuda_result_tensor_info[kernel_name][ret_arg_name] = (tensor_device, tuple(tensor_shape), tensor_grad)
 
 def create_result_tensor_from_array(array_name, result_array):
     original_result_tensor = cuda_result_tensors[array_name]
