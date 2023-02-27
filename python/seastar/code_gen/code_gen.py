@@ -74,7 +74,6 @@ def gen_code(exe_units, index_type):
             'template_name': ctx.template_name,
         })
 
-    # ()
     for config in configs:
         store_kernel_argument_names(config['kernel_name'], config['args'], config['template_name'])
     return gen_cuda(configs)

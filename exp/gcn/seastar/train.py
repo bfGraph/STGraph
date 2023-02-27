@@ -132,12 +132,17 @@ def main(args):
     Used_memory = 0
 
     for epoch in range(args.num_epochs):
-        model.train()
-        if cuda:
-            torch.cuda.synchronize()
+        model.eval()
+        # if cuda:
+            # torch.cuda.synchronize()
         t0 = time.time()
         # forward
+        # breakpoint()
         logits = model(features)
+        
+
+        # breakpoint()
+        # logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)
@@ -146,8 +151,8 @@ def main(args):
         loss.backward()
         optimizer.step()
 
-        if cuda:
-            torch.cuda.synchronize()
+        # if cuda:
+            # torch.cuda.synchronize()
 
         run_time_this_epoch = time.time() - t0
 
@@ -158,6 +163,7 @@ def main(args):
         print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb'.format(
             epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
         ))
+        # breakpoint()
 
     Used_memory /= (1024**3)
     print('^^^{:6f}^^^{:6f}'.format(Used_memory, np.mean(dur)))

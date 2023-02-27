@@ -6,8 +6,11 @@ from termcolor import colored
 
 from .cuda_driver import *
 
+global_gpu_device = None
+
 class DeviceInfo:
     def __init__(self, print_log=False):
+        # breakpoint()
         self.nGpus = 0
         self.name = ""
         self.cc_major = 0
@@ -77,6 +80,11 @@ class DeviceInfo:
         print(log_table)
         print(colored("\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device", "dark_grey"))
         print("\n")
+
+def get_global_gpu_device():
+    if global_gpu_device == None:
+        return DeviceInfo(print_log=False)
+    return global_gpu_device
 
 if __name__ == "__main__":
     device = DeviceInfo(print_log=True)

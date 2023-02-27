@@ -1,4 +1,5 @@
 
+
 extern "C" __global__ void K2(float *Vhinb, float *Vnormcen, float *Vnorminb, float *V10, 
   int *row_offsets,
   int *eids,
@@ -57,10 +58,10 @@ extern "C" __global__ void K3(float *V11, float *Vnormcen, float *Vnorminb, floa
             for (int e=beg;e<end;++e) {
                 int dst_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
-                int offset0 = dst_id * 1 + tx/2;int offset1 = dst_id * 2 + tx;
+                int offset0 = dst_id * 2 + tx;int offset1 = dst_id * 1 + tx/2;
                 
                 
-                float V12_tmp = V11[offset1]*Vnormcen[offset0];
+                float V12_tmp = V11[offset0]*Vnormcen[offset1];
                 
                 
                 V14_tmp += V12_tmp;

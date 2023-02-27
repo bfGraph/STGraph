@@ -1,4 +1,4 @@
-from cuda import cuda
+from cuda import cuda, cudart
 
 cuInit = cuda.cuInit
 cuDeviceGetCount = cuda.cuDeviceGetCount
@@ -22,6 +22,10 @@ cuStreamSynchronize = cuda.cuStreamSynchronize
 cuMemFree = cuda.cuMemFree
 cuLaunchKernel = cuda.cuLaunchKernel
 cuCtxDestroy = cuda.cuCtxDestroy
+cuStreamDestroy = cuda.cuStreamDestroy
+cuCtxGetDevice = cuda.cuCtxGetDevice
+
+cudaSetDevice = cudart.cudaSetDevice
 
 # Macros
 COMPUTE_CAPABILITY_MAJOR = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR

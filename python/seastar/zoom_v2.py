@@ -12,6 +12,7 @@ from .autodiff import diff
 from .code_gen import code_gen 
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
+from .code_gen.cuda_python.device_info import get_global_gpu_device
 import snoop
 
 # REMOVE THIS
@@ -40,6 +41,7 @@ class Context():
 
     @snoop
     def __call__(self, **kwargs):
+
         executor = self._setup_executor(**kwargs)
         ret = self._run_cb(executor)
         if len(ret) == 1:
@@ -56,13 +58,15 @@ class Context():
         if self._entry_count == 0:
             fprog = Program()
             ret = self._trace(node_feats, edge_feats, self._input_cache, fprog)
-            print('TracedProgram' + str(fprog), 'Ret value:', ret)
+            # print('TracedProgram' + str(fprog), 'Ret value:', ret)
             self._executor_cache = self._diff_then_compile(ret, fprog, graph_info)
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
         for k, v in edge_feats.items():
             self._input_cache[var_prefix+k] = v
+        
+        breakpoint()
         self._executor_cache.restart(self._input_cache, graph_info if need_reset else None)
         self._entry_count += 1
         return self._executor_cache

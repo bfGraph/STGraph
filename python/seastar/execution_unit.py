@@ -383,7 +383,8 @@ class Kernel():
     #         raise e
 
     def run(self, tensor_list):
-    
+
+
         argument_list = tensor_list + self.const_kernel_args
 
         err, stream = cuStreamCreate(0)
@@ -392,6 +393,10 @@ class Kernel():
         kernel_arguments, result_vector_info = copy_arguments_to_gpu(self.kernel_name, argument_list, stream)
         # pp_kernel_function(self, argument_list)
 
+        # current_device = cuCtxGetDevice()
+        # breakpoint()
+
+        # breakpoint()
         err, = cuLaunchKernel(
             self.kernel_function,
             self.launch_config[0],
@@ -405,6 +410,8 @@ class Kernel():
             kernel_arguments.ctypes.data,
             0
         )
+
+        ASSERT_DRV(err)
 
         for ret_tensor_name, host_argument, argument_class, host_argument_size in result_vector_info:
             err, = cuMemcpyDtoHAsync(
@@ -420,6 +427,10 @@ class Kernel():
 
             # print(f'{ret_tensor_name}: {host_argument}')
             update_cuda_result_tensors(self.kernel_name, ret_tensor_name, host_argument)
+
+        err, = cuStreamDestroy(stream)
+        ASSERT_DRV(err)
+        # breakpoint()
 
 
 

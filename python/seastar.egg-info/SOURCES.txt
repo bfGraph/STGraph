@@ -29,6 +29,7 @@ seastar/code_gen/kernel_context.py
 seastar/code_gen/template.py
 seastar/code_gen/cuda_python/__init__.py
 seastar/code_gen/cuda_python/compiler.py
+seastar/code_gen/cuda_python/cuda_context.py
 seastar/code_gen/cuda_python/cuda_driver.py
 seastar/code_gen/cuda_python/cuda_error.py
 seastar/code_gen/cuda_python/cuda_helper.py

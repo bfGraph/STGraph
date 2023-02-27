@@ -2,7 +2,7 @@ from cuda import cuda, nvrtc
 import numpy as np
 
 from .cuda_driver import *
-from .device_info import DeviceInfo
+from .device_info import DeviceInfo, get_global_gpu_device
 from .cuda_error import ASSERT_DRV
 
 CU_PATH='./egl_kernel.cu'
@@ -10,12 +10,15 @@ PTX_PATH='./egl_kernel.ptx'
 
 def compile_with_cuda_python(cuda_code):
 
+    # breakpoint()
+
     # writing the CUDA Kernel source code
     # to egl_kernel.cu
     with open(CU_PATH, "w+") as f:
+        f.write("\n")
         f.write(cuda_code)
 
-    gpu_device = DeviceInfo(print_log=True)
+    gpu_device = get_global_gpu_device()
 
     err, prog = nvrtc.nvrtcCreateProgram(str.encode(cuda_code), b"egl_kernel.cu", 0, [], [])
     ASSERT_DRV(err)
@@ -41,7 +44,7 @@ def compile_with_cuda_python(cuda_code):
 
 def compile_cuda(cuda_code):
 
-    print(cuda_code)
+    # print(cuda_code)
     ptx = compile_with_cuda_python(cuda_code)
 
     err, module = cuModuleLoadData(ptx.ctypes.data)
