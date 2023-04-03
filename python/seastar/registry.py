@@ -204,6 +204,21 @@ class AddOp(BinaryOpImpl):
         gen_info = self.gen_edge_info_map(ctx)
         gen_info['compute'] = '{ret} = {val0} + {val1};'.format(ret=ret, val0=val0, val1=val1)
         return gen_info
+
+#TODO: This was added by us
+class SubOp(BinaryOpImpl):
+    def _grad_impl(self, pos, x, y, grad_y):
+        '''y = x - k => dydx = 1'''
+        return self.multiply_grad(dzdy=grad_y, dydx=1, x=x)
+                
+    def gen_code(self, ctx):
+        assert len(self.args) == 2
+        val0 = self.gen_var(self.args[0], ctx)
+        val1 = self.gen_var(self.args[1], ctx)
+        ret = self.gen_var(self.ret, ctx)
+        gen_info = self.gen_edge_info_map(ctx)
+        gen_info['compute'] = '{ret} = {val0} - {val1};'.format(ret=ret, val0=val0, val1=val1)
+        return gen_info
                
 
 class LeakyReluOp(OpImpl):

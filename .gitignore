@@ -5,6 +5,8 @@ exp/dataset/cora/
 exp/dataset/CoraFull/
 exp/dataset/pubmed/
 exp/dataset/reddit/
+exp/dataset/aifb/
+exp/dataset/mutag/
 python/egl.egg-info/
 python/egl/__pycache__/
 python/build/

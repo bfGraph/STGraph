@@ -57,7 +57,7 @@ class Context():
             fprog = Program()
             ret = self._trace(node_feats, edge_feats, self._input_cache, fprog)
             # print('TracedProgram' + str(fprog), 'Ret value:', ret)
-            pretty_print_GIR(fprog,"TGCN GIR")
+            # pretty_print_GIR(fprog,"TGCN GIR")
             self._executor_cache = self._diff_then_compile(ret, fprog, graph_info)
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
@@ -94,7 +94,7 @@ class Context():
     def _trace(self, nfeats, efeats, input_cache, fprog):
         backend = self.find_backend(self._nspace)
         central_node = self._init_central_node(nfeats, efeats, fprog, backend)
-        pretty_print_Central_Node(central_node=central_node, print_tensors=False)
+        # pretty_print_Central_Node(central_node=central_node, print_tensors=False)
         old_libs = defaultdict(dict)
         self._monkey_patch_namespace(old_libs, input_cache, fprog, backend)
         ret = self._f(central_node)

@@ -1,5 +1,9 @@
 from prettytable import PrettyTable
-from prettytable import SINGLE_BORDER, ALL
+# from prettytable import SINGLE_BORDER, ALL
+
+# TODO: This is manually taken from the prettytable page since there is an import error
+SINGLE_BORDER = 16
+ALL = 1
 
 from ..utils import ValType
 from ..node import CentralNode
