@@ -141,10 +141,6 @@ def main(args):
         optimizer.zero_grad()
         for index in range(train_features.shape[0]):
             y_hat, hidden_state = model(train_features[index], edge_weights, hidden_state)
-
-            if np.isnan(torch.mean(y_hat).item()):
-                isNan = True
-
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)
 
@@ -162,15 +158,9 @@ def main(args):
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-        if isNan:
-            print("NaN output")
-
         print('Epoch {:05d} | Time(s) {:.4f} | MSE {:.6f} | Used_Memory {:.6f} mb'.format(
             epoch, run_time_this_epoch, cost, (now_mem * 1.0 / (1024**2))
         ))
-
-        if isNan:
-            exit()
 
     Used_memory /= (1024**3)
     print('^^^{:6f}^^^{:6f}'.format(Used_memory, np.mean(dur)))

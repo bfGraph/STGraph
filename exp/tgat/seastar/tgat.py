@@ -8,11 +8,6 @@ import torch.nn.functional as F
 from seastar.backend.pytorch_backend import run_egl
 import snoop
 import inspect
-import numpy as np
-
-def printIfTensorNan(t,name):
-    if np.isnan(torch.mean(t).item()):
-        print("{} is Nan".format(name))
 
 class SeastarGATLayer(nn.Module):
     def __init__(self,
@@ -130,24 +125,16 @@ class SeastarTGATCell(torch.nn.Module):
 
     def _calculate_reset_gate(self, X, edge_weight, H):
         tmp = self.conv_r(X)
-        printIfTensorNan(tmp,"R:Conv")
         R = torch.cat((tmp, H), axis=2) # axis values need to be checked
-        printIfTensorNan(tmp,"R:Conv:Cat")
         R = self.linear_r(R)
-        printIfTensorNan(tmp,"R:Conv:Cat:Linear")
         R = torch.sigmoid(R)
-        printIfTensorNan(tmp,"R:Conv:Cat:Linear:sigmoid")
         return R
 
     def _calculate_candidate_state(self, X, edge_weight, H, R):
         tmp = self.conv_h(X)
-        printIfTensorNan(tmp,"H_tilde:Conv")
         H_tilde = torch.cat((tmp, H * R), axis=2) # axis values need to be checked
-        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat")
         H_tilde = self.linear_h(H_tilde)
-        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat:Linear")
         H_tilde = torch.tanh(H_tilde)
-        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat:Linear:tanh")
         return H_tilde
 
     def _calculate_hidden_state(self, Z, H, H_tilde):
@@ -161,28 +148,11 @@ class SeastarTGATCell(torch.nn.Module):
         H: torch.FloatTensor = None,
     ) -> torch.FloatTensor:
         
-        printIfTensorNan(X,"X")
-
         H = self._set_hidden_state(X, H)
-
-        printIfTensorNan(H,"H")
-
         Z = self._calculate_update_gate(X, edge_weight, H)
-        
-        printIfTensorNan(Z,"Z")
-
         R = self._calculate_reset_gate(X, edge_weight, H)
-
-        printIfTensorNan(R,"R")
-
         H_tilde = self._calculate_candidate_state(X, edge_weight, H, R)
-
-        printIfTensorNan(H_tilde,"H_tilde")
-
         H = self._calculate_hidden_state(Z, H, H_tilde)
-
-        printIfTensorNan(H,"Output from TGAT Cell")
-
         return H
 
 class SeastarTGAT(torch.nn.Module):
@@ -196,6 +166,4 @@ class SeastarTGAT(torch.nn.Module):
     h = self.temporal(node_feat, edge_weight, hidden_state)
     y = F.relu(h)
     y = self.linear(y)
-    printIfTensorNan(y,"Returned-y")
-    printIfTensorNan(h,"Returned-h")
     return y, h
