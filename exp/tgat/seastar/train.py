@@ -110,9 +110,9 @@ def main(args):
 
     # train_features = all_features[:2]
     # train_targets = all_targets[:2]
-    # print("Features")
-    # print(train_features.shape)
-    # print(train_targets.shape)
+    print("Features")
+    print(train_features.shape)
+    print(train_targets.shape)
 
     # model
     model = to_default_device(SeastarTGAT(G,8))
@@ -142,7 +142,9 @@ def main(args):
             y_hat, hidden_state = model(train_features[index], edge_weights, hidden_state)
 
             if np.isnan(torch.mean(y_hat).item()):
+                print("NaN output")
                 isNan = True
+                break
 
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)

@@ -8,6 +8,11 @@ import torch.nn.functional as F
 from seastar.backend.pytorch_backend import run_egl
 import snoop
 import inspect
+import numpy as np
+
+def printIfTensorNan(t,name):
+    if np.isnan(torch.mean(t).item()):
+        print("{} is Nan".format(name))
 
 class SeastarGATLayer(nn.Module):
     def __init__(self,
@@ -33,8 +38,11 @@ class SeastarGATLayer(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.leaky_relu = nn.LeakyReLU(negative_slope)
         self.negative_slope = negative_slope
-        self.res_fc = nn.Linear(
-                    self._in_feats, num_heads * out_feats, bias=False)
+        if residual:
+            self.res_fc = nn.Linear(
+                        self._in_feats, num_heads * out_feats, bias=False)
+        else:
+            self.res_fc = None
         self.reset_parameters()
         self.activation = activation
         self.cm = CtxManager(run_egl)
@@ -53,19 +61,18 @@ class SeastarGATLayer(nn.Module):
         feat_src = feat_dst = self.fc(h_src).view(-1, self._num_heads, self._out_feats)
         el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)
         er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
+
         # Vertex-centric implementation.
-        #dgl_context = dgl.utils.to_dgl_context(feat.device)
-        #graph = graph._graph.get_immutable_gidx(dgl_context)
         @self.cm.zoomIn(nspace=[self, torch])
         def nb_forward(v):
-           coeff = [torch.exp(self.leaky_relu(nb.el + v.er)) for nb in v.innbs]
+           embs = [nb.el + v.er for nb in v.innbs]
+           coeff = [torch.exp(self.leaky_relu(emb - max(embs))) for emb in embs]
            s = sum(coeff)
            alpha = [c/s for c in coeff]
            feat_src = [nb.feat_src for nb in v.innbs]
            return sum([alpha[i] * feat_src[i] for i in range(len(feat_src))])
         rst = nb_forward(g=self.g, n_feats= {'el':el, 'er': er, 'feat_src':feat_src})
-        # Invoke fused kernel in dgl-hack
-        # rst = B.fused_gat(graph, feat_src, el, er, self.negative_slope)
+
         # residual
         if self.res_fc is not None:
             resval = self.res_fc(h_dst).view(h_dst.shape[0], -1, self._out_feats)
@@ -122,15 +129,25 @@ class SeastarTGATCell(torch.nn.Module):
         return Z
 
     def _calculate_reset_gate(self, X, edge_weight, H):
-        R = torch.cat((self.conv_r(X), H), axis=2) # axis values need to be checked
+        tmp = self.conv_r(X)
+        printIfTensorNan(tmp,"R:Conv")
+        R = torch.cat((tmp, H), axis=2) # axis values need to be checked
+        printIfTensorNan(tmp,"R:Conv:Cat")
         R = self.linear_r(R)
+        printIfTensorNan(tmp,"R:Conv:Cat:Linear")
         R = torch.sigmoid(R)
+        printIfTensorNan(tmp,"R:Conv:Cat:Linear:sigmoid")
         return R
 
     def _calculate_candidate_state(self, X, edge_weight, H, R):
-        H_tilde = torch.cat((self.conv_h(X), H * R), axis=2) # axis values need to be checked
+        tmp = self.conv_h(X)
+        printIfTensorNan(tmp,"H_tilde:Conv")
+        H_tilde = torch.cat((tmp, H * R), axis=2) # axis values need to be checked
+        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat")
         H_tilde = self.linear_h(H_tilde)
+        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat:Linear")
         H_tilde = torch.tanh(H_tilde)
+        printIfTensorNan(H_tilde,"H_tilde:Conv:Cat:Linear:tanh")
         return H_tilde
 
     def _calculate_hidden_state(self, Z, H, H_tilde):
@@ -143,12 +160,29 @@ class SeastarTGATCell(torch.nn.Module):
         edge_weight: torch.FloatTensor = None,
         H: torch.FloatTensor = None,
     ) -> torch.FloatTensor:
+        
+        printIfTensorNan(X,"X")
 
         H = self._set_hidden_state(X, H)
+
+        printIfTensorNan(H,"H")
+
         Z = self._calculate_update_gate(X, edge_weight, H)
+        
+        printIfTensorNan(Z,"Z")
+
         R = self._calculate_reset_gate(X, edge_weight, H)
+
+        printIfTensorNan(R,"R")
+
         H_tilde = self._calculate_candidate_state(X, edge_weight, H, R)
+
+        printIfTensorNan(H_tilde,"H_tilde")
+
         H = self._calculate_hidden_state(Z, H, H_tilde)
+
+        printIfTensorNan(H,"Output from TGAT Cell")
+
         return H
 
 class SeastarTGAT(torch.nn.Module):
@@ -162,4 +196,6 @@ class SeastarTGAT(torch.nn.Module):
     h = self.temporal(node_feat, edge_weight, hidden_state)
     y = F.relu(h)
     y = self.linear(y)
+    printIfTensorNan(y,"Returned-y")
+    printIfTensorNan(h,"Returned-h")
     return y, h
