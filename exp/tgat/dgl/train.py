@@ -10,7 +10,7 @@ from dgl.data import register_data_args, load_data
 import json
 import urllib
 from tqdm import tqdm
-from model_no_residual import DGL_TGAT
+from model import DGL_TGAT
 import snoop
 
 

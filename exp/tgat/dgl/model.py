@@ -6,7 +6,7 @@ import dgl.function as fn
 import torch.nn.functional as F
 import snoop
 import inspect
-from dgl.nn import GATv2Conv
+from dgl.nn import GATConv
 
 class DGL_TGATCell(torch.nn.Module):
 
@@ -25,19 +25,19 @@ class DGL_TGATCell(torch.nn.Module):
         self.g = g
 
         # Update GCN Layer
-        self.conv_z = GATv2Conv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=True,share_weights=True,bias=False)
+        self.conv_z = GATConv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=False,bias=False)
         
         # Update linear layer
         self.linear_z = torch.nn.Linear(2 * self.out_channels, self.out_channels)
 
         # Reset GCN layer
-        self.conv_r = GATv2Conv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=True,share_weights=True,bias=False)
+        self.conv_r = GATConv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=False,bias=False)
         
         # Reset linear layer
         self.linear_r = torch.nn.Linear(2 * self.out_channels, self.out_channels)
 
         # Candidate (Current Memory Content) GCN layer
-        self.conv_h = GATv2Conv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=True,share_weights=True,bias=False)
+        self.conv_h = GATConv(self.in_channels,self.out_channels,num_heads=self.num_heads,negative_slope=0.2,residual=False,bias=False)
 
         # Candidate linear layer
         self.linear_h = torch.nn.Linear(2 * self.out_channels, self.out_channels)

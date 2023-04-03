@@ -2,7 +2,7 @@
 # pylint: disable= no-member, arguments-differ, invalid-name
 import argparse
 
-import torch as th
+import torch
 import dgl
 from torch import nn
 from seastar import CtxManager
@@ -27,8 +27,8 @@ class EglGATConv(nn.Module):
         self._out_feats = out_feats
         self.fc = nn.Linear(
             self._in_feats, out_feats * num_heads, bias=False)
-        self.attn_l = nn.Parameter(th.FloatTensor(size=(num_heads, out_feats)))
-        self.attn_r = nn.Parameter(th.FloatTensor(size=(num_heads, out_feats)))
+        self.attn_l = nn.Parameter(torch.FloatTensor(size=(num_heads, out_feats)))
+        self.attn_r = nn.Parameter(torch.FloatTensor(size=(num_heads, out_feats)))
         self.feat_drop = nn.Dropout(feat_drop)
         self.attn_drop = nn.Dropout(attn_drop)
         self.leaky_relu = nn.LeakyReLU(negative_slope)
@@ -54,19 +54,18 @@ class EglGATConv(nn.Module):
         feat_src = feat_dst = self.fc(h_src).view(-1, self._num_heads, self._out_feats)
         el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)
         er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
+
         # Vertex-centric implementation.
-        #dgl_context = dgl.utils.to_dgl_context(feat.device)
-        #graph = graph._graph.get_immutable_gidx(dgl_context)
-        @self.cm.zoomIn(nspace=[self, th])
+        @self.cm.zoomIn(nspace=[self, torch])
         def nb_forward(v):
-           coeff = [th.exp(self.leaky_relu(nb.el + v.er)) for nb in v.innbs]
+           embs = [nb.el + v.er for nb in v.innbs]
+           coeff = [torch.exp(self.leaky_relu(emb - max(embs))) for emb in embs]
            s = sum(coeff)
            alpha = [c/s for c in coeff]
            feat_src = [nb.feat_src for nb in v.innbs]
            return sum([alpha[i] * feat_src[i] for i in range(len(feat_src))])
         rst = nb_forward(g=graph, n_feats= {'el':el, 'er': er, 'feat_src':feat_src})
-        # Invoke fused kernel in dgl-hack
-        # rst = B.fused_gat(graph, feat_src, el, er, self.negative_slope)
+
         # residual
         if self.res_fc is not None:
             resval = self.res_fc(h_dst).view(h_dst.shape[0], -1, self._out_feats)
