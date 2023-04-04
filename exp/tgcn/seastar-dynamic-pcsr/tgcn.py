@@ -46,10 +46,10 @@ class SeastarGCNLayer(nn.Module):
         def nb_compute(v):
             # The nb_edge.src returns a list with one element, this element is an object of NbNode type
             # hence the translation. Can be cleaned up later.
-            h = sum([nb_edge.src[0].norm * nb_edge.src[0].h * nb_edge.weight for nb_edge in v.inedges])
+            h = sum([nb_edge.src[0].norm * nb_edge.src[0].h for nb_edge in v.inedges])
             h = h * v.norm
             return h
-        h = nb_compute(g=g, n_feats={'norm': g.ndata['norm'], 'h' : h}, e_feats={'weight': edge_weight})
+        h = nb_compute(g=g, n_feats={'norm': g.ndata['norm'], 'h' : h})
 
         # bias
         if self.bias is not None:

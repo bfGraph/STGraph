@@ -9,6 +9,75 @@ import urllib
 from tqdm import tqdm
 from tgcn import SeastarTGCN
 import snoop
+from ....python.graph.seastar_graph import SeastarGraph
+
+class EnglandCovidDatasetLoader(object):
+
+    def __init__(self):
+        self._read_web_data()
+
+    def _read_web_data(self):
+        url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
+        self._dataset = json.loads(urllib.request.urlopen(url).read())
+
+    def _get_edges(self):
+        self._edges = []
+        for time in range(self._dataset["time_periods"] - self.lags):
+            self._edges.append(
+                np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
+            )
+
+    def _get_edge_weights(self):
+        self._edge_weights = []
+        for time in range(self._dataset["time_periods"] - self.lags):
+            self._edge_weights.append(
+                np.array(self._dataset["edge_mapping"]["edge_weight"][str(time)])
+            )
+
+    def _get_targets_and_features(self):
+        stacked_target = np.array(self._dataset["y"])
+        standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
+            np.std(stacked_target, axis=0) + 10 ** -10
+        )
+        self.features = [
+            standardized_target[i : i + self.lags, :].T
+            for i in range(self._dataset["time_periods"] - self.lags)
+        ]
+        self.targets = [
+            standardized_target[i + self.lags, :].T
+            for i in range(self._dataset["time_periods"] - self.lags)
+        ]
+
+    def get_dataset(self, lags: int = 8):
+        self.lags = lags
+        self._get_edges()
+        self._get_edge_weights()
+        self._get_targets_and_features()
+        return self._edges, self._edge_weights, self.features, self.targets
+
+def preprocess_graph_structure(edges):
+
+    tmp_set = set()
+    for i in range(len(edges)):
+        tmp_set = set()
+        for j in range(len(edges[str(i)])):
+            tmp_set.add(edges[str(i)][j][0])
+            tmp_set.add(edges[str(i)][j][1])
+    max_num_nodes = len(tmp_set)
+
+    edge_dict = {}
+    for i in range(len(edges)):
+        edge_set = set()
+        for j in range(len(edges[str(i)])):
+            edge_set.add((edges[str(i)][j][0],edges[str(i)][j][1]))
+        edge_dict[str(i)] = edge_set
+    
+    edge_final_dict = {}
+    edge_final_dict["0"] = {"add": list(edge_dict["0"]),"delete": []}
+    for i in range(1,len(edges)):
+        edge_final_dict[str(i)] = {"add": list(edge_dict[str(i)].difference(edge_dict[str(i-1)])), "delete": list(edge_dict[str(i-1)].difference(edge_dict[str(i)]))}
+    
+    return edge_final_dict, max_num_nodes
 
 # GPU | CPU
 def get_default_device():
@@ -64,6 +133,9 @@ def main(args):
     Used_memory = 0
     cuda = True
 
+    train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
+    G = SeastarGraph(train_graph_log_dict,train_max_num_nodes)
+
     # train
     print("Training...\n")
     for epoch in tqdm(range(args.num_epochs)):
@@ -78,19 +150,8 @@ def main(args):
         optimizer.zero_grad()
 
         # dyn_graph_index is dynamic graph index
-        for index in range(len(train_edges_lst)):
-            edges = train_edges_lst[index]
-            edge_weights = train_edge_weights_lst[index]
+        for index in range(len(train_features)):  
 
-            G = dgl.graph((torch.from_numpy(edges[0]),torch.from_numpy(edges[1]))) # Graph object
-            G = to_default_device(dgl.add_self_loop(G))
-
-            edge_weights = torch.FloatTensor(edge_weights)
-            edge_weights = to_default_device(torch.cat((edge_weights,torch.ones(G.number_of_nodes())),0))
-
-            # Seastar expects inputs to be of format (edge_weight,1)
-            edge_weights = torch.unsqueeze(edge_weights,1)
-            
             # normalization
             degs = G.in_degrees().float()
             norm = torch.pow(degs, -0.5)
@@ -98,8 +159,10 @@ def main(args):
             norm = to_default_device(norm)
             G.ndata['norm'] = norm.unsqueeze(1)
 
+            print("🔴🔴 Attempting Forward prop")
+
             # forward propagation
-            y_hat, hidden_state = model(G, train_features[index], edge_weights, hidden_state)
+            y_hat, hidden_state = model(G, train_features[index], None, hidden_state)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
         cost = cost / (index+1)
 
@@ -129,35 +192,27 @@ def main(args):
     model.eval()
     cost = 0
 
+    test_graph_log_dict, test_max_num_nodes = preprocess_graph_structure(test_edges_lst)
+    G = SeastarGraph(test_graph_log_dict,test_max_num_nodes)
+
     predictions = []
     true_y = []
     hidden_state=None
     # dyn_graph_index is dynamic graph index
-    for index in range(len(test_edges_lst)):
-        edges = test_edges_lst[index]
-        edge_weights = test_edge_weights_lst[index]
-
-        G = dgl.graph((torch.from_numpy(edges[0]),torch.from_numpy(edges[1]))) # Graph object
-        G = to_default_device(dgl.add_self_loop(G))
-
-        edge_weights = torch.FloatTensor(edge_weights)
-        edge_weights = to_default_device(torch.cat((edge_weights,torch.ones(G.number_of_nodes())),0))
-
-        # Seastar expects inputs to be of format (edge_weight,1)
-        edge_weights = torch.unsqueeze(edge_weights,1)
-        
+    for index in range(len(test_features)):
         # normalization
         degs = G.in_degrees().float()
         norm = torch.pow(degs, -0.5)
         norm[torch.isinf(norm)] = 0
         norm = to_default_device(norm)
         G.ndata['norm'] = norm.unsqueeze(1)
-
+        
         # forward propagation
-        y_hat, hidden_state = model(G, test_features[index], edge_weights, hidden_state)
+        y_hat, hidden_state = model(G, test_features[index], None, hidden_state)
         cost = cost + torch.mean((y_hat-test_targets[index])**2)
         predictions.append(y_hat)
         true_y.append(test_targets[index])
+
     cost = cost / (index+1)
     cost = cost.item()
     print("MSE: {:.4f}".format(cost))
