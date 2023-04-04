@@ -23,11 +23,13 @@ typedef struct _node {
   uint32_t beginning;     // deleted = max int
   uint32_t end;           // end pointer is exclusive
   uint32_t num_neighbors; // number of edges with this node as source
+  uint32_t in_degree;     // in-degree of a node -  number of edges going into the node
 
-  _node(int beg=0, int _end=0, int num_neigh=0) {
+  _node(int beg=0, int _end=0, int num_neigh=0, int in_deg=0) {
     beginning = beg;
     end = _end;
     num_neighbors = num_neigh;
+    in_degree = in_deg;
   }
 } node_t;
 
@@ -520,6 +522,7 @@ void PCSR::add_edge(uint32_t src, uint32_t dest, uint32_t value) {
   if (value != 0) {
     node_t node = nodes[src];
     nodes[src].num_neighbors++;
+    nodes[dest].in_degree++;
 
     edge_t e;
     e.dest = dest;
@@ -650,7 +653,8 @@ PYBIND11_MODULE(pcsr, m) {
         .def(py::init<int, int, int>(), py::arg("beg")=0, py::arg("_end")=0, py::arg("num_neigh")=0)
         .def_readwrite("beginning", &_node::beginning)
         .def_readwrite("end", &_node::end)
-        .def_readwrite("num_neighbors", &_node::num_neighbors);
+        .def_readwrite("num_neighbors", &_node::num_neighbors)
+        .def_readwrite("in_degree", &_node::in_degree);
 
     py::class_<edge_t>(m, "Edge")
         .def(py::init<int, int>(), py::arg("_dest")=0, py::arg("_value")=0)

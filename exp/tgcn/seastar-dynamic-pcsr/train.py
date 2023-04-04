@@ -9,7 +9,8 @@ import urllib
 from tqdm import tqdm
 from tgcn import SeastarTGCN
 import snoop
-from ....python.graph.seastar_graph import SeastarGraph
+
+from seastar.graph.seastar_graph import SeastarGraph
 
 class EnglandCovidDatasetLoader(object):
 
