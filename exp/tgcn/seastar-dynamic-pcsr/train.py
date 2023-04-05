@@ -11,6 +11,7 @@ from tgcn import SeastarTGCN
 import snoop
 
 from rich import inspect
+from rich.pretty import pprint
 # from rich.traceback import install
 # install(show_locals=True)
 
@@ -141,9 +142,7 @@ def main(args):
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
     G = SeastarGraph(train_graph_log_dict,train_max_num_nodes)
 
-    inspect(train_graph_log_dict)
-    inspect(train_max_num_nodes)
-    inspect(G)
+    # inspect(G)
 
     # train
     print("Training...\n")
