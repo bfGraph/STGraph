@@ -155,7 +155,7 @@ class MergedUnit(object):
             yield unit
 
 class Executor(object):
-    def __init__(self, graph_info, forward_exec_units, backward_exec_units, compiled_module, rets):
+    def __init__(self, graph, forward_exec_units, backward_exec_units, compiled_module, rets):
         self.forward_exec_units = self.merge_units(forward_exec_units)
         self.bulist = backward_exec_units
         self.var2bu = self.construct_backward_mappping(self.forward_exec_units,backward_exec_units)
@@ -163,15 +163,16 @@ class Executor(object):
         self.ts = ExeState()
         self.new_zeros = None
         self.raw_ptr = None
-        self.num_nodes = graph_info.number_of_nodes
-        self.num_edges = graph_info.number_of_edges
+        self.num_nodes = graph.num_nodes
+        self.num_edges = graph.num_edges
+        self.graph = graph
         for mu in self.forward_exec_units:
             for u in mu:
                 if u.compiled:
-                    u.prepare_compiled_kernel(graph_info, compiled_module)
+                    u.prepare_compiled_kernel(graph, compiled_module)
         for u in self.bulist:
             if u.compiled:
-                u.prepare_compiled_kernel(graph_info, compiled_module)
+                u.prepare_compiled_kernel(graph, compiled_module)
     
     def construct_backward_mappping(self, funits, bunits):
         ret = {}
@@ -198,19 +199,19 @@ class Executor(object):
         print('merged units', len(grouped_unit), grouped_unit)
         return grouped_unit
   
-    def restart(self, input_map, graph_info=None):
+    def restart(self, input_map):
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
-        if graph_info != None:
+        if self.graph != None:
             for mu in self.forward_exec_units:
                 for u in mu:
                     if u.compiled:
                         # TODO: (Joel) Feel like this is going to be problematic for dynamic graphs
-                        u.reset_graph_info(graph_info)
+                        u.reset_graph_info(self.graph)
             for u in self.bulist:
                 if u.compiled:
-                    u.reset_graph_info(graph_info)
-            self.num_nodes = graph_info.number_of_nodes
-            self.num_edges = graph_info.number_of_edges
+                    u.reset_graph_info(self.graph)
+            self.num_nodes = self.graph.num_nodes
+            self.num_edges = self.graph.num_edges
 
     
     def set_raw_ptr_cb(self, cb):
@@ -234,8 +235,8 @@ class Executor(object):
 
         # bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
-
         self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        self.graph.update_graph_forward()
 
         # print("🔴 After ForwardProp status of tensor_map")
         # for index in range(len(self.ts.tensor_map_stack.content)):

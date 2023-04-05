@@ -1,4 +1,6 @@
 setup.py
+pcsr/__init__.py
+pcsr/main.py
 seastar/__init__.py
 seastar/autodiff.py
 seastar/execution_unit.py
@@ -18,6 +20,8 @@ seastar.egg-info/dependency_links.txt
 seastar.egg-info/not-zip-safe
 seastar.egg-info/requires.txt
 seastar.egg-info/top_level.txt
+seastar/backend/__init__.py
+seastar/backend/pytorch_backend.py
 seastar/code_gen/__init__.py
 seastar/code_gen/code_gen.py
 seastar/code_gen/compiler.py
@@ -25,6 +29,8 @@ seastar/code_gen/cuda_driver.py
 seastar/code_gen/device_info.py
 seastar/code_gen/kernel_context.py
 seastar/code_gen/template.py
+seastar/debugging/__init__.py
+seastar/debugging/pretty_printers.py
 seastar/passes/__init__.py
 seastar/passes/cf.py
 seastar/passes/cse.py
@@ -34,3 +40,6 @@ seastar/passes/fusion.py
 seastar/passes/mem_planning.py
 seastar/passes/peephole.py
 seastar/passes/visualize.py
+seastar_graph/__init__.py
+seastar_graph/engcovid_log.py
+seastar_graph/seastar_graph.py
