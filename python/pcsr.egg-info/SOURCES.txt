@@ -1,4 +1,3 @@
-pcsr_setup.py
 setup.py
 pcsr/__init__.py
 pcsr/main.py

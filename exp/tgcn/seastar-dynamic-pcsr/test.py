@@ -5,5 +5,7 @@ from rich import inspect
 graph = SeastarGraph(england_covid_log, 129)
 graph.base_graph.print_graph()
 
-inspect(england_covid_log)
 
+for timestamp in range(60):
+    graph.update_graph_forward()
+    graph.base_graph.print_graph()

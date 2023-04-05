@@ -1,7 +1,7 @@
 from rich import inspect
 import numpy as np
 
-from PCSR.pcsr import PCSR
+from pcsr.pcsr import PCSR
 
 class SeastarGraph:
     def __init__(self, graph_updates: dict, max_num_nodes: dict):
@@ -24,6 +24,7 @@ class SeastarGraph:
                                         for the graph         
         '''
 
+        self.graph_updates = graph_updates
         self.max_num_nodes = max_num_nodes
         self.base_graph = PCSR(max_num_nodes)
         self.ndata = {}
@@ -74,3 +75,23 @@ class SeastarGraph:
 
         # TODO: Make changes to work with edge ids
         # self.eids = np.arange(len())
+
+    def update_graph_forward(self):
+        ''' Updates the current base graph to the next timestamp
+        
+        '''
+        self.current_time_stamp += 1
+
+        if self.graph_updates[str(self.current_time_stamp)] == None:
+            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
+        
+        graph_additions = self.graph_updates[str(self.current_time_stamp)]["add"]
+        graph_deletions = self.graph_updates[str(self.current_time_stamp)]["delete"]
+
+        for edge in graph_additions:
+            self.base_graph.add_edge(edge[1], edge[0], 1)
+
+        for edge in graph_deletions:
+            self.base_graph.delete_edge(edge[1], edge[0])
+
+        self._get_graph_csr()

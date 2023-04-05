@@ -217,6 +217,7 @@ class PCSR {
       void add_node();
       void add_edge(uint32_t src, uint32_t dest, uint32_t value);
       void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
+      void delete_edge(uint32_t src, uint32_t dest);
       void print_graph();
       void print_array();
       py::dict get_csr_arrays();
@@ -553,6 +554,17 @@ void PCSR::add_edge_update(uint32_t src, uint32_t dest, uint32_t value) {
   }
 }
 
+void PCSR::delete_edge(uint32_t src, uint32_t dest) {
+  edge_t e;
+  e.value = 0;
+  e.dest = dest;
+  uint32_t loc = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end);
+  
+  if (!is_null(edges.items[loc]) && edges.items[loc].dest == dest) {
+    edges.items[loc].value = 0;
+  } 
+}
+
 void PCSR::print_graph() {
   int num_vertices = nodes.size();
 
@@ -691,6 +703,7 @@ PYBIND11_MODULE(pcsr, m) {
         .def("print_graph", &PCSR::print_graph)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
+        .def("delete_edge", &PCSR::delete_edge)
         .def("print_array", &PCSR::print_array)
         .def("get_csr_arrays", &PCSR::get_csr_arrays)
         .def_readwrite("nodes", &PCSR::nodes)

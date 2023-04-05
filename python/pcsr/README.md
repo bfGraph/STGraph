@@ -9,7 +9,7 @@ The C++ code used for implementing PCSR is used from ![Packed CSR](https://githu
 After making any changes to the API in the ```pcsr.cpp``` file, run the following command to create the ```pcsr.cpython-310-x86_64-linux-gnu.so``` file.
 
 ```
-c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) pcsr.cpp -g -o pcsr$(python3-config --extension-suffix)
+c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) pcsr.cpp -g -o pcsr.so
 ```
 
 Make sure to PyBind11 installed in whichever environment you are working on.
