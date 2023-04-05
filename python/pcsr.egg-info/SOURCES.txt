@@ -1,0 +1,10 @@
+pcsr_setup.py
+setup.py
+pcsr/__init__.py
+pcsr/main.py
+pcsr/pcsr.so
+pcsr.egg-info/PKG-INFO
+pcsr.egg-info/SOURCES.txt
+pcsr.egg-info/dependency_links.txt
+pcsr.egg-info/not-zip-safe
+pcsr.egg-info/top_level.txt

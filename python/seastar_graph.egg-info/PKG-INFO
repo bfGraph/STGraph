@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: seastar-graph
+Version: 0.1
+Summary: Graph Abstraction for Seastar
+Author: Nithin and Joel
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.5

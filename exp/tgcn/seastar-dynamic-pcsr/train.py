@@ -10,7 +10,11 @@ from tqdm import tqdm
 from tgcn import SeastarTGCN
 import snoop
 
-from seastar.graph.seastar_graph import SeastarGraph
+from rich import inspect
+from rich.traceback import install
+install(show_locals=True)
+
+from seastar_graph.seastar_graph import SeastarGraph
 
 class EnglandCovidDatasetLoader(object):
 
@@ -57,20 +61,20 @@ class EnglandCovidDatasetLoader(object):
         return self._edges, self._edge_weights, self.features, self.targets
 
 def preprocess_graph_structure(edges):
-
+    inspect(edges)
     tmp_set = set()
     for i in range(len(edges)):
         tmp_set = set()
-        for j in range(len(edges[str(i)])):
-            tmp_set.add(edges[str(i)][j][0])
-            tmp_set.add(edges[str(i)][j][1])
+        for j in range(len(edges[i])):
+            tmp_set.add(edges[i][j][0])
+            tmp_set.add(edges[i][j][1])
     max_num_nodes = len(tmp_set)
 
     edge_dict = {}
     for i in range(len(edges)):
         edge_set = set()
-        for j in range(len(edges[str(i)])):
-            edge_set.add((edges[str(i)][j][0],edges[str(i)][j][1]))
+        for j in range(len(edges[i])):
+            edge_set.add((edges[i][j][0],edges[i][j][1]))
         edge_dict[str(i)] = edge_set
     
     edge_final_dict = {}
@@ -137,6 +141,10 @@ def main(args):
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
     G = SeastarGraph(train_graph_log_dict,train_max_num_nodes)
 
+    inspect(train_graph_log_dict)
+    inspect(train_max_num_nodes)
+    inspect(G)
+
     # train
     print("Training...\n")
     for epoch in tqdm(range(args.num_epochs)):
@@ -154,7 +162,7 @@ def main(args):
         for index in range(len(train_features)):  
 
             # normalization
-            degs = G.in_degrees().float()
+            degs = torch.from_numpy(G.in_degrees())
             norm = torch.pow(degs, -0.5)
             norm[torch.isinf(norm)] = 0
             norm = to_default_device(norm)
@@ -229,7 +237,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
-    parser.add_argument("--num_epochs", type=int, default=200,
+    parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
     args = parser.parse_args()
     print(args)
