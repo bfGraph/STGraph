@@ -277,6 +277,12 @@ class ExecutionUnit(object):
             row_offsets = graph.row_offset
             col_indices = graph.column_indices
             eids = graph.eids
+  
+        # TODO: Move the tensor to the gpu and cast elsewhere
+        row_offsets = torch.tensor(row_offsets).cuda().type(torch.int32)
+        col_indices = torch.tensor(col_indices).cuda().type(torch.int32)
+        eids = torch.tensor(eids).cuda().type(torch.int32)
+        
         self._K.reset_graph_info(graph.num_nodes, row_offsets, col_indices, eids)
 
     def kernel_run(self, tensor_list):
@@ -345,11 +351,6 @@ class ExecutionUnit(object):
 
 class Kernel():
     def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
-        
-        # TODO: Move the tensor to the gpu and cast elsewhere
-        row_offsets = torch.tensor(row_offsets).cuda().type(torch.int32)
-        col_indices = torch.tensor(col_indices).cuda().type(torch.int32)
-        eids = torch.tensor(eids).cuda().type(torch.int32)
 
         self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
         self.const_kernel_args[1] = c_void_p(eids.data_ptr())

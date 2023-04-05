@@ -84,7 +84,7 @@ class SeastarGraph:
         self.column_indices = csr_map['column_indices']
 
         # TODO: Make changes to work with edge ids
-        # self.eids = np.arange(len())
+        self.eids = [1,2]
 
     def update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp

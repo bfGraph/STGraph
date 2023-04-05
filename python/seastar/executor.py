@@ -201,7 +201,7 @@ class Executor(object):
   
     def restart(self, input_map):
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
-        if graph != None:
+        if self.graph != None:
             for mu in self.forward_exec_units:
                 for u in mu:
                     if u.compiled:
@@ -210,8 +210,8 @@ class Executor(object):
             for u in self.bulist:
                 if u.compiled:
                     u.reset_graph_info(self.graph)
-            self.num_nodes = self.graph.number_of_nodes
-            self.num_edges = self.graph.number_of_edges
+            self.num_nodes = self.graph.num_nodes
+            self.num_edges = self.graph.num_edges
 
     
     def set_raw_ptr_cb(self, cb):

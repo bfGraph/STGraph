@@ -177,6 +177,8 @@ def main(args):
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)
 
+        print("🔴🔴 Forward prop completed")
+
         cost.backward()
         optimizer.step()
 
