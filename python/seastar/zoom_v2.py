@@ -19,15 +19,7 @@ import snoop
 import torch
 
 class Context():
-    GraphInfo = namedtuple('GraphInfo', ['number_of_nodes',
-                                         'number_of_edges',
-                                         'in_row_offsets',
-                                         'in_col_indices',
-                                         'in_eids',
-                                         'out_row_offsets',
-                                         'out_col_indices',
-                                         'out_eids',
-                                         'nbits'])
+
     def __init__(self, func, nspace, run_cb):
         functools.update_wrapper(self, func)
         self._f = func
@@ -36,7 +28,7 @@ class Context():
         self._run_cb = run_cb
         # Hold reference to parameters of current module to avoid repeated lookup
         self._input_cache = {}
-        self._graph_info_cache = None
+        self._graph = None
         self._executor_cache = None
 
     def __call__(self, **kwargs):
@@ -47,18 +39,19 @@ class Context():
         return ret
 
     def _setup_executor(self, **kwargs):
-        graph = kwargs.get('g', None)
+        graph_arg = kwargs.get('g', None)
         node_feats = kwargs.get('n_feats', {})
         edge_feats = kwargs.get('e_feats', {})
-        if not graph:
+        if not graph_arg:
             raise NameError('Need to provide the graph as one of keyward arguments')
-        graph_info, need_reset = self._update_graph_info(graph)
+        
+        graph = self._update_graph(graph_arg)
         if self._entry_count == 0:
             fprog = Program()
             ret = self._trace(node_feats, edge_feats, self._input_cache, fprog)
             # print('TracedProgram' + str(fprog), 'Ret value:', ret)
             # pretty_print_GIR(fprog,"TGCN GIR")
-            self._executor_cache = self._diff_then_compile(ret, fprog, graph_info)
+            self._executor_cache = self._diff_then_compile(ret, fprog, graph)
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
@@ -66,30 +59,14 @@ class Context():
             self._input_cache[var_prefix+k] = v
         # print("🔴 Input Cache")
         # print(self._input_cache)
-        self._executor_cache.restart(self._input_cache, graph_info if need_reset else None)
+        self._executor_cache.restart(self._input_cache)
         self._entry_count += 1
         return self._executor_cache
-
-    def _update_graph_info(self, graph):
-        reset = False
-        if not (self._graph_info_cache != None
-                and self._graph_info_cache.number_of_nodes == graph.number_of_nodes()
-                and self._graph_info_cache.number_of_edges == graph.number_of_edges()):
-            out_csr = graph.adj_sparse(fmt="csr")
-            in_csr = graph.reverse().adj_sparse(fmt="csr")
-
-            self._graph_info_cache = Context.GraphInfo(
-                graph.number_of_nodes(),
-                graph.number_of_edges(),
-                in_csr[0].type(torch.int32),
-                in_csr[1].type(torch.int32),
-                in_csr[2].type(torch.int32),
-                out_csr[0].type(torch.int32),
-                out_csr[1].type(torch.int32),
-                out_csr[2].type(torch.int32),
-                graph._graph.bits_needed(0)) #TODO: Setting this to graph._graph.bits_needed(0), since function not there in DGL and the number plays no role in seastar, but this wont work for homogenous
-            reset = True
-        return self._graph_info_cache, reset
+    
+    def _update_graph(self, graph_arg):
+        if self._graph is None:
+            self._graph = graph_arg
+        return self._graph
 
     def _trace(self, nfeats, efeats, input_cache, fprog):
         backend = self.find_backend(self._nspace)
@@ -114,7 +91,9 @@ class Context():
             grads.append(Var.create_var(var_shape=var.var_shape, var_dtype=var.var_dtype, val_type=var.val_type, device=var.device))
         backward_exe_units = diff(vars, grads, forward_exe_units, fprog)
         visualize.plot_exec_units(forward_exe_units + backward_exe_units)
-        compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int' if graph.nbits == 32 else 'long long int')
+
+        #TODO: Set the last param here to 'int' before they were doing a check to see if it was 32
+        compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int')
         return Executor(graph, forward_exe_units, backward_exe_units, compiled_module, vars)
         
     def _init_central_node(self, nfeats, efeats, fprog, backend):
