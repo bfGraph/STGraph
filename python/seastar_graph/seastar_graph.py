@@ -30,6 +30,9 @@ class SeastarGraph:
         self.ndata = {}
         self.current_time_stamp = 0
 
+        self.num_nodes = 0
+        self.num_edges = 0
+
         self.row_offset = []
         self.column_indices = []
         self.eids = []
@@ -40,6 +43,7 @@ class SeastarGraph:
             self.base_graph.add_edge(edge[1], edge[0], 1)
 
         self._get_graph_csr()
+        self._get_num_nodes_edges()
 
     def in_degrees(self):
         ''' Return array of node in-degrees dtype='float32'
@@ -95,3 +99,11 @@ class SeastarGraph:
             self.base_graph.delete_edge(edge[1], edge[0])
 
         self._get_graph_csr()
+        self._get_num_nodes_edges()
+
+    def _get_num_nodes_edges(self):
+        ''' Calculates the number of edges and nodes of the graph
+            at current timestamp'''
+        
+        self.num_nodes = len(self.row_offset) - 1
+        self.num_edges = len(self.column_indices) - self.column_indices.count(-1)
