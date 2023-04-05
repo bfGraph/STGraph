@@ -11,8 +11,8 @@ from tgcn import SeastarTGCN
 import snoop
 
 from rich import inspect
-from rich.traceback import install
-install(show_locals=True)
+# from rich.traceback import install
+# install(show_locals=True)
 
 from seastar_graph.seastar_graph import SeastarGraph
 
@@ -65,16 +65,16 @@ def preprocess_graph_structure(edges):
     tmp_set = set()
     for i in range(len(edges)):
         tmp_set = set()
-        for j in range(len(edges[i])):
-            tmp_set.add(edges[i][j][0])
-            tmp_set.add(edges[i][j][1])
+        for j in range(len(edges[i][0])):
+            tmp_set.add(edges[i][0][j])
+            tmp_set.add(edges[i][1][j])
     max_num_nodes = len(tmp_set)
 
     edge_dict = {}
     for i in range(len(edges)):
         edge_set = set()
-        for j in range(len(edges[i])):
-            edge_set.add((edges[i][j][0],edges[i][j][1]))
+        for j in range(len(edges[i][0])):
+            edge_set.add((edges[i][0][j],edges[i][1][j]))
         edge_dict[str(i)] = edge_set
     
     edge_final_dict = {}

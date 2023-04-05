@@ -20,6 +20,7 @@ class SeastarGraph:
 
         self.max_num_nodes = max_num_nodes
         self.base_graph = PCSR(max_num_nodes)
+        self.ndata = {}
 
 
         initial_graph_additions = graph_updates["0"]["add"]
