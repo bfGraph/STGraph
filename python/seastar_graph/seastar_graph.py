@@ -24,12 +24,14 @@ class SeastarGraph:
                                         for the graph         
         '''
 
-        self.graph_updates = graph_updates
-        self.max_num_nodes = max_num_nodes
         self.base_graph = PCSR(max_num_nodes)
+        self.reverse_base_graph = PCSR(max_num_nodes)
+
+        self.graph_updates = graph_updates
         self.ndata = {}
         self.current_time_stamp = 0
 
+        self.max_num_nodes = max_num_nodes
         self.num_nodes = 0
         self.num_edges = 0
 
@@ -64,7 +66,7 @@ class SeastarGraph:
         '''
         return np.array([node.in_degree for node in self.base_graph.nodes], dtype='float32')
     
-    def _get_graph_csr(self):
+    def _get_graph_csr(self, is_reverse=False):
         ''' Generates the CSR Arrays for the base graph
         
             This generates the row_offset, column_indices and eids
@@ -73,7 +75,11 @@ class SeastarGraph:
             Warning:    As of now, it generates an empty list for eids.
                         Need to work on that in the future.
         '''
-        csr_map = self.base_graph.get_csr_arrays()
+        if is_reverse:
+            csr_map = self.reverse_base_graph.get_csr_arrays()
+        else:
+            csr_map = self.base_graph.get_csr_arrays()
+
         self.row_offset = csr_map['row_offset']
         self.column_indices = csr_map['column_indices']
 
@@ -107,3 +113,29 @@ class SeastarGraph:
         
         self.num_nodes = len(self.row_offset) - 1
         self.num_edges = len(self.column_indices) - self.column_indices.count(-1)
+
+    def init_reverse_graph(self):
+        ''' Generates the reverse of the base graph'''
+
+        edges = self.base_graph.get_edges()
+
+        for src, dst, val in edges:
+            self.reverse_base_graph.add_edge(dst, src, val)
+
+    def update_graph_backward(self):
+        if self.current_time_stamp < 0:
+            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
+        
+        graph_additions = self.graph_updates[str(self.current_time_stamp)]["delete"]
+        graph_deletions = self.graph_updates[str(self.current_time_stamp)]["add"]
+
+        for edge in graph_additions:
+            self.base_graph.add_edge(edge[0], edge[1], 1)
+
+        for edge in graph_deletions:
+            self.base_graph.delete_edge(edge[0], edge[1])
+
+        self._get_graph_csr(is_reverse=True)
+        self._get_num_nodes_edges()
+
+        self.current_time_stamp -= 1

@@ -218,6 +218,8 @@ class PCSR {
       void add_edge(uint32_t src, uint32_t dest, uint32_t value);
       void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
       void delete_edge(uint32_t src, uint32_t dest);
+      uint64_t get_n();
+      vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
       void print_graph();
       void print_array();
       py::dict get_csr_arrays();
@@ -565,6 +567,27 @@ void PCSR::delete_edge(uint32_t src, uint32_t dest) {
   } 
 }
 
+uint64_t PCSR::get_n() { 
+  return nodes.size(); 
+}
+
+vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
+  uint64_t n = get_n();
+  vector<tuple<uint32_t, uint32_t, uint32_t>> output;
+
+  for (int i = 0; i < n; i++) {
+    uint32_t start = nodes[i].beginning;
+    uint32_t end = nodes[i].end;
+    for (int j = start + 1; j < end; j++) {
+      if (!is_null(edges.items[j])) {
+        output.push_back(
+            make_tuple(i, edges.items[j].dest, edges.items[j].value));
+      }
+    }
+  }
+  return output;
+}
+
 void PCSR::print_graph() {
   int num_vertices = nodes.size();
 
@@ -704,10 +727,12 @@ PYBIND11_MODULE(pcsr, m) {
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
         .def("delete_edge", &PCSR::delete_edge)
+        .def("get_n", &PCSR::get_n)
+        .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
         .def("get_csr_arrays", &PCSR::get_csr_arrays)
         .def_readwrite("nodes", &PCSR::nodes)
         .def_readwrite("edges", &PCSR::edges);
 }
 
-// c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) pcsr.cpp -o pcsr$(python3-config --extension-suffix)
+// c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) pcsr.cpp -o pcsr.so
