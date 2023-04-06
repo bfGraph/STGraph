@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: pcsr
+Version: 0.1
+Summary: PCSR data structure to represent Dynamic Graph Representation
+Home-page: https://github.com/GNN-Compiler/Seastar
+Author: Nithin and Joel
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.5

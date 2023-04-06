@@ -201,7 +201,14 @@ class TorchVal(Val):
         return ret_val
 
     def __sub__(self, other):
-        raise NotImplementedError("__sub__ Op not supported")
+        # TODO: An attempt made by us, uncomment the below which is original
+        # raise NotImplementedError("__sub__ Op not supported")
+        vtype = infer_val_type((self, other))
+        ret_val = create_val(self.v - other.v, self.backend, vtype, None, self.fprog, False)
+        def call(arg0, arg1):
+            return arg0.__sub__(arg1)
+        self.fprog.append_stmt(Stmt.create_stmt(Schema('Sub'), args=[self.var, other.var], ret=ret_val.var, callback=call))
+        return ret_val
     
     def __truediv__(self, other):
         vtype = infer_val_type((self, other))

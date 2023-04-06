@@ -67,6 +67,9 @@ def main(args):
     features = torch.FloatTensor(features)
     labels = torch.LongTensor(labels)
 
+    print("Features Shape")
+    print(features.shape)
+
     if hasattr(torch, 'BoolTensor'):
         train_mask = torch.BoolTensor(train_mask)
 

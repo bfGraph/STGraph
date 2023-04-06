@@ -40,7 +40,7 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
                 {{init_outter_offset}}
                 for ({{index_type}} e=start_off;e<end_off;++e) {
                     {{index_type}} {{col_index}} = column_indices[e];
-                    {{index_type}} eid = eids[e];
+                    // {{index_type}} eid = eids[e];
                     {{init_inner_offset}}
                     {%for edge_stmt in edges%}
                     {{edge_stmt.load}}
@@ -83,7 +83,7 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
             {{init_outter_offset}}
             for ({{index_type}} e=beg;e<end;++e) {
                 {{index_type}} {{col_index}} = __ldg(column_indices + e);
-                {{index_type}} eid = __ldg(eids + e);
+                // {{index_type}} eid = __ldg(eids + e);
                 {{init_inner_offset}}
                 {%for edge_stmt in edges%}
                 {{edge_stmt.load}}
@@ -143,5 +143,7 @@ def gen_cuda(configs):
             raise NotImplementedError('Have not implement template for', configs['template_name'])
 
         kernel_cuda_code += rendered_template
-        
+    
+    # UNCOMMENT IF KERNEL IS TO BE PRINTED
+    print(kernel_cuda_code) 
     return compile_cuda(kernel_cuda_code)

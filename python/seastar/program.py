@@ -179,6 +179,21 @@ class Stmt(object):
         st = Stmt.create_stmt(Schema('add'), args=args, ret=ret_var)
         return st
 
+    # TODO: REMOVE THIS
+    def print_stmt_args(self):
+        string = ""
+        args_list = self.args
+        args_count = 1
+
+        for arg in args_list:
+            string += f'Arg {args_count}:\n'
+            string += str(arg) + "\n"
+            string += str(arg.var_shape)
+            string += "\n"
+            args_count += 1
+
+        return string
+
     def __init__(self, op_schema, args, ret, op_type, callback):
         self.op_schema = op_schema
         self.ret = ret

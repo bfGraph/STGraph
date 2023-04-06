@@ -1,4 +1,6 @@
 setup.py
+pcsr/__init__.py
+pcsr/main.py
 seastar/__init__.py
 seastar/autodiff.py
 seastar/execution_unit.py
@@ -38,6 +40,7 @@ seastar/code_gen/cuda_python/device_info.py
 seastar/debugging/__init__.py
 seastar/debugging/pp_kernel_function.py
 seastar/debugging/pp_table_generator.py
+seastar/debugging/pretty_printers.py
 seastar/passes/__init__.py
 seastar/passes/cf.py
 seastar/passes/cse.py
@@ -47,3 +50,6 @@ seastar/passes/fusion.py
 seastar/passes/mem_planning.py
 seastar/passes/peephole.py
 seastar/passes/visualize.py
+seastar_graph/__init__.py
+seastar_graph/engcovid_log.py
+seastar_graph/seastar_graph.py
