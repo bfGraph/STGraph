@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>run_exp &mdash; Seastar 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="python" href="../python.html" />
+    <link rel="prev" title="RGCN" href="rgcn/RGCN.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Seastar
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Codebase</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../exp.html">exp</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="appnp/APPNP.html">APPNP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gat/GAT.html">GAT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcn/GCN.html">GCN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rgcn/RGCN.html">RGCN</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">run_exp</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-exp-list-sample0">create_exp_list_sample0()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main">main()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#if-name-main">if __name__ == __main__:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../python.html">python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Learning%20Seastar.html">Learning Seastar</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Seastar</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../exp.html">exp</a> &raquo;</li>
+      <li>run_exp</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/exp/run_exp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="run-exp">
+<h1>run_exp<a class="headerlink" href="#run-exp" title="Permalink to this heading"></a></h1>
+<p>This is where the entire program starts from, when you run it on Google
+Colab or any other platform.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is not where Seastar starts from</p>
+</div>
+<section id="create-exp-list-sample0">
+<h2>create_exp_list_sample0()<a class="headerlink" href="#create-exp-list-sample0" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="create_exp_list_sample0">
+<span class="sig-name descname"><span class="pre">create_exp_list_sample0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#create_exp_list_sample0" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>According to the different GNN models passed as input through the command line,
+<code class="docutils literal notranslate"><span class="pre">create_exp_list_sample0</span></code> returns a list (<em>exp_list</em>) of GNNExp class objects.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – Contains the arguments passed through the command line. Arguments are models, systems, gpu and num_epochs.
+eg: <code class="docutils literal notranslate"><span class="pre">args</span> <span class="pre">=</span> <span class="pre">Namespace(gpu=0,</span> <span class="pre">models=['gcn'],</span> <span class="pre">num_epochs=200,</span> <span class="pre">systems=['dgl',</span> <span class="pre">'seastar'])</span></code></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List of GNNExp class objects. These objects can be from the following
+classes: GATExp, GCNExp, APPNPExp and RGCNExp</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="main">
+<h2>main()<a class="headerlink" href="#main" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
+<dd><p>Format the exception with a traceback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – Contains the arguments passed through the command line. Arguments are models, systems, gpu and num_epochs.
+eg: <code class="docutils literal notranslate"><span class="pre">args</span> <span class="pre">=</span> <span class="pre">Namespace(gpu=0,</span> <span class="pre">models=['gcn'],</span> <span class="pre">num_epochs=200,</span> <span class="pre">systems=['dgl',</span> <span class="pre">'seastar'])</span></code></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="if-name-main">
+<h2>if __name__ == __main__:<a class="headerlink" href="#if-name-main" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Experiment&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Within this if-block, the arguments which are passed through the
+command line are parsed and stored inside an <em>argparse.ArgumentParser</em>
+object.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--models&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;gat&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;which models to run. Example usage: --models gat gcn&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--systems&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;dgl&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;which models to run. Example usage: --systems dgl seastar pyg&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--gpu&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;which GPU to use. Set -1 to use CPU.&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--num_epochs&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;number of training epochs&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>–models: Refer to the GNN models which are to be used for training eg: GCN, GAT, etc.</p></li>
+<li><p>–systems: Refer to the frameworks which are used for implementing these models eg: DGL, PyG and Seastar</p></li>
+<li><p>–gpu: To whether use a gpu or not</p></li>
+<li><p>–num_epochs: The number of epochs required for training</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+<span class="n">args</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">models</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">models</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">models</span>
+<span class="n">args</span><span class="o">.</span><span class="n">systems</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">systems</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">systems</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">systems</span>
+</pre></div>
+</div>
+<p>Parses the input command and stores the arguments in <em>args</em> . Also makes sure that
+<em>args.models</em> and <em>args.systems</em> are list datatype.</p>
+<p>This is what args would look like for the following command line input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="o">./</span><span class="n">run_exp</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">models</span> <span class="n">gcn</span> <span class="o">--</span><span class="n">systems</span> <span class="n">dgl</span> <span class="n">seastar</span>
+<span class="n">args</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">(</span><span class="n">gpu</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;gcn&#39;</span><span class="p">],</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">systems</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;dgl&#39;</span><span class="p">,</span> <span class="s1">&#39;seastar&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rgcn/RGCN.html" class="btn btn-neutral float-left" title="RGCN" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../python.html" class="btn btn-neutral float-right" title="python" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Joel Mathew Cherian, Nithin Puthalath Manoj.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
