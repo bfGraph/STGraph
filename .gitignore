@@ -11,3 +11,4 @@ python/egl.egg-info/
 python/egl/__pycache__/
 python/build/
 python/dist/
+.DS_Store
