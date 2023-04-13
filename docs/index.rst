@@ -6,7 +6,7 @@
 Seastar Tutorial and Documentation
 ##################################
 
-Write up goes here
+Using vertex-centric programming to build GNNs
 
 Getting Started
 ===============
