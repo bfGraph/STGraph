@@ -13,5 +13,5 @@ python/seastar.egg-info
 python/build/
 python/dist/
 docs/_build
-docs/_static
+__pycache__/
 .DS_Store
