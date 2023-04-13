@@ -9,6 +9,9 @@ exp/dataset/aifb/
 exp/dataset/mutag/
 python/egl.egg-info/
 python/egl/__pycache__/
+python/seastar.egg-info
 python/build/
 python/dist/
+docs/_build
+docs/_static
 .DS_Store
