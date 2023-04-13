@@ -1,5 +1,3 @@
-# Seastar
-
 ![Seastar Banner](https://github.com/bfGraph/Seastar/blob/main/assets/Seastar%20Banner.png?raw=true)
 
 ## Attributions
