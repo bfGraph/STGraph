@@ -1,5 +1,0 @@
-================
-Learning Seastar
-================
-
-This documentation will help you (and us) better understand how Seastar actually works behind the scenes.
