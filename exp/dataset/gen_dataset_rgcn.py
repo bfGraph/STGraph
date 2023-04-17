@@ -14,8 +14,6 @@ import numpy as np
 import time
 import torch
 import torch.nn.functional as F
-from dgl import DGLGraph
-from dgl.nn.pytorch import RelGraphConv
 from dgl.contrib.data import load_data
 from functools import partial
 
@@ -71,6 +69,6 @@ def main(dataset):
     os.chdir('..')
 
 if __name__ == '__main__':
-    dataset_list = ['aifb', 'mutag', 'bgs']
+    dataset_list = ['aifb', 'mutag']
     for dataset in dataset_list:
         main(dataset)
