@@ -8,44 +8,40 @@ import dgl
 from dgl.nn import RelGraphConv
 from dgl.contrib.data import load_data
 from functools import partial
+from model import RGCNModel
 
-class EGLRGCNModel(nn.Module):
-    def __init__(self, num_nodes, in_dim, hidden_dim, out_dim, num_rels, num_edges, num_bases, dropout, activation):
-        super(EGLRGCNModel, self).__init__()
+# GPU | CPU
+def get_default_device():
+    
+    if torch.cuda.is_available():
+        return torch.device('cuda:0')
+    else:
+        return torch.device('cpu')
 
-        self.layer1 = RelGraphConv(in_dim,
-                                 hidden_dim,
-                                 num_rels,
-                                 num_bases=num_bases,
-                                 dropout=dropout,
-                                 activation=activation,
-                                 self_loop=False)
-        self.layer2 = RelGraphConv(in_dim,
-                                 out_dim,
-                                 num_rels,
-                                 num_bases=num_bases,
-                                 dropout=dropout,
-                                 activation=activation,
-                                 self_loop=False)
-        
-        self.emb = nn.Embedding(num_nodes, hidden_dim)
-        
-    def forward(self, g, feats, edge_type, edge_norm):
-        # x = self.emb(feats)
-        # print(x.shape)
-        h = self.layer1(g, feats, edge_type, edge_norm)
-        h = self.layer2(g, h, edge_type, edge_norm)
-        return h
+def to_default_device(data):
+    
+    if isinstance(data,(list,tuple)):
+        return [to_default_device(x,get_default_device()) for x in data]
+    
+    return data.to(get_default_device(),non_blocking = True)
 
 def main(args):
-    # load graph data
-    data = load_data(args.dataset, bfs_level=args.bfs_level, relabel=args.relabel)
-    num_nodes = data.num_nodes
-    num_rels = data.num_rels
-    num_classes = data.num_classes
-    labels = data.labels
-    train_idx = data.train_idx
-    test_idx = data.test_idx
+    base_loc = "../../dataset/{}/".format(args.dataset)
+    f = open(base_loc+"num.txt", "r")
+    metadata = f.read().split("#")
+    f.close()
+
+    num_nodes = int(metadata[0])
+    num_rels = int(metadata[1])
+    num_classes = int(metadata[2])
+
+    labels = np.load(base_loc+"labels.npy")
+    train_idx = np.load(base_loc+"trainIdx.npy")
+    test_idx = np.load(base_loc+"testIdx.npy")
+    edge_type = np.load(base_loc+"edgeType.npy")
+    edge_norm = np.load(base_loc+"edgeNorm.npy")
+    edge_src = np.load(base_loc+"edgeSrc.npy")
+    edge_dst = np.load(base_loc+"edgeDst.npy")
 
     # split dataset into train, validate, test
     if args.validation:
@@ -55,44 +51,32 @@ def main(args):
         val_idx = train_idx
 
     # since the nodes are featureless, the input feature is then the node id.
-    feats = torch.arange(num_nodes).unsqueeze(1).float()
+    feats = to_default_device(torch.arange(num_nodes))
 
     # edge type and normalization factor
-    edge_type = torch.from_numpy(data.edge_type).long()
+    edge_type = to_default_device(torch.from_numpy(edge_type).float())
+    edge_norm = to_default_device(torch.from_numpy(edge_norm).unsqueeze(1).float())
 
-    edge_norm = torch.from_numpy(data.edge_norm).unsqueeze(1).float()
-    labels = torch.from_numpy(labels).view(-1).long()
-
-    # check cuda
-    use_cuda = args.gpu >= 0 and torch.cuda.is_available()
-    if use_cuda:
-        torch.cuda.set_device(args.gpu)
-        feats = feats.cuda()
-        edge_type = edge_type.cuda()
-        edge_norm = edge_norm.cuda()
-        labels = labels.cuda()
+    labels = to_default_device(torch.from_numpy(labels).view(-1).long())
 
     # create graph
-    g = dgl.graph((data.edge_src,data.edge_dst), num_nodes=num_nodes)
-    g = g.to(feats.device)
+    g = dgl.graph((edge_src,edge_dst), num_nodes=num_nodes)
+    g = to_default_device(g)
 
-    model = EGLRGCNModel(num_nodes,
-                         1,
-                        args.hidden_size,
-                        num_classes,
-                        num_rels,
-                        edge_type.size(0),
-                        num_bases=args.num_bases,
-                        activation=F.relu,
-                        dropout=args.dropout)
+    # configurations
+    n_hidden = 16 # number of hidden units
 
-    if use_cuda:
-        model.cuda()
+
+    model = RGCNModel(g.num_nodes(),
+                  num_nodes,
+              n_hidden,
+              num_classes,
+              num_rels
+              )
+    model = to_default_device(model)
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.l2norm)
-
-    train_idx = np.array([0])
 
     # training loop
     print("start training...")
@@ -144,28 +128,18 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RGCN')
-    parser.add_argument("--dropout", type=float, default=0,
-            help="dropout probability")
     parser.add_argument("--hidden_size", type=int, default=16,
             help="number of hidden units")
     parser.add_argument("--gpu", type=int, default=0,
             help="gpu")
-    parser.add_argument("--lr", type=float, default=1e-2,
+    parser.add_argument("--lr", type=float, default=1e-3,
             help="learning rate")
-    parser.add_argument("--num_bases", type=int, default=-1,
-            help="number of filter weight matrices, default: -1 [use all]")
-    parser.add_argument("--n-layers", type=int, default=2,
-            help="number of propagation rounds")
+    parser.add_argument("--l2norm", type=float, default=0,
+            help="l2 norm")
     parser.add_argument("-e", "--num_epochs", type=int, default=50,
             help="number of training epochs")
     parser.add_argument("-d", "--dataset", type=str, required=True,
             help="dataset to use")
-    parser.add_argument("--l2norm", type=float, default=0,
-            help="l2 norm coef")
-    parser.add_argument("--relabel", default=False, action='store_true',
-            help="remove untouched nodes and relabel")
-    parser.add_argument("--use-self-loop", default=False, action='store_true',
-            help="include self feature as a special relation")
     fp = parser.add_mutually_exclusive_group(required=False)
     fp.add_argument('--validation', dest='validation', action='store_true')
     fp.add_argument('--testing', dest='validation', action='store_false')
@@ -173,5 +147,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print(args)
-    args.bfs_level = args.n_layers + 1 # pruning used nodes for memory
     main(args)
