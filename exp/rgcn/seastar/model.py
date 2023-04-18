@@ -14,9 +14,10 @@ class RGCNLayer(nn.Module):
                  dropout=None,
                  bias=True):
         super(RGCNLayer, self).__init__()
-        self.g = g
-        self.norm = self.g.ndata['norm']
-        self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
+        self.num_rels = num_rels
+
+        # List of weights for different relations
+        self.weight = [nn.Parameter(torch.Tensor(in_feats, out_feats)) for _ in range(num_rels)]
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_feats))
         else:
@@ -35,17 +36,20 @@ class RGCNLayer(nn.Module):
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
 
-    def forward(self, h):
+    def forward(self, g, h, edge_norm, edge_type):
         if self.dropout:
             h = self.dropout(h)
 
-        h = torch.mm(h, self.weight)
+        # Multiplying each relation with its corresponding weight matrix
+        # NOTE: This can be optimized later
+        h = torch.stack([torch.mm(h,weight) for weight in self.weight])
+        h = h.permute(1, 0, 2)
+
         @self.cm.zoomIn(nspace=[self, torch])
         def nb_compute(v):
-            h = sum([nb.h*nb.norm for nb in v.innbs])
-            h = h * v.norm
+            h = sum([nb_edge.src[0].h * nb_edge.norm for nb_edge in v.inedges])
             return h
-        h = nb_compute(g=self.g, n_feats={'norm': self.norm, 'h' : h})
+        h = nb_compute(g=g, n_feats={'h' : h}, e_feats={'norm':edge_norm}, edge_type=edge_type)
         # bias
         if self.bias is not None:
             h = h + self.bias

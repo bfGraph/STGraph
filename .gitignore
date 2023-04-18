@@ -15,3 +15,6 @@ python/dist/
 docs/_build
 __pycache__/
 .DS_Store
+*.svg
+*.cu
+*.ptx
