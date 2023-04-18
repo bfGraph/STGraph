@@ -17,7 +17,8 @@ class RGCNLayer(nn.Module):
         self.num_rels = num_rels
 
         # List of weights for different relations
-        self.weight = [nn.Parameter(torch.Tensor(in_feats, out_feats)) for _ in range(num_rels)]
+        # self.weight = [nn.Parameter(torch.Tensor(in_feats, out_feats)) for _ in range(num_rels)]
+        self.weight = nn.Parameter(torch.Tensor(num_rels, in_feats, out_feats))
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_feats))
         else:
@@ -31,6 +32,7 @@ class RGCNLayer(nn.Module):
         self.cm = CtxManager(run_egl)
 
     def reset_parameters(self):
+        # NOTE: this probably needs to be re-written
         stdv = 1. / math.sqrt(self.weight.size(1))
         self.weight.data.uniform_(-stdv, stdv)
         if self.bias is not None:
@@ -42,12 +44,14 @@ class RGCNLayer(nn.Module):
 
         # Multiplying each relation with its corresponding weight matrix
         # NOTE: This can be optimized later
-        h = torch.stack([torch.mm(h,weight) for weight in self.weight])
+        # h = torch.stack([torch.mm(h,weight) for weight in self.weight])
+        h = h.unsqueeze(0).expand(self.num_rels,-1,-1)
+        h = torch.bmm(h,self.weight)
         h = h.permute(1, 0, 2)
 
         @self.cm.zoomIn(nspace=[self, torch])
         def nb_compute(v):
-            h = sum([nb_edge.src[0].h * nb_edge.norm for nb_edge in v.inedges])
+            h = sum([nb_edge.src[0].h for nb_edge in v.inedges])
             return h
         h = nb_compute(g=g, n_feats={'h' : h}, e_feats={'norm':edge_norm}, edge_type=edge_type)
         # bias
@@ -62,21 +66,19 @@ class RGCNModel(nn.Module):
         super(RGCNModel, self).__init__()
 
         self.layer1 = RGCNLayer(in_dim,
-                                 hidden_dim,
-                                 num_rels,
-                                 self_loop=False)
-        
-        self.layer2 = RGCNLayer(hidden_dim,
                                  out_dim,
-                                 num_rels,
-                                 self_loop=False)
+                                 num_rels)
+        
+        # self.layer2 = RGCNLayer(hidden_dim,
+        #                          out_dim,
+        #                          num_rels)
         
         self.emb = nn.Embedding(num_nodes, in_dim)
         
-    def forward(self, g, feats, edge_type, edge_norm):
+    def forward(self, g, feats, edge_norm, edge_type):
         feats = self.emb(feats)
-        h = self.layer1(g, feats, edge_type, edge_norm)
-        h = F.relu(h)
-        h = self.layer2(g, h, edge_type, edge_norm)
+        h = self.layer1(g, feats, edge_norm, edge_type)
+        # h = F.relu(h)
+        # h = self.layer2(g, h, edge_norm, edge_type)
         h = F.softmax(h, dim=1)
         return h

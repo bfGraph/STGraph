@@ -155,7 +155,7 @@ class MergedUnit(object):
             yield unit
 
 class Executor(object):
-    def __init__(self, graph_info, forward_exec_units, backward_exec_units, compiled_module, rets):
+    def __init__(self, graph_info, forward_exec_units, backward_exec_units, compiled_module, rets, edge_type):
         self.forward_exec_units = self.merge_units(forward_exec_units)
         self.bulist = backward_exec_units
         self.var2bu = self.construct_backward_mappping(self.forward_exec_units,backward_exec_units)
@@ -165,13 +165,14 @@ class Executor(object):
         self.raw_ptr = None
         self.num_nodes = graph_info.number_of_nodes
         self.num_edges = graph_info.number_of_edges
+        self.edge_type = edge_type
         for mu in self.forward_exec_units:
             for u in mu:
                 if u.compiled:
-                    u.prepare_compiled_kernel(graph_info, compiled_module)
+                    u.prepare_compiled_kernel(graph_info, compiled_module, edge_type)
         for u in self.bulist:
             if u.compiled:
-                u.prepare_compiled_kernel(graph_info, compiled_module)
+                u.prepare_compiled_kernel(graph_info, compiled_module, edge_type)
     
     def construct_backward_mappping(self, funits, bunits):
         ret = {}
@@ -198,17 +199,20 @@ class Executor(object):
         print('merged units', len(grouped_unit), grouped_unit)
         return grouped_unit
   
-    def restart(self, input_map, graph_info=None):
+    def restart(self, input_map, graph_info=None, edge_type=None):
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
+
+        # NOTE: We will need to move this to an appropriate place
+        self.edge_type = edge_type
         if graph_info != None:
             for mu in self.forward_exec_units:
                 for u in mu:
                     if u.compiled:
                         # TODO: (Joel) Feel like this is going to be problematic for dynamic graphs
-                        u.reset_graph_info(graph_info)
+                        u.reset_graph_info(graph_info, edge_type)
             for u in self.bulist:
                 if u.compiled:
-                    u.reset_graph_info(graph_info)
+                    u.reset_graph_info(graph_info, edge_type)
             self.num_nodes = graph_info.number_of_nodes
             self.num_edges = graph_info.number_of_edges
 
@@ -251,7 +255,6 @@ class Executor(object):
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.current_tensor_map}
         self.ts.current_tensor_map = {**self.ts.current_tensor_map, **ret_tensors}
 
-    @snoop
     def create_tensor_for_grad_vars(self, var_list, tensor_map):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
@@ -278,7 +281,6 @@ class Executor(object):
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
     
-    @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
         '''FuncWrapper will call this function in forward pass'''
         units = self.forward_exec_units[uid]
@@ -287,7 +289,6 @@ class Executor(object):
 
         return tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
 
-    @snoop
     def backward_cb(self, kid, grad_list):
         '''FuncWrapper will call this function in backward pass'''
         # which backward kernel to call? un-executed kernel that has all dependency satisfied. 

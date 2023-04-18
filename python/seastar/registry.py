@@ -128,7 +128,8 @@ class OpImpl(abc.ABC):
                                var_dtype=x.var_dtype,
                                val_type=x.val_type,
                                device=x.device)
-    
+
+    # NOTE: When using edge_norm fpor rgcn an error was encountered here
     def multiply_grad(self, dzdy, dydx, x):
         dim_size = len(dzdy.var_shape)
         dim_sizex = len(x.var_shape)

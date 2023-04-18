@@ -43,10 +43,6 @@ def main(dataset):
     np.save('testIdx.npy', test_idx)
     # split dataset into train, validate, test
 
-
-    # since the nodes are featureless, the input feature is then the node id.
-    feats = torch.arange(num_nodes)
-
     # edge type and normalization factor
     print('edge_src type = ', type(data.edge_src))
     print('shape = ', data.edge_src.shape)

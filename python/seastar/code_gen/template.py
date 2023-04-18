@@ -65,6 +65,7 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
   {{index_type}} *row_offsets,
   {{index_type}} *eids,
   {{index_type}} *column_indices,
+  {{index_type}} *edge_type,
   {{index_type}} num_nodes,
   {{index_type}} max_dimx,
   {{index_type}} max_dimy,
