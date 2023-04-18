@@ -1,7 +1,7 @@
 from PCSR import pcsr
 
-from rich.pretty import pprint
-from rich import inspect
+# from rich.pretty import pprint
+# from rich import inspect
 
 def pretty_print_pcsr(graph):
     print("Edges:")

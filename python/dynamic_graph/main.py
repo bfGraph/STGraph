@@ -1,6 +1,6 @@
 from timeit import default_timer as timer
 
-from rich.pretty import pprint
+# from rich.pretty import pprint
 from dynamic_graph import DynamicGraph
 
 

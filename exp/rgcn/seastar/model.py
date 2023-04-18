@@ -5,6 +5,8 @@ from seastar import CtxManager
 from seastar.backend.pytorch_backend import run_egl
 import math
 
+from rich import inspect
+
 class RGCNLayer(nn.Module):
     def __init__(self,
                  in_feats,
@@ -42,12 +44,26 @@ class RGCNLayer(nn.Module):
         if self.dropout:
             h = self.dropout(h)
 
+        # h = (num_nodes, in_feats) -> (1,num_nodes, in_feats) -> (num_rels ,num_nodes, in_feats)
+        # w = (num_rels,in_feats, out_feats)
+        # out = (num_rels, num_nodes, out_feats)
+        # out = (num_nodes, num_rels, out_feats)
+
         # Multiplying each relation with its corresponding weight matrix
         # NOTE: This can be optimized later
         # h = torch.stack([torch.mm(h,weight) for weight in self.weight])
+        # print("🍏🍏🍏")
+        # inspect(h)
         h = h.unsqueeze(0).expand(self.num_rels,-1,-1)
+        # print("🧡🧡🧡")
+        # inspect(h)
         h = torch.bmm(h,self.weight)
+        # print("🚧🚧🚧")
+        # inspect(h)
         h = h.permute(1, 0, 2)
+
+        # print("😀😀😀")
+        # inspect(h)
 
         @self.cm.zoomIn(nspace=[self, torch])
         def nb_compute(v):

@@ -15,6 +15,9 @@ from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 from .debugging.pretty_printers import pretty_print_GIR, pretty_print_Central_Node
 import snoop
 
+from rich.traceback import install
+install(show_locals=True)
+
 # REMOVE THIS
 import torch
 

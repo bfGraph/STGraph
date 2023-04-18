@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import dgl
 from functools import partial
 from model import RGCNModel
-from rich import inspect
+# from rich import inspect
 
 # GPU | CPU
 def get_default_device():

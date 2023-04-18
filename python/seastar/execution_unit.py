@@ -383,7 +383,7 @@ class V2Kernel(Kernel):
 class FeatureAdaptiveKernel(Kernel):
     def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, edge_types):
         
-        num_rels = len(edge_types)
+        num_rels = len(edge_types.unique())
         
         self.scalar_args = [c_int(num_rels), c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
         self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr()), c_void_p(edge_types.data_ptr())] + self.scalar_args

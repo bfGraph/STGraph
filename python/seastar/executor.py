@@ -3,6 +3,8 @@ from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque
 
+from rich import inspect
+
 class Stack:
     def __init__(self, val=None):
         self.content = deque()
@@ -248,8 +250,17 @@ class Executor(object):
 
         return  ret
     
+    # @snoop
+    def find_size_tensor_for_vars(self,var):
+        # ASSUMPTION: var has shape (num_rels,out_feat)
+        # Adding var.var_shape[-1] since we just need out_feat
+        # inspect(var.var_shape)
+        # inspect(var)
+        tmp = [self.num_edges if var.is_edgevar() else self.num_nodes] + list([var.var_shape[-1]])
+        return tmp
+    
     def create_tensor_for_vars(self, var_list):
-        ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
+        ret_tensors = {var.id : self.new_zeros(size= self.find_size_tensor_for_vars(var),
                                                dtype=var.var_dtype,
                                                device=var.device,
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.current_tensor_map}

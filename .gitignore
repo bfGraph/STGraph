@@ -7,6 +7,7 @@ exp/dataset/pubmed/
 exp/dataset/reddit/
 exp/dataset/aifb/
 exp/dataset/mutag/
+exp/dataset/roorah
 python/egl.egg-info/
 python/egl/__pycache__/
 python/seastar.egg-info
