@@ -65,7 +65,8 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
   {{index_type}} *row_offsets,
   {{index_type}} *eids,
   {{index_type}} *column_indices,
-  {{index_type}} *edge_type,
+  {{index_type}} *edge_types,
+  {{index_type}} num_rels,
   {{index_type}} num_nodes,
   {{index_type}} max_dimx,
   {{index_type}} max_dimy,
@@ -77,21 +78,39 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
         {{index_type}} beg = __ldg(row_offsets + {{row_offset}});
         {{index_type}} end = __ldg(row_offsets + {{row_offset}} + 1);
         {{index_type}} tx = threadIdx.x % thrs_per_group;
+
+        // looping through feature
         for (; tx<feat_len; tx+=blockDim.x) {
-            {%for agg_stmt in aggs%}{{agg_stmt.init}}{%endfor%}
+        
             {{init_outter_offset}}
-            for ({{index_type}} e=beg;e<end;++e) {
-                {{index_type}} {{col_index}} = __ldg(column_indices + e);
-                {{index_type}} eid = __ldg(eids + e);
-                {{init_inner_offset}}
-                {%for edge_stmt in edges%}
-                {{edge_stmt.load}}
-                {{edge_stmt.compute}}
-                {{edge_stmt.inner_write}}{%endfor%}
-                {%for agg_stmt in aggs%}
-                {{agg_stmt.compute}}
-                {{agg_stmt.inner_write}}{%endfor%}
-            }
+            {%for agg_stmt in aggs%}{{agg_stmt.init}}{%endfor%}
+        
+            // looping through relations
+            for ({{index_type}} rel=0;rel<num_rels;++rel) {
+
+                    // looping through neighbours
+                    for ({{index_type}} e=beg;e<end;++e) {
+                        {{index_type}} etype = __ldg(edge_types + e);
+
+                        // checking if a neighbour is of a particular relation
+                        if(etype == rel){
+                            {{index_type}} {{col_index}} = __ldg(column_indices + e);
+                            {{index_type}} eid = __ldg(eids + e);
+                            
+                            {{init_inner_offset}}
+                            {%for edge_stmt in edges%}
+                            {{edge_stmt.load}}
+                            {{edge_stmt.compute}}
+                            {{edge_stmt.inner_write}}{%endfor%}
+                            {%for agg_stmt in aggs%}
+                            {{agg_stmt.compute}}
+                            {{agg_stmt.inner_write}}{%endfor%}
+                        }
+
+                    }
+                    
+                }
+
             {%for agg_stmt in aggs%}
             {{agg_stmt.outter_write}}{%endfor%}
             {%for node_stmt in nodes%}

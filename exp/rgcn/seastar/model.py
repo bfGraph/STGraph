@@ -38,7 +38,7 @@ class RGCNLayer(nn.Module):
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
 
-    def forward(self, g, h, edge_norm, edge_type):
+    def forward(self, g, h, edge_norm, edge_types):
         if self.dropout:
             h = self.dropout(h)
 
@@ -53,7 +53,7 @@ class RGCNLayer(nn.Module):
         def nb_compute(v):
             h = sum([nb_edge.src[0].h for nb_edge in v.inedges])
             return h
-        h = nb_compute(g=g, n_feats={'h' : h}, e_feats={'norm':edge_norm}, edge_type=edge_type)
+        h = nb_compute(g=g, n_feats={'h' : h}, e_feats={'norm':edge_norm}, edge_types=edge_types)
         # bias
         if self.bias is not None:
             h = h + self.bias
@@ -75,9 +75,9 @@ class RGCNModel(nn.Module):
         
         self.emb = nn.Embedding(num_nodes, in_dim)
         
-    def forward(self, g, feats, edge_norm, edge_type):
+    def forward(self, g, feats, edge_norm, edge_types):
         feats = self.emb(feats)
-        h = self.layer1(g, feats, edge_norm, edge_type)
+        h = self.layer1(g, feats, edge_norm, edge_types)
         # h = F.relu(h)
         # h = self.layer2(g, h, edge_norm, edge_type)
         h = F.softmax(h, dim=1)

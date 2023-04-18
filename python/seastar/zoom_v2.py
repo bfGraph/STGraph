@@ -51,8 +51,8 @@ class Context():
         node_feats = kwargs.get('n_feats', {})
         edge_feats = kwargs.get('e_feats', {})
 
-        # if edge_type is None then its a homogenous graph
-        edge_type = kwargs.get('edge_type', None)
+        # if edge_types is None then its a homogenous graph
+        edge_types = kwargs.get('edge_types', None)
         if not graph:
             raise NameError('Need to provide the graph as one of keyward arguments')
         graph_info, need_reset = self._update_graph_info(graph)
@@ -61,7 +61,7 @@ class Context():
             ret = self._trace(node_feats, edge_feats, self._input_cache, fprog)
             # print('TracedProgram' + str(fprog), 'Ret value:', ret)
             # pretty_print_GIR(fprog,"TGCN GIR")
-            self._executor_cache = self._diff_then_compile(ret, fprog, graph_info, edge_type)
+            self._executor_cache = self._diff_then_compile(ret, fprog, graph_info, edge_types)
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
@@ -69,7 +69,7 @@ class Context():
             self._input_cache[var_prefix+k] = v
         # print("🔴 Input Cache")
         # print(self._input_cache)
-        self._executor_cache.restart(self._input_cache, graph_info if need_reset else None, edge_type)
+        self._executor_cache.restart(self._input_cache, graph_info if need_reset else None, edge_types)
         self._entry_count += 1
         return self._executor_cache
 
@@ -106,7 +106,7 @@ class Context():
             raise NameError('Ret is none. Execution is aborted')
         return [ret.var] if not isinstance(ret, Iterable) else ret.var
 
-    def _diff_then_compile(self, out_set, fprog, graph, edge_type):
+    def _diff_then_compile(self, out_set, fprog, graph, edge_types):
         optimize(fprog)
         vars = []
         for var in out_set:
@@ -118,7 +118,7 @@ class Context():
         backward_exe_units = diff(vars, grads, forward_exe_units, fprog)
         # visualize.plot_exec_units(forward_exe_units + backward_exe_units)
         compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int' if graph.nbits == 32 else 'long long int')
-        return Executor(graph, forward_exe_units, backward_exe_units, compiled_module, vars, edge_type)
+        return Executor(graph, forward_exe_units, backward_exe_units, compiled_module, vars, edge_types)
         
     def _init_central_node(self, nfeats, efeats, fprog, backend):
         cen = CentralNode()

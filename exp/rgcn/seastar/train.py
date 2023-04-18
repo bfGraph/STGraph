@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import dgl
 from functools import partial
 from model import RGCNModel
+from rich import inspect
 
 # GPU | CPU
 def get_default_device():
@@ -87,6 +88,7 @@ def main(args):
         optimizer.zero_grad()
         t0 = time.time()
         logits = model(g, feats, edge_type, edge_norm)
+
         tb = time.time()
         train_logits=logits[train_idx]
         ta = time.time()

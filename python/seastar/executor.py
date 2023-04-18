@@ -155,7 +155,7 @@ class MergedUnit(object):
             yield unit
 
 class Executor(object):
-    def __init__(self, graph_info, forward_exec_units, backward_exec_units, compiled_module, rets, edge_type):
+    def __init__(self, graph_info, forward_exec_units, backward_exec_units, compiled_module, rets, edge_types):
         self.forward_exec_units = self.merge_units(forward_exec_units)
         self.bulist = backward_exec_units
         self.var2bu = self.construct_backward_mappping(self.forward_exec_units,backward_exec_units)
@@ -165,14 +165,14 @@ class Executor(object):
         self.raw_ptr = None
         self.num_nodes = graph_info.number_of_nodes
         self.num_edges = graph_info.number_of_edges
-        self.edge_type = edge_type
+        self.edge_type = edge_types
         for mu in self.forward_exec_units:
             for u in mu:
                 if u.compiled:
-                    u.prepare_compiled_kernel(graph_info, compiled_module, edge_type)
+                    u.prepare_compiled_kernel(graph_info, compiled_module, edge_types)
         for u in self.bulist:
             if u.compiled:
-                u.prepare_compiled_kernel(graph_info, compiled_module, edge_type)
+                u.prepare_compiled_kernel(graph_info, compiled_module, edge_types)
     
     def construct_backward_mappping(self, funits, bunits):
         ret = {}
@@ -199,20 +199,20 @@ class Executor(object):
         print('merged units', len(grouped_unit), grouped_unit)
         return grouped_unit
   
-    def restart(self, input_map, graph_info=None, edge_type=None):
+    def restart(self, input_map, graph_info=None, edge_types=None):
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
 
         # NOTE: We will need to move this to an appropriate place
-        self.edge_type = edge_type
+        self.edge_types = edge_types
         if graph_info != None:
             for mu in self.forward_exec_units:
                 for u in mu:
                     if u.compiled:
                         # TODO: (Joel) Feel like this is going to be problematic for dynamic graphs
-                        u.reset_graph_info(graph_info, edge_type)
+                        u.reset_graph_info(graph_info, edge_types)
             for u in self.bulist:
                 if u.compiled:
-                    u.reset_graph_info(graph_info, edge_type)
+                    u.reset_graph_info(graph_info, edge_types)
             self.num_nodes = graph_info.number_of_nodes
             self.num_edges = graph_info.number_of_edges
 

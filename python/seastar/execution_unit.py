@@ -238,7 +238,7 @@ class ExecutionUnit(object):
     def max_ret_id(self):
         return sorted([ret.int_id for ret in self.unit_rets()])[-1]
 
-    def prepare_compiled_kernel(self, graph_info, compiled_module, edge_type):
+    def prepare_compiled_kernel(self, graph_info, compiled_module, edge_types):
         if self.parallel_mode() == ParallelMode.DstParallel:
             row_offsets = graph_info.in_row_offsets.data
             col_indices = graph_info.in_col_indices.data
@@ -258,13 +258,13 @@ class ExecutionUnit(object):
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
             print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config)
-            self._K = FeatureAdaptiveKernel(num_nodes, row_offsets, col_indices, eids, max_dims, self._kernel_name, compiled_module, launch_config, edge_type)
+            self._K = FeatureAdaptiveKernel(num_nodes, row_offsets, col_indices, eids, max_dims, self._kernel_name, compiled_module, launch_config, edge_types)
         else:
             launch_config, tile_sizes = self.calculate_kernel_params(num_nodes)
             print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config, 'tile_sizes', tile_sizes, 'max_dims', self.max_dims())
             self._K = V2Kernel(num_nodes, row_offsets, col_indices, eids, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
 
-    def reset_graph_info(self, graph_info, edge_type):
+    def reset_graph_info(self, graph_info, edge_types):
         if self.parallel_mode() == ParallelMode.DstParallel:
             row_offsets = graph_info.in_row_offsets.data
             col_indices = graph_info.in_col_indices.data
@@ -273,7 +273,7 @@ class ExecutionUnit(object):
             row_offsets = graph_info.out_row_offsets.data
             col_indices = graph_info.out_col_indices.data
             eids = graph_info.out_eids.data
-        self._K.reset_graph_info(graph_info.number_of_nodes, row_offsets, col_indices, eids, edge_type)
+        self._K.reset_graph_info(graph_info.number_of_nodes, row_offsets, col_indices, eids, edge_types)
 
     def kernel_run(self, tensor_list):
         assert self._K, 'Must call prepare_compiled_kernel before call kernel_run.'
@@ -340,11 +340,11 @@ class ExecutionUnit(object):
         return self._kernel_name
 
 class Kernel():
-    def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids, edge_type):
+    def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids, edge_types):
         self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
         self.const_kernel_args[1] = c_void_p(eids.data_ptr())
         self.const_kernel_args[2] = c_void_p(col_indices.data_ptr())
-        self.const_kernel_args[3] = c_void_p(edge_type.data_ptr())
+        self.const_kernel_args[3] = c_void_p(edge_types.data_ptr())
         self.const_kernel_args[4] = c_int(number_of_nodes)
 
         # for row offsets, eids, col_indices
@@ -381,9 +381,12 @@ class V2Kernel(Kernel):
         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
 
 class FeatureAdaptiveKernel(Kernel):
-    def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, edge_type):
-        self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
-        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr()), c_void_p(edge_type.data_ptr())] + self.scalar_args
+    def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, edge_types):
+        
+        num_rels = len(edge_types)
+        
+        self.scalar_args = [c_int(num_rels), c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
+        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr()), c_void_p(edge_types.data_ptr())] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
 
         self.K = c_void_p(0)
