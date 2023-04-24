@@ -12,6 +12,8 @@ python/egl/__pycache__/
 python/seastar.egg-info
 python/build/
 python/dist/
+python/dataset
 docs/_build
 __pycache__/
 .DS_Store
+*.so
