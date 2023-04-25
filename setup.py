@@ -2,12 +2,15 @@ import setuptools
 
 setuptools.setup(
     name='seastar',
-    version='0.1',
-    author='ydwu',
-    author_email='ydwu2014@gmail.com',
-    description='Easy Fast Graph learning',
-    url='https://github.com/ydwu4/seastar-paper-version',
+    version='1.0.0',
+    author='Joel Mathew Cherian, Nithin Puthalath Manoj',
+    author_email='joelmathewcherian@gmail.com, nithinp.manoj@gmail.com',
+    description='Vertex-Centric Approach to building Graph Neural Networks',
+    url='https://github.com/bfGraph/Seastar',
     packages=setuptools.find_packages(),
+    package_data={
+        "": ["*.so"]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
