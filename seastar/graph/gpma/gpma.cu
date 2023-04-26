@@ -10,6 +10,8 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <vector>
+#include <tuple>
 #include "stdio.h"
 
 namespace py = pybind11;
@@ -71,6 +73,9 @@ public:
     // addition for csr
     SIZE_TYPE row_num; // number of nodes
     DEV_VEC_SIZE row_offset;
+
+    std::vector<unsigned int> in_degree;
+    std::vector<unsigned int> out_degree;
 
     GPMA();
 
@@ -871,7 +876,7 @@ __host__ void update_gpma(GPMA &gpma, DEV_VEC_KEY &update_keys, DEV_VEC_VALUE &u
     cErr(cudaDeviceSynchronize());
 }
 
-__host__ void init_gpma(GPMA &gpma)
+__host__ void build_gpma(GPMA &gpma)
 {
     // we are creating the smallest possible GPMA tree
     // height = 1
@@ -905,7 +910,7 @@ struct col_idx_none
         return (x << 32) + COL_IDX_NONE;
     }
 };
-__host__ void init_csr_gpma(GPMA &gpma, SIZE_TYPE row_num)
+__host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
 {
     // gpma     (GPMA)          : The GPMA object whose CSR arrays are to initialised
     // row_num  (unsized int)   : Number of total nodes in the graph
@@ -913,6 +918,11 @@ __host__ void init_csr_gpma(GPMA &gpma, SIZE_TYPE row_num)
     // initialising the row_offset vector with all 0 value
     gpma.row_num = row_num;
     gpma.row_offset.resize(row_num + 1, 0);
+
+    // initialising in_degree and out_degree arrays
+    // with all zero values
+    gpma.in_degree.resize(row_num, 0);
+    gpma.out_degree.resize(row_num, 0);
 
     // creates a device vector of size row_num
     DEV_VEC_KEY row_wall(row_num);
@@ -923,9 +933,10 @@ __host__ void init_csr_gpma(GPMA &gpma, SIZE_TYPE row_num)
     cErr(cudaDeviceSynchronize());
 
     thrust::tabulate(row_wall.begin(), row_wall.end(), col_idx_none<KEY_TYPE>());
-    init_gpma(gpma);
+    build_gpma(gpma);
     cErr(cudaDeviceSynchronize());
     update_gpma(gpma, row_wall, tmp_value);
+    cErr(cudaDeviceSynchronize());
 }
 
 void print_gpma_info(GPMA &gpma, unsigned int node)
@@ -952,7 +963,7 @@ void print_gpma_info(GPMA &gpma, unsigned int node)
 
     for (int i = beg; i < end; ++i)
     {
-        unsigned int mask = node << 32;
+        unsigned long long mask = (unsigned long long)node << 32;
         unsigned int dst = (col_indices[i] - mask);
         if (dst != COL_IDX_NONE)
         {
@@ -1010,7 +1021,7 @@ void load_data(const char *file_path, thrust::host_vector<int> &host_x, thrust::
     fclose(fp);
 }
 
-void load_graph_to_gpma(GPMA &gpma, const char *file_path)
+void load_graph(GPMA &gpma, const char *file_path)
 {
     // sets the GPU Malloc Heap Size to 1GB
     // we could change the limit accordingly
@@ -1066,10 +1077,7 @@ void load_graph_to_gpma(GPMA &gpma, const char *file_path)
     // before continuing with the rest.
     cudaDeviceSynchronize();
 
-    int num_slide = 100;         // size of each batch update
-    int step = half / num_slide; // number of batch updates
-
-    init_csr_gpma(gpma, node_size); //
+    init_gpma(gpma, node_size); //
     cudaDeviceSynchronize();
 
     update_gpma(gpma, base_keys, base_values);
@@ -1078,15 +1086,58 @@ void load_graph_to_gpma(GPMA &gpma, const char *file_path)
     printf("Graph is updated.\n");
 }
 
+void add_edge_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list)
+{
+    // NOTE:: Should we set these limits every single time?
+    cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
+    cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
+
+    thrust::host_vector<int> host_src;
+    thrust::host_vector<int> host_dst;
+
+    int edge_count = 0;
+
+    // iterating through a vector of tuples
+    // each tuple is of the form (src_node, dst_node)
+    for (auto &edge : edge_list)
+    {
+        int src = std::get<0>(edge);
+        int dst = std::get<1>(edge);
+
+        // updating the in-degree and out-degree of
+        // destination and source node respectively
+        gpma.in_degree[dst] += 1;
+        gpma.out_degree[src] += 1;
+
+        host_src.push_back(src);
+        host_dst.push_back(dst);
+
+        ++edge_count;
+    }
+
+    thrust::host_vector<KEY_TYPE> h_base_keys(edge_count);
+
+    for (int i = 0; i < edge_count; i++)
+        h_base_keys[i] = ((KEY_TYPE)host_src[i] << 32) + host_dst[i];
+
+    DEV_VEC_KEY base_keys = h_base_keys;
+    DEV_VEC_VALUE base_values(edge_count, 1);
+    cudaDeviceSynchronize();
+
+    update_gpma(gpma, base_keys, base_values);
+    cudaDeviceSynchronize();
+}
+
 PYBIND11_MODULE(gpma, m)
 {
     m.doc() = "CPython module for GPMA"; // optional module docstring
 
-    m.def("init_csr_gpma", &init_csr_gpma, "Initialises the CSR arrays using GPMA");
-    m.def("init_gpma", &init_gpma, "Initialises GPMA");
+    m.def("init_gpma", &init_gpma, "Initialises the CSR arrays using GPMA");
+    m.def("build_gpma", &build_gpma, "Initialises GPMA");
     m.def("update_gpma", &update_gpma, "Update GPMA");
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
-    m.def("load_graph_to_gpma", &load_graph_to_gpma, "Loads a graph data into a GPMA");
+    m.def("load_graph", &load_graph, "Loads a graph data into a GPMA");
+    m.def("add_edge_list", &add_edge_list, "Add a list of edges to the GPMA");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
@@ -1102,7 +1153,9 @@ PYBIND11_MODULE(gpma, m)
         .def_readwrite("lower_element", &GPMA::lower_element)
         .def_readwrite("upper_element", &GPMA::upper_element)
         .def_readwrite("row_num", &GPMA::row_num)
-        .def_readwrite("row_offset", &GPMA::row_offset);
+        .def_readwrite("row_offset", &GPMA::row_offset)
+        .def_readwrite("in_degree", &GPMA::in_degree)
+        .def_readwrite("out_degree", &GPMA::out_degree);
 }
 
 // Command used:
