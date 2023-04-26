@@ -939,7 +939,7 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     cErr(cudaDeviceSynchronize());
 }
 
-void print_gpma_info(GPMA &gpma, unsigned int node)
+void print_gpma_info(GPMA &gpma, int node)
 {
     // Pretty prints the row_offset range and column_indices values
     // for the given node
@@ -952,6 +952,7 @@ void print_gpma_info(GPMA &gpma, unsigned int node)
 
     thrust::host_vector<SIZE_TYPE> row_offset = gpma.row_offset;
     thrust::host_vector<KEY_TYPE> col_indices = gpma.keys;
+    thrust::host_vector<VALUE_TYPE> edge_values = gpma.values;
 
     unsigned int beg = row_offset[node];
     unsigned int end = row_offset[node + 1];
@@ -963,9 +964,9 @@ void print_gpma_info(GPMA &gpma, unsigned int node)
 
     for (int i = beg; i < end; ++i)
     {
-        unsigned long long mask = (unsigned long long)node << 32;
+        KEY_TYPE mask = (KEY_TYPE)node << 32;
         unsigned int dst = (col_indices[i] - mask);
-        if (dst != COL_IDX_NONE)
+        if (dst != COL_IDX_NONE && edge_values[i] != VALUE_NONE)
         {
             std::cout << dst << std::setw(6);
         }
@@ -1086,7 +1087,7 @@ void load_graph(GPMA &gpma, const char *file_path)
     printf("Graph is updated.\n");
 }
 
-void add_edge_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list)
+void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, bool is_delete = false)
 {
     // NOTE:: Should we set these limits every single time?
     cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
@@ -1121,7 +1122,14 @@ void add_edge_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list)
         h_base_keys[i] = ((KEY_TYPE)host_src[i] << 32) + host_dst[i];
 
     DEV_VEC_KEY base_keys = h_base_keys;
-    DEV_VEC_VALUE base_values(edge_count, 1);
+
+    DEV_VEC_VALUE base_values(edge_count);
+
+    if (is_delete)
+        thrust::fill(base_values.begin(), base_values.end(), VALUE_NONE);
+    else
+        thrust::fill(base_values.begin(), base_values.end(), 1);
+
     cudaDeviceSynchronize();
 
     update_gpma(gpma, base_keys, base_values);
@@ -1133,11 +1141,9 @@ PYBIND11_MODULE(gpma, m)
     m.doc() = "CPython module for GPMA"; // optional module docstring
 
     m.def("init_gpma", &init_gpma, "Initialises the CSR arrays using GPMA");
-    m.def("build_gpma", &build_gpma, "Initialises GPMA");
-    m.def("update_gpma", &update_gpma, "Update GPMA");
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
     m.def("load_graph", &load_graph, "Loads a graph data into a GPMA");
-    m.def("add_edge_list", &add_edge_list, "Add a list of edges to the GPMA");
+    m.def("edge_update_list", &edge_update_list, "Updates the GPMA by adding/deleting edges from the edge list", py::arg("gpma"), py::arg("edge_list"), py::arg("is_delete") = false);
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
