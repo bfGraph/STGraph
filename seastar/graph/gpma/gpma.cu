@@ -54,7 +54,7 @@ const SIZE_TYPE MAX_BLOCKS_NUM = 96 * 8;
 class GPMA
 {
 public:
-    // NOTE: Assuming that keys holds the edge IDs
+    // NOTE: Assuming that keys holds the column_indices
     // and values is the column indices (subject to change)
     DEV_VEC_KEY keys;
     DEV_VEC_VALUE values;
@@ -74,6 +74,7 @@ public:
     SIZE_TYPE row_num; // number of nodes
     DEV_VEC_SIZE row_offset;
 
+    int edge_count = 0;
     std::vector<unsigned int> in_degree;
     std::vector<unsigned int> out_degree;
 
@@ -199,7 +200,7 @@ __device__ SIZE_TYPE handle_del_mod(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYP
 
 __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                    SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                   SIZE_TYPE *leaf)
+                                   SIZE_TYPE *leaf, bool return_leaf_loc = true)
 {
 
     SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -220,20 +221,22 @@ __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE
         }
 
         prefix = handle_del_mod(keys + prefix, values + prefix, seg_length, key, value, prefix);
-        leaf[i] = prefix;
+
+        if (return_leaf_loc)
+            leaf[i] = prefix;
     }
 }
 
 __host__ void locate_leaf_batch(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                 SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                SIZE_TYPE *leaf)
+                                SIZE_TYPE *leaf, bool return_leaf_loc = true)
 {
 
     SIZE_TYPE THREADS_NUM = 32;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, update_size);
 
     locate_leaf_kernel<<<BLOCKS_NUM, THREADS_NUM>>>(keys, values, tree_size, seg_length, tree_height, update_keys,
-                                                    update_values, update_size, leaf);
+                                                    update_values, update_size, leaf, return_leaf_loc);
     cErr(cudaDeviceSynchronize());
 }
 
@@ -939,6 +942,8 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     cErr(cudaDeviceSynchronize());
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 void print_gpma_info(GPMA &gpma, int node)
 {
     // Pretty prints the row_offset range and column_indices values
@@ -966,9 +971,11 @@ void print_gpma_info(GPMA &gpma, int node)
     {
         KEY_TYPE mask = (KEY_TYPE)node << 32;
         unsigned int dst = (col_indices[i] - mask);
-        if (dst != COL_IDX_NONE && edge_values[i] != VALUE_NONE)
+        VALUE_TYPE val = edge_values[i];
+
+        if (dst != COL_IDX_NONE && val != VALUE_NONE)
         {
-            std::cout << dst << std::setw(6);
+            std::cout << dst << "(" << val << ")" << std::setw(6);
         }
         else
         {
@@ -1116,6 +1123,8 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
         ++edge_count;
     }
 
+    gpma.edge_count = is_delete ? gpma.edge_count - edge_count : gpma.edge_count + edge_count;
+
     thrust::host_vector<KEY_TYPE> h_base_keys(edge_count);
 
     for (int i = 0; i < edge_count; i++)
@@ -1136,6 +1145,63 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
     cudaDeviceSynchronize();
 }
 
+void label_edges(GPMA &gpma)
+{
+    int edge_label_counter = 1;
+
+    for (int node = 0; node < gpma.row_offset.size() - 1; ++node)
+    {
+        unsigned int beg = gpma.row_offset[node];
+        unsigned int end = gpma.row_offset[node + 1];
+
+        for (int i = beg; i < end; ++i)
+        {
+            KEY_TYPE mask = (KEY_TYPE)node << 32;
+            unsigned int dst = (gpma.keys[i] - mask);
+            if (dst != COL_IDX_NONE && gpma.values[i] != VALUE_NONE)
+            {
+                gpma.values[i] = edge_label_counter;
+                edge_label_counter += 1;
+            }
+        }
+    }
+}
+
+void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
+{
+    int edge_counter = 0;
+
+    DEV_VEC_KEY keys(ref_gpma.edge_count);
+    DEV_VEC_VALUE values(ref_gpma.edge_count);
+
+    for (int node = 0; node < ref_gpma.row_offset.size() - 1; ++node)
+    {
+        unsigned int beg = ref_gpma.row_offset[node];
+        unsigned int end = ref_gpma.row_offset[node + 1];
+
+        for (int i = beg; i < end; ++i)
+        {
+            KEY_TYPE mask = (KEY_TYPE)node << 32;
+            unsigned int dst = (ref_gpma.keys[i] - mask);
+            if (dst != COL_IDX_NONE && ref_gpma.values[i] != VALUE_NONE)
+            {
+
+                keys[edge_counter] = (ref_gpma.keys[i] << 32) + node;
+                values[edge_counter] = ref_gpma.values[i];
+                edge_counter += 1;
+            }
+        }
+    }
+
+    // NOTE: Verify if sorting is really required or not
+    thrust::sort_by_key(keys.begin(), keys.end(), values.begin());
+
+    locate_leaf_batch(RAW_PTR(gpma.keys), RAW_PTR(gpma.values), gpma.keys.size(), gpma.segment_length, gpma.tree_height,
+                      RAW_PTR(keys), RAW_PTR(values), keys.size(), NULL, false);
+
+    cudaDeviceSynchronize();
+}
+
 PYBIND11_MODULE(gpma, m)
 {
     m.doc() = "CPython module for GPMA"; // optional module docstring
@@ -1144,6 +1210,8 @@ PYBIND11_MODULE(gpma, m)
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
     m.def("load_graph", &load_graph, "Loads a graph data into a GPMA");
     m.def("edge_update_list", &edge_update_list, "Updates the GPMA by adding/deleting edges from the edge list", py::arg("gpma"), py::arg("edge_list"), py::arg("is_delete") = false);
+    m.def("label_edges", &label_edges, "Creates edge labels for the current GPMA");
+    m.def("copy_label_edges", &copy_label_edges, "Label edges of a GPMA based on another GPMA");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
@@ -1165,4 +1233,4 @@ PYBIND11_MODULE(gpma, m)
 }
 
 // Command used:
-// /usr/local/cuda-11.7/bin/nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC' -o gpma.so gpma.cu
+// /usr/local/cuda-11.7/bin/nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC'  -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o gpma.so gpma.cu
