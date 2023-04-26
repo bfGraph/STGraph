@@ -1094,7 +1094,7 @@ void load_graph(GPMA &gpma, const char *file_path)
     printf("Graph is updated.\n");
 }
 
-void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, bool is_delete = false)
+void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
 {
     // NOTE:: Should we set these limits every single time?
     cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
@@ -1109,13 +1109,22 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
     // each tuple is of the form (src_node, dst_node)
     for (auto &edge : edge_list)
     {
-        int src = std::get<0>(edge);
-        int dst = std::get<1>(edge);
+
+        int src = (is_reverse_edge == true) ? std::get<1>(edge) : std::get<0>(edge);
+        int dst = (is_reverse_edge == true) ? std::get<0>(edge) : std::get<1>(edge);
 
         // updating the in-degree and out-degree of
         // destination and source node respectively
-        gpma.in_degree[dst] += 1;
-        gpma.out_degree[src] += 1;
+        if (is_delete)
+        {
+            gpma.in_degree[dst] -= 1;
+            gpma.out_degree[src] -= 1;
+        }
+        else
+        {
+            gpma.in_degree[dst] += 1;
+            gpma.out_degree[src] += 1;
+        }
 
         host_src.push_back(src);
         host_dst.push_back(dst);
@@ -1170,7 +1179,6 @@ void label_edges(GPMA &gpma)
 void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
 {
     int edge_counter = 0;
-
     DEV_VEC_KEY keys(ref_gpma.edge_count);
     DEV_VEC_VALUE values(ref_gpma.edge_count);
 
@@ -1185,7 +1193,6 @@ void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
             unsigned int dst = (ref_gpma.keys[i] - mask);
             if (dst != COL_IDX_NONE && ref_gpma.values[i] != VALUE_NONE)
             {
-
                 keys[edge_counter] = (ref_gpma.keys[i] << 32) + node;
                 values[edge_counter] = ref_gpma.values[i];
                 edge_counter += 1;
@@ -1195,11 +1202,61 @@ void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
 
     // NOTE: Verify if sorting is really required or not
     thrust::sort_by_key(keys.begin(), keys.end(), values.begin());
+    cudaDeviceSynchronize();
 
     locate_leaf_batch(RAW_PTR(gpma.keys), RAW_PTR(gpma.values), gpma.keys.size(), gpma.segment_length, gpma.tree_height,
                       RAW_PTR(keys), RAW_PTR(values), keys.size(), NULL, false);
 
     cudaDeviceSynchronize();
+}
+
+void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
+{
+    // This funtion expects an empty initialized GPMA
+    // as first param and the reference GPMA from which
+    // edges are to be added as the second param
+
+    int edge_counter = 0;
+    DEV_VEC_KEY keys(ref_gpma.edge_count);
+    DEV_VEC_VALUE values(ref_gpma.edge_count);
+
+    for (int node = 0; node < ref_gpma.row_offset.size() - 1; ++node)
+    {
+        unsigned int beg = ref_gpma.row_offset[node];
+        unsigned int end = ref_gpma.row_offset[node + 1];
+
+        for (int i = beg; i < end; ++i)
+        {
+            KEY_TYPE mask = (KEY_TYPE)node << 32;
+            unsigned int dst = (ref_gpma.keys[i] - mask);
+            if (dst != COL_IDX_NONE && ref_gpma.values[i] != VALUE_NONE)
+            {
+                keys[edge_counter] = (ref_gpma.keys[i] << 32) + node;
+                values[edge_counter] = ref_gpma.values[i];
+                edge_counter += 1;
+            }
+        }
+    }
+
+    update_gpma(gpma, keys, values);
+    cudaDeviceSynchronize();
+}
+
+std::vector<> get_csr_ptrs(GPMA &gpma)
+{
+    std::vector<int> res;
+    res.push_back(RAW_PTR(gpma.row_offset));
+    res.push_back(RAW_PTR(gpma.keys));
+    res.push_back(RAW_PTR(gpma.values));
+    return res;
+}
+
+std::vector<int> get_graph_attr(GPMA &gpma)
+{
+    std::vector<int> res;
+    res.push_back(gpma.row_offset.size());
+    res.push_back(gpma.edge_count);
+    return res;
 }
 
 PYBIND11_MODULE(gpma, m)
@@ -1209,9 +1266,12 @@ PYBIND11_MODULE(gpma, m)
     m.def("init_gpma", &init_gpma, "Initialises the CSR arrays using GPMA");
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
     m.def("load_graph", &load_graph, "Loads a graph data into a GPMA");
-    m.def("edge_update_list", &edge_update_list, "Updates the GPMA by adding/deleting edges from the edge list", py::arg("gpma"), py::arg("edge_list"), py::arg("is_delete") = false);
+    m.def("edge_update_list", &edge_update_list, "Updates the GPMA by adding/deleting edges from the edge list", py::arg("gpma"), py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false);
     m.def("label_edges", &label_edges, "Creates edge labels for the current GPMA");
     m.def("copy_label_edges", &copy_label_edges, "Label edges of a GPMA based on another GPMA");
+    m.def("build_reverse_gpma", &build_reverse_gpma, "Builds the reverse GPMA based on another GPMA");
+    m.def("get_csr_ptrs", &get_csr_ptrs, "Returns the pointers to row_offset, col_indices and edge_ids");
+    m.def("get_graph_attr", &get_graph_attr, "Returns the [num_nodes, num_edges]");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
@@ -1229,7 +1289,13 @@ PYBIND11_MODULE(gpma, m)
         .def_readwrite("row_num", &GPMA::row_num)
         .def_readwrite("row_offset", &GPMA::row_offset)
         .def_readwrite("in_degree", &GPMA::in_degree)
-        .def_readwrite("out_degree", &GPMA::out_degree);
+        .def_readwrite("out_degree", &GPMA::out_degree)
+        .def("__copy__", [](const GPMA &self)
+             { return GPMA(self); })
+        .def(
+            "__deepcopy__", [](const GPMA &self, py::dict)
+            { return GPMA(self); },
+            "memo"_a);
 }
 
 // Command used:
