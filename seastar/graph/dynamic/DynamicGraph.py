@@ -1,30 +1,19 @@
 # TODO: add this import as well
-# from SeastarGraph import SeastarGraph
+from seastar.graph.SeastarGraph import SeastarGraph
 
 import copy
 
 from abc import ABC, abstractmethod
 
-# TODO: add SeastarGraph class as part of multiple inheritance
-class DynamicGraph(ABC):
+class DynamicGraph(ABC, SeastarGraph):
     def __init__(self, graph_updates, max_num_nodes):
         self.graph_updates = graph_updates
         self.max_num_nodes = max_num_nodes
 
         self.graph_cache = {}
         self._is_reverse_graph = False
-        self.ndata = {}     # Could possibly move to SeastarGraph class
 
         self.current_time_stamp = 0
-
-        # Could possibly move to SeastarGraph class
-        self.num_nodes = 0
-        self.num_edges = 0
-
-        # Could possibly move to SeastarGraph class
-        self.row_offset_ptr = None
-        self.column_indices_ptr = None
-        self.eids_ptr = None
         
     def _update_graph_cache(self, is_reverse=True):
         # saving base graph in cache

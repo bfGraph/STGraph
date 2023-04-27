@@ -22,6 +22,7 @@ public:
     thrust::device_vector<int> eids;
 
     CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edge_reverse);
+    int *get_csr_ptrs();
     void print_csr_arrays();
 };
 
@@ -66,7 +67,24 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
         end += 1;
     }
 
-    row_offset[row_offset.size() - 1] = end;
+    row_offset[current_src + 1] = end;
+
+    // removing the -1
+    int curr_val = row_offset[0];
+    for (int i = 1; i < row_offset.size(); ++i)
+    {
+        if (row_offset[i] != curr_val && row_offset[i] != -1)
+            curr_val = row_offset[i];
+
+        if (row_offset[i] == -1)
+            row_offset[i] = curr_val;
+    }
+}
+
+// TODO:
+int *CSR::get_csr_ptrs()
+{
+    return NULL;
 }
 
 void CSR::print_csr_arrays()
@@ -95,6 +113,7 @@ PYBIND11_MODULE(csr, m)
 
     py::class_<CSR>(m, "CSR")
         .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
+        .def("get_csr_ptrs", &CSR::get_csr_ptrs)
         .def("print_csr_arrays", &CSR::print_csr_arrays)
         .def_readwrite("row_offset", &CSR::row_offset)
         .def_readwrite("column_indices", &CSR::column_indices)
