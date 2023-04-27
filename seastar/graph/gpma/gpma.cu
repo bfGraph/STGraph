@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <tuple>
+// #include <memory>
 #include "stdio.h"
 
 namespace py = pybind11;
@@ -73,6 +74,7 @@ public:
     // addition for csr
     SIZE_TYPE row_num; // number of nodes
     DEV_VEC_SIZE row_offset;
+    SIZE_TYPE *row_offset_ptr;
 
     int edge_count = 0;
     std::vector<unsigned int> in_degree;
@@ -1242,13 +1244,18 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
     cudaDeviceSynchronize();
 }
 
-std::vector<> get_csr_ptrs(GPMA &gpma)
+SIZE_TYPE *get_csr_ptrs(GPMA &gpma)
 {
-    std::vector<int> res;
-    res.push_back(RAW_PTR(gpma.row_offset));
-    res.push_back(RAW_PTR(gpma.keys));
-    res.push_back(RAW_PTR(gpma.values));
-    return res;
+    // std::tuple<SIZE_TYPE *, KEY_TYPE *, VALUE_TYPE *> t;
+    // std::get<0>(t) = RAW_PTR(gpma.row_offset);
+    // std::get<1>(t) = RAW_PTR(gpma.keys);
+    // std::get<2>(t) = RAW_PTR(gpma.values);
+    thrust::host_vector<SIZE_TYPE> h_vec(5, 23);
+    SIZE_TYPE *row_offset_ptr = thrust::raw_pointer_cast(&h_vec[0]);
+
+    printf("row_offset_ptr: %p\n", row_offset_ptr);
+
+    return row_offset_ptr;
 }
 
 std::vector<int> get_graph_attr(GPMA &gpma)

@@ -21,4 +21,4 @@ build
 dist
 *.egg-info
 *.txt
-test.py
+test_*.*
