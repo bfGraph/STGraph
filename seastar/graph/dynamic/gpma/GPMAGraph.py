@@ -33,9 +33,15 @@ class GPMAGraph(DynamicGraph):
     def out_degrees(self):
         return np.array(self.forward_graph.in_degree, dtype='int32')
         
-    # TODO: Need to figure out the GPU pointer bug
     def _get_graph_csr_ptrs(self):
-        pass    
+        if not self._is_reverse_graph:
+            csr_ptrs = get_csr_ptrs(self.forward_graph)
+        else:
+            csr_ptrs = get_csr_ptrs(self.backward_graph)
+
+        self.row_offset_ptr = csr_ptrs[0]
+        self.column_indices_ptr = csr_ptrs[1]
+        self.eids_ptr = csr_ptrs[2]
     
     def _update_graph_forward(self):
         # if we went through the entire time-stamps

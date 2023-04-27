@@ -5,8 +5,9 @@ import copy
 
 from abc import ABC, abstractmethod
 
-class DynamicGraph(ABC, SeastarGraph):
+class DynamicGraph(SeastarGraph):
     def __init__(self, graph_updates, max_num_nodes):
+        super().__init__()
         self.graph_updates = graph_updates
         self.max_num_nodes = max_num_nodes
 

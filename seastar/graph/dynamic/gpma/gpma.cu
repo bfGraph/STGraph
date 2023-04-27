@@ -1244,18 +1244,13 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
     cudaDeviceSynchronize();
 }
 
-SIZE_TYPE *get_csr_ptrs(GPMA &gpma)
+std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(GPMA &gpma)
 {
-    // std::tuple<SIZE_TYPE *, KEY_TYPE *, VALUE_TYPE *> t;
-    // std::get<0>(t) = RAW_PTR(gpma.row_offset);
-    // std::get<1>(t) = RAW_PTR(gpma.keys);
-    // std::get<2>(t) = RAW_PTR(gpma.values);
-    thrust::host_vector<SIZE_TYPE> h_vec(5, 23);
-    SIZE_TYPE *row_offset_ptr = thrust::raw_pointer_cast(&h_vec[0]);
-
-    printf("row_offset_ptr: %p\n", row_offset_ptr);
-
-    return row_offset_ptr;
+    std::tuple<std::size_t, std::size_t, std::size_t> t;
+    std::get<0>(t) = (std::size_t)RAW_PTR(gpma.row_offset);
+    std::get<1>(t) = (std::size_t)RAW_PTR(gpma.keys);
+    std::get<2>(t) = (std::size_t)RAW_PTR(gpma.values);
+    return t;
 }
 
 std::vector<int> get_graph_attr(GPMA &gpma)
