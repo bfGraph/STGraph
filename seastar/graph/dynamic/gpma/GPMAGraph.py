@@ -2,7 +2,7 @@ import copy
 import numpy as np
 from rich import inspect
 
-from seastar.graph.DynamicGraph import DynamicGraph
+from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from gpma import GPMA, init_gpma, print_gpma_info, edge_update_list, label_edges, copy_label_edges, build_reverse_gpma, get_csr_ptrs, get_graph_attr
 
 
