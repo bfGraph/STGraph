@@ -62,9 +62,9 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
 tpl_fa = Template(
 """
 extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*' if arg.is_ptr}}{{arg.name}}, {% endfor %}
-  {{index_type}} *row_offsets,
-  {{index_type}} *eids,
-  {{index_type}} *column_indices,
+  unsigned int *row_offsets,
+  double *eids,
+  unsigned long long *column_indices,
   {{index_type}} num_nodes,
   {{index_type}} max_dimx,
   {{index_type}} max_dimy,
@@ -82,14 +82,20 @@ extern "C" __global__ void {{kernel_name}}({%for arg in args%}{{arg.type}} {{'*'
             for ({{index_type}} e=beg;e<end;++e) {
                 {{index_type}} {{col_index}} = __ldg(column_indices + e);
                 {{index_type}} eid = __ldg(eids + e);
-                {{init_inner_offset}}
-                {%for edge_stmt in edges%}
-                {{edge_stmt.load}}
-                {{edge_stmt.compute}}
-                {{edge_stmt.inner_write}}{%endfor%}
-                {%for agg_stmt in aggs%}
-                {{agg_stmt.compute}}
-                {{agg_stmt.inner_write}}{%endfor%}
+                
+                unsigned long long mask = (unsigned long long){{row_offset}} << 32;
+                unsigned int dst_check = ({{col_index}} - mask);
+                {{col_index}} = ({{col_index}} - mask);
+                if(dst_check != 0xFFFFFFFF && eid != 0){
+                    {{init_inner_offset}}
+                    {%for edge_stmt in edges%}
+                    {{edge_stmt.load}}
+                    {{edge_stmt.compute}}
+                    {{edge_stmt.inner_write}}{%endfor%}
+                    {%for agg_stmt in aggs%}
+                    {{agg_stmt.compute}}
+                    {{agg_stmt.inner_write}}{%endfor%}    
+                }
             }
             {%for agg_stmt in aggs%}
             {{agg_stmt.outter_write}}{%endfor%}

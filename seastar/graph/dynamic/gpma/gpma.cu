@@ -1253,12 +1253,14 @@ std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(GPMA &gpma)
     return t;
 }
 
-std::vector<int> get_graph_attr(GPMA &gpma)
+std::tuple<int, int> get_graph_attr(GPMA &gpma)
 {
-    std::vector<int> res;
-    res.push_back(gpma.row_offset.size());
-    res.push_back(gpma.edge_count);
-    return res;
+    std::tuple<int, int> t;
+
+    // Since row_offset has size num_nodes + 1
+    std::get<0>(t) = gpma.row_offset.size() - 1;
+    std::get<1>(t) = gpma.edge_count;
+    return t;
 }
 
 PYBIND11_MODULE(gpma, m)

@@ -16,9 +16,11 @@ class DynamicGraph(SeastarGraph):
 
         self.current_time_stamp = 0
         
-    def _update_graph_cache(self, is_reverse=True):
+    def _update_graph_cache(self, is_reverse=False):
         # saving base graph in cache
+        print("💵💵💵 Cacheing graphs")
         if not is_reverse:
+            print("💵💵💵 Cacheing base graph")
             self.graph_cache['base'] = copy.deepcopy(self.forward_graph)
         else:
         # saving reverse base graph in cache

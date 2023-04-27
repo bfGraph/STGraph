@@ -235,15 +235,17 @@ class ExecutionUnit(object):
     def max_ret_id(self):
         return sorted([ret.int_id for ret in self.unit_rets()])[-1]
 
-    def prepare_compiled_kernel(self, graph_info, compiled_module):
+    def prepare_compiled_kernel(self, graph, compiled_module):
         if self.parallel_mode() == ParallelMode.DstParallel:
-            row_offsets = graph_info.in_row_offsets.data
-            col_indices = graph_info.in_col_indices.data
-            eids = graph_info.in_eids.data
+            row_offsets_ptr = graph.row_offset_ptr
+            col_indices_ptr = graph.column_indices_ptr
+            eids_ptr = graph.eids_ptr
         else:
-            row_offsets = graph_info.out_row_offsets.data
-            col_indices = graph_info.out_col_indices.data
-            eids = graph_info.out_eids.data
+            #TODO: Will probably have to change this so that this accesses 
+            #backward row_offset, col_indices, eids
+            row_offsets_ptr = graph.row_offset_ptr
+            col_indices_ptr = graph.column_indices_ptr
+            eids_ptr = graph.eids_ptr
         max_dims = [1, 1]
         if len(self.max_dims()) == 1:
             max_dims[-1] = self.max_dims()[-1]
@@ -251,26 +253,28 @@ class ExecutionUnit(object):
             max_dims = self.max_dims()
         else:
             raise NotImplementedError('Feature dimension larger than 2 are not supported.')
-        num_nodes = graph_info.number_of_nodes
+        num_nodes = graph.num_nodes
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
             print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config)
-            self._K = FeatureAdaptiveKernel(num_nodes, row_offsets, col_indices, eids, max_dims, self._kernel_name, compiled_module, launch_config)
+            self._K = FeatureAdaptiveKernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config)
         else:
             launch_config, tile_sizes = self.calculate_kernel_params(num_nodes)
             print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config, 'tile_sizes', tile_sizes, 'max_dims', self.max_dims())
-            self._K = V2Kernel(num_nodes, row_offsets, col_indices, eids, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
+            self._K = V2Kernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
 
-    def reset_graph_info(self, graph_info):
+    def reset_graph_info(self, graph):
         if self.parallel_mode() == ParallelMode.DstParallel:
-            row_offsets = graph_info.in_row_offsets.data
-            col_indices = graph_info.in_col_indices.data
-            eids = graph_info.in_eids.data
+            row_offsets_ptr = graph.row_offset_ptr
+            col_indices_ptr = graph.column_indices_ptr
+            eids_ptr = graph.eids_ptr
         else:
-            row_offsets = graph_info.out_row_offsets.data
-            col_indices = graph_info.out_col_indices.data
-            eids = graph_info.out_eids.data
-        self._K.reset_graph_info(graph_info.number_of_nodes, row_offsets, col_indices, eids)
+            #TODO: Will probably have to change this so that this accesses 
+            #backward row_offset, col_indices, eids
+            row_offsets_ptr = graph.row_offset_ptr
+            col_indices_ptr = graph.column_indices_ptr
+            eids_ptr = graph.eids_ptr
+        self._K.reset_graph_info(graph.num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr)
 
     def kernel_run(self, tensor_list):
         assert self._K, 'Must call prepare_compiled_kernel before call kernel_run.'
@@ -337,11 +341,11 @@ class ExecutionUnit(object):
         return self._kernel_name
 
 class Kernel():
-    def reset_graph_info(self, number_of_nodes, row_offsets, col_indices, eids):
-        self.const_kernel_args[0] = c_void_p(row_offsets.data_ptr())
-        self.const_kernel_args[1] = c_void_p(eids.data_ptr())
-        self.const_kernel_args[2] = c_void_p(col_indices.data_ptr())
-        self.const_kernel_args[3] = c_int(number_of_nodes)
+    def reset_graph_info(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr):
+        self.const_kernel_args[0] = c_void_p(row_offsets_ptr)
+        self.const_kernel_args[1] = c_void_p(eids_ptr)
+        self.const_kernel_args[2] = c_void_p(col_indices_ptr)
+        self.const_kernel_args[3] = c_int(num_nodes)
 
         # for row offsets, eids, col_indices
         for i in range(4):
@@ -366,9 +370,9 @@ class Kernel():
             raise e
 
 class V2Kernel(Kernel):
-    def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
+    def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
-        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
+        self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
         self.K = c_void_p(0)
         ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
@@ -377,9 +381,9 @@ class V2Kernel(Kernel):
         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
 
 class FeatureAdaptiveKernel(Kernel):
-    def __init__(self, num_nodes, row_offsets, col_indices, eids, max_dims, kernel_name, compiled_module, launch_config):
+    def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(launch_config[2]), c_int(launch_config[3])]
-        self.const_kernel_args =  [c_void_p(row_offsets.data_ptr()), c_void_p(eids.data_ptr()), c_void_p(col_indices.data_ptr())] + self.scalar_args
+        self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
 
         self.K = c_void_p(0)

@@ -3,7 +3,7 @@ from ctypes import *
 import sys
 
 if 'linux' in sys.platform:
-	cuda = CDLL('libcuda.so')
+	cuda = CDLL('/usr/lib/wsl/lib/libcuda.so')
 elif 'win' in sys.platform:
 	cuda = CDLL('nvcuda.dll')
 
