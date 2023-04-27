@@ -21,6 +21,7 @@ class DynamicGraph(ABC):
         self.num_nodes = 0
         self.num_edges = 0
 
+        # Could possibly move to SeastarGraph class
         self.row_offset_ptr = None
         self.column_indices_ptr = None
         self.eids_ptr = None
