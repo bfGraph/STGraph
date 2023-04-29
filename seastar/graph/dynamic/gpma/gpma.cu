@@ -1035,11 +1035,11 @@ void load_graph(GPMA &gpma, const char *file_path)
 {
     // sets the GPU Malloc Heap Size to 1GB
     // we could change the limit accordingly
-    cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
+    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
 
     // controls the maximum nesting depth of a grid at which
     // a thread can safely call cudaDeviceSynchronize()
-    cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
+    // cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
 
     // we are defining two host_vectors on the CPU
     // host_x will contain the src nodes and
@@ -1099,8 +1099,8 @@ void load_graph(GPMA &gpma, const char *file_path)
 void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
 {
     // NOTE:: Should we set these limits every single time?
-    cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
-    cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
+    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
+    // cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
 
     thrust::host_vector<int> host_src;
     thrust::host_vector<int> host_dst;
@@ -1109,6 +1109,8 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
     // iterating through a vector of tuples
     // each tuple is of the form (src_node, dst_node)
+    // std::cout << "\n🚧🚧🚧\n"
+    //           << std::flush;
     for (auto &edge : edge_list)
     {
 
@@ -1133,17 +1135,47 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
         ++edge_count;
     }
+    // std::cout << "💵💵💵\n"
+    //           << std::flush;
 
     gpma.edge_count = is_delete ? gpma.edge_count - edge_count : gpma.edge_count + edge_count;
 
     thrust::host_vector<KEY_TYPE> h_base_keys(edge_count);
 
+    // std::cout << "✨✨✨ Before h_base_keys\n"
+    //           << std::flush;
+
     for (int i = 0; i < edge_count; i++)
         h_base_keys[i] = ((KEY_TYPE)host_src[i] << 32) + host_dst[i];
 
+    // std::cout << "📉📉📉 Before device base_key\n"
+    //           << std::flush;
+
+    // std::cout << "\n-----------------------------------------------\n"
+    //           << std::flush;
+
+    // std::cout << "Size: " << h_base_keys.size() << "\n"
+    //           << std::flush;
+
+    // for (int i = 0; i < h_base_keys.size(); ++i)
+    //     std::cout << i << " : " << h_base_keys[i] << "\n"
+    //               << std::flush;
+
+    // std::cout << "\n-----------------------------------------------\n"
+    //           << std::flush;
+
+    // std::cout << "\n";
+
     DEV_VEC_KEY base_keys = h_base_keys;
+    cudaDeviceSynchronize();
+
+    // std::cout << "🟢🟢🟢 Before device base_values\n"
+    //           << std::flush;
 
     DEV_VEC_VALUE base_values(edge_count);
+
+    // std::cout << "📖📖📖 Before thrust::fill\n"
+    //           << std::flush;
 
     if (is_delete)
         thrust::fill(base_values.begin(), base_values.end(), VALUE_NONE);
@@ -1152,8 +1184,13 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
     cudaDeviceSynchronize();
 
+    // std::cout << "🎉🎉🎉 Before update_gpma\n"
+    //           << std::flush;
+
     update_gpma(gpma, base_keys, base_values);
     cudaDeviceSynchronize();
+    // std::cout << "🎨🎨🎨 End\n"
+    //           << std::flush;
 }
 
 void label_edges(GPMA &gpma)

@@ -12,10 +12,12 @@ import os
 
 from rich import inspect
 from rich.pretty import pprint
-# from rich.traceback import install
-# install(show_locals=True)
+from rich.traceback import install
+install(show_locals=True)
 
 from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
+from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+import pandas as pd
 
 class EnglandCovidDatasetLoader(object):
 
@@ -73,6 +75,51 @@ class EnglandCovidDatasetLoader(object):
         self._get_targets_and_features()
         return self._edges, self._edge_weights, self.features, self.targets
 
+
+class BitcoinOtcDataloader():
+    def __init__(self):
+        self._dataset = pd.read_csv('../../dataset/bitcoin/soc-sign-bitcoinotc.csv',header=0, names=['source', 'target', 'rating','time'])
+        self._dataset.time = self._dataset.time / 10000000
+        self._dataset.time = self._dataset.time.astype(int)
+
+        lst = np.append(self._dataset.source.astype(int).unique(),self._dataset.target.astype(int).unique())
+        lst = np.sort(np.unique(lst))
+        
+        id_dict = {}
+        for i in range(len(lst)):
+            id_dict[lst[i]] = i
+        self.node_id_dict = id_dict
+            
+        self._dataset.source = self._dataset.source.apply(lambda x: self.node_id_dict[x])
+        self._dataset.target = self._dataset.target.apply(lambda x: self.node_id_dict[x])
+    
+    def _get_edges(self):
+        self._edges = []
+        time_lst = self._dataset.time.unique()
+        time_lst.sort()
+        for time in time_lst:
+            filtered_df = self._dataset.where(self._dataset.time == time).dropna()
+            self._edges.append(
+                np.array([filtered_df.source.astype(int).tolist(),filtered_df.target.astype(int).tolist()])
+            )
+
+    def _get_edge_weights(self):
+        self._edge_weights = []
+        for time in self._dataset.time.unique():
+            filtered_df = self._dataset.where(self._dataset.time == time).dropna()
+            self._edge_weights.append(
+                np.array(filtered_df.rating.tolist())
+            )
+
+    def _get_targets_and_features(self):
+        pass
+
+    def get_dataset(self):
+        self._get_edges()
+        self._get_edge_weights()
+        self._get_targets_and_features()
+        return self._edges, self._edge_weights, None, None
+
 def presort_edge_weights(edges_lst, edge_weights_lst):
     '''
         Presorting edges according to (dest,src) since that is how eids are formed
@@ -118,7 +165,6 @@ def preprocess_graph_structure(edges):
     # inspect(edges)
     tmp_set = set()
     for i in range(len(edges)):
-        tmp_set = set()
         for j in range(len(edges[i][0])):
             tmp_set.add(edges[i][0][j])
             tmp_set.add(edges[i][1][j])
@@ -153,32 +199,97 @@ def to_default_device(data):
     
     return data.to(get_default_device(),non_blocking = True)
 
-def main(args):
+def gpma_version(args):
 
+    print("😍 GPMA Version")
     
     # Data
-    dataset = EnglandCovidDatasetLoader()
+    # dataset = EnglandCovidDatasetLoader()
+    dataset = BitcoinOtcDataloader()
 
     edges_lst, edge_weights_lst, all_features, all_targets = dataset.get_dataset()
     presort_edge_weights(edges_lst, edge_weights_lst)
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(edges_lst)
+    
+    # prev = train_graph_log_dict["0"]
+    # curr = train_graph_log_dict["1"]
+    
+    # inspect(edge_weights_lst)
+    
+    # for key, val in curr["delete"]:
+    #     found = False
+    #     for k1, v1 in prev["add"]:
+    #         if k1 == key and v1 == val:
+    #             found = True
+    #     if not found:
+    #         print("Error ({},{}) not found".format(key,val))
     
     t0 = time.time()
     G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
     t1 = time.time()
     print("Timestamp = Base   |   Time Taken = {:.5f}".format(t1-t0))
     
-    for i in range(1,10):
+    a = time.time()
+    for i in range(1,18):
         t0 = time.time()
         G.get_forward_graph_for_timestamp(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    b = time.time()
     
-    for i in reversed(range(1,10)):
+    print(f'\n⏱️ Time taken for forward propagation: {b-a}\n')
+    
+    # print("\n### Reverse Graph\n")
+    
+    # a = time.time()
+    # for i in reversed(range(1,50)):
+    #     t0 = time.time()
+    #     G.get_backward_graph_for_timestamp(i)
+    #     t1 = time.time()
+    #     print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    # b = time.time()
+
+    # print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
+    
+def pcsr_version(args):
+    print("🎉 PCSR Version")
+    
+    # Data
+    # dataset = EnglandCovidDatasetLoader()
+    dataset = BitcoinOtcDataloader()
+
+    edges_lst, edge_weights_lst, all_features, all_targets = dataset.get_dataset()
+    presort_edge_weights(edges_lst, edge_weights_lst)
+    train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(edges_lst)
+    
+    t0 = time.time()
+    G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
+    t1 = time.time()
+    print("Timestamp = Base   |   Time Taken = {:.5f}".format(t1-t0))
+    
+    
+    a = time.time()
+    for i in range(1,18):
         t0 = time.time()
-        G.get_backward_graph_for_timestamp(i)
+        G.get_forward_graph_for_timestamp(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    b = time.time()
     
+    print(f'\n⏱️ Time taken for forward propagation: {b-a}\n')
+    
+    # print("\n### Reverse Graph\n")
+    
+    # a = time.time()
+    # for i in reversed(range(1,50)):
+    #     t0 = time.time()
+    #     G.get_backward_graph_for_timestamp(i)
+    #     t1 = time.time()
+    #     print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    # b = time.time()
 
-main(None)
+    # print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
+
+gpma_version(None)
+print("\n----------------------------------------------------------\n")
+pcsr_version(None)

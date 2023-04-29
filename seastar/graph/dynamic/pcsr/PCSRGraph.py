@@ -28,7 +28,14 @@ class PCSRGraph(DynamicGraph):
     
     # TODO: Need to figure out the GPU pointer bug
     def _get_graph_csr_ptrs(self):
-        pass   
+        if not self._is_reverse_graph:
+            csr_ptrs = self.forward_graph.get_csr_ptrs()
+        else:
+            csr_ptrs = self.backward_graph.get_csr_ptrs()
+        
+        self.row_offset_ptr = csr_ptrs[0]
+        self.column_indices_ptr = csr_ptrs[1]
+        self.eids_ptr = csr_ptrs[2]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
@@ -88,4 +95,4 @@ class PCSRGraph(DynamicGraph):
             self.backward_graph.delete_edge(edge[0], edge[1])
             self.forward_graph.delete_edge(edge[1], edge[0])
 
-        self._get_graph_csr()
+        self._get_graph_csr_ptrs()

@@ -21,7 +21,7 @@ class GPMAGraph(DynamicGraph):
         initial_graph_additions = graph_updates["0"]["add"]
 
         edge_update_list(self.forward_graph, initial_graph_additions, is_reverse_edge=True)
-        label_edges(self.forward_graph)
+        # label_edges(self.forward_graph)
 
         self._get_graph_csr_ptrs()
         self._get_graph_attributes() # NOTE:
@@ -55,6 +55,7 @@ class GPMAGraph(DynamicGraph):
         self.num_edges = graph_attr[1]
     
     def _update_graph_forward(self):
+        
         # if we went through the entire time-stamps
         if str(self.current_time_stamp + 1) not in self.graph_updates:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
@@ -69,7 +70,8 @@ class GPMAGraph(DynamicGraph):
         edge_update_list(self.forward_graph, graph_additions, is_reverse_edge=True)
         edge_update_list(self.forward_graph, graph_deletions, is_delete=True, is_reverse_edge=True)
 
-        label_edges(self.forward_graph)
+        # TODO: UNCOMMENT LATER
+        # label_edges(self.forward_graph)
         self._get_graph_csr_ptrs()
         self._get_graph_attributes()  # NOTE:
         
@@ -107,8 +109,9 @@ class GPMAGraph(DynamicGraph):
         edge_update_list(self.forward_graph, graph_additions, is_reverse_edge=True)
         edge_update_list(self.forward_graph, graph_deletions, is_delete=True, is_reverse_edge=True)
 
-        label_edges(self.forward_graph)
-        copy_label_edges(self.backward_graph, self.forward_graph)
+        # TODO: UNCOMMENT LATER
+        # label_edges(self.forward_graph)
+        # copy_label_edges(self.backward_graph, self.forward_graph)
 
         self._get_graph_csr_ptrs()
         self._get_graph_attributes()  # NOTE:
