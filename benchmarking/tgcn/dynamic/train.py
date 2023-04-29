@@ -17,6 +17,7 @@ from rich.pretty import pprint
 # install(show_locals=True)
 
 from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
+from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
 
 from doorah import get_doorah_dataset
 
@@ -222,6 +223,8 @@ def main(args):
 
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
     G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
+    
+    # G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
 
     # inspect(train_graph_log_dict)
     # inspect(train_max_num_nodes)
@@ -302,6 +305,8 @@ def main(args):
 
     test_graph_log_dict, test_max_num_nodes = preprocess_graph_structure(test_edges_lst)
     G = GPMAGraph(test_graph_log_dict,test_max_num_nodes)
+    
+    # G = PCSRGraph(test_graph_log_dict,test_max_num_nodes)
 
     predictions = []
     true_y = []

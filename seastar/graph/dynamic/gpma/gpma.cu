@@ -1109,8 +1109,7 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
     // iterating through a vector of tuples
     // each tuple is of the form (src_node, dst_node)
-    // std::cout << "\n🚧🚧🚧\n"
-    //           << std::flush;
+
     for (auto &edge : edge_list)
     {
 
@@ -1135,47 +1134,18 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
         ++edge_count;
     }
-    // std::cout << "💵💵💵\n"
-    //           << std::flush;
 
     gpma.edge_count = is_delete ? gpma.edge_count - edge_count : gpma.edge_count + edge_count;
 
     thrust::host_vector<KEY_TYPE> h_base_keys(edge_count);
 
-    // std::cout << "✨✨✨ Before h_base_keys\n"
-    //           << std::flush;
-
     for (int i = 0; i < edge_count; i++)
         h_base_keys[i] = ((KEY_TYPE)host_src[i] << 32) + host_dst[i];
-
-    // std::cout << "📉📉📉 Before device base_key\n"
-    //           << std::flush;
-
-    // std::cout << "\n-----------------------------------------------\n"
-    //           << std::flush;
-
-    // std::cout << "Size: " << h_base_keys.size() << "\n"
-    //           << std::flush;
-
-    // for (int i = 0; i < h_base_keys.size(); ++i)
-    //     std::cout << i << " : " << h_base_keys[i] << "\n"
-    //               << std::flush;
-
-    // std::cout << "\n-----------------------------------------------\n"
-    //           << std::flush;
-
-    // std::cout << "\n";
 
     DEV_VEC_KEY base_keys = h_base_keys;
     cudaDeviceSynchronize();
 
-    // std::cout << "🟢🟢🟢 Before device base_values\n"
-    //           << std::flush;
-
     DEV_VEC_VALUE base_values(edge_count);
-
-    // std::cout << "📖📖📖 Before thrust::fill\n"
-    //           << std::flush;
 
     if (is_delete)
         thrust::fill(base_values.begin(), base_values.end(), VALUE_NONE);
@@ -1184,67 +1154,85 @@ void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, b
 
     cudaDeviceSynchronize();
 
-    // std::cout << "🎉🎉🎉 Before update_gpma\n"
-    //           << std::flush;
-
     update_gpma(gpma, base_keys, base_values);
     cudaDeviceSynchronize();
-    // std::cout << "🎨🎨🎨 End\n"
-    //           << std::flush;
 }
 
 void label_edges(GPMA &gpma)
 {
     int edge_label_counter = 1;
 
-    for (int node = 0; node < gpma.row_offset.size() - 1; ++node)
+    thrust::host_vector<SIZE_TYPE> h_row_offset = gpma.row_offset;
+    thrust::host_vector<KEY_TYPE> h_keys = gpma.keys;
+    thrust::host_vector<VALUE_TYPE> h_values = gpma.values;
+
+    for (int node = 0; node < h_row_offset.size() - 1; ++node)
     {
-        unsigned int beg = gpma.row_offset[node];
-        unsigned int end = gpma.row_offset[node + 1];
+        unsigned int beg = h_row_offset[node];
+        unsigned int end = h_row_offset[node + 1];
 
         for (int i = beg; i < end; ++i)
         {
             KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (gpma.keys[i] - mask);
-            if (dst != COL_IDX_NONE && gpma.values[i] != VALUE_NONE)
+            unsigned int dst = (h_keys[i] - mask);
+            if (dst != COL_IDX_NONE && h_values[i] != VALUE_NONE)
             {
-                gpma.values[i] = edge_label_counter;
+                h_values[i] = edge_label_counter;
                 edge_label_counter += 1;
             }
         }
     }
+
+    gpma.row_offset = h_row_offset;
+    gpma.keys = h_keys;
+    gpma.values = h_values;
 }
 
 void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
 {
     int edge_counter = 0;
-    DEV_VEC_KEY keys(ref_gpma.edge_count);
-    DEV_VEC_VALUE values(ref_gpma.edge_count);
 
-    for (int node = 0; node < ref_gpma.row_offset.size() - 1; ++node)
+    // creating the host vector version for keys
+    // and values for the new gpma
+    thrust::host_vector<KEY_TYPE> h_new_keys(ref_gpma.edge_count);
+    thrust::host_vector<VALUE_TYPE> h_new_values(ref_gpma.edge_count);
+
+    // creating the host vectors for the CSR arrays of the
+    // reference GPMA from it's device vectors
+    thrust::host_vector<SIZE_TYPE> h_ref_row_offset = ref_gpma.row_offset;
+    thrust::host_vector<KEY_TYPE> h_ref_keys = ref_gpma.keys;
+    thrust::host_vector<VALUE_TYPE> h_ref_values = ref_gpma.values;
+
+    DEV_VEC_KEY d_new_keys(ref_gpma.edge_count);
+    DEV_VEC_VALUE d_new_values(ref_gpma.edge_count);
+
+    for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
     {
-        unsigned int beg = ref_gpma.row_offset[node];
-        unsigned int end = ref_gpma.row_offset[node + 1];
+        unsigned int beg = h_ref_row_offset[node];
+        unsigned int end = h_ref_row_offset[node + 1];
 
         for (int i = beg; i < end; ++i)
         {
             KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (ref_gpma.keys[i] - mask);
-            if (dst != COL_IDX_NONE && ref_gpma.values[i] != VALUE_NONE)
+            unsigned int dst = (h_ref_keys[i] - mask);
+            if (dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
             {
-                keys[edge_counter] = (ref_gpma.keys[i] << 32) + node;
-                values[edge_counter] = ref_gpma.values[i];
+                h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + node;
+                h_new_values[edge_counter] = h_ref_values[i];
                 edge_counter += 1;
             }
         }
     }
 
+    d_new_keys = h_new_keys;
+    d_new_values = h_new_values;
+
     // NOTE: Verify if sorting is really required or not
-    thrust::sort_by_key(keys.begin(), keys.end(), values.begin());
+    thrust::sort_by_key(d_new_keys.begin(), d_new_keys.end(), d_new_values.begin());
     cudaDeviceSynchronize();
 
     locate_leaf_batch(RAW_PTR(gpma.keys), RAW_PTR(gpma.values), gpma.keys.size(), gpma.segment_length, gpma.tree_height,
-                      RAW_PTR(keys), RAW_PTR(values), keys.size(), NULL, false);
+                      RAW_PTR(d_new_keys), RAW_PTR(d_new_values), d_new_keys.size(), NULL, false);
 
     cudaDeviceSynchronize();
 }
@@ -1256,28 +1244,42 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
     // edges are to be added as the second param
 
     int edge_counter = 0;
-    DEV_VEC_KEY keys(ref_gpma.edge_count);
-    DEV_VEC_VALUE values(ref_gpma.edge_count);
 
-    for (int node = 0; node < ref_gpma.row_offset.size() - 1; ++node)
+    // creating host_vectors for the new GPMA
+    thrust::host_vector<KEY_TYPE> h_new_keys(ref_gpma.edge_count);
+    thrust::host_vector<VALUE_TYPE> h_new_values(ref_gpma.edge_count);
+
+    // creating the host vectors for the CSR arrays of the
+    // reference GPMA from it's device vectors
+    thrust::host_vector<SIZE_TYPE> h_ref_row_offset = ref_gpma.row_offset;
+    thrust::host_vector<KEY_TYPE> h_ref_keys = ref_gpma.keys;
+    thrust::host_vector<VALUE_TYPE> h_ref_values = ref_gpma.values;
+
+    DEV_VEC_KEY d_new_keys(ref_gpma.edge_count);
+    DEV_VEC_VALUE d_new_values(ref_gpma.edge_count);
+
+    for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
     {
-        unsigned int beg = ref_gpma.row_offset[node];
-        unsigned int end = ref_gpma.row_offset[node + 1];
+        unsigned int beg = h_ref_row_offset[node];
+        unsigned int end = h_ref_row_offset[node + 1];
 
         for (int i = beg; i < end; ++i)
         {
             KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (ref_gpma.keys[i] - mask);
-            if (dst != COL_IDX_NONE && ref_gpma.values[i] != VALUE_NONE)
+            unsigned int dst = (h_ref_keys[i] - mask);
+            if (dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
             {
-                keys[edge_counter] = (ref_gpma.keys[i] << 32) + node;
-                values[edge_counter] = ref_gpma.values[i];
+                h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + node;
+                h_new_values[edge_counter] = h_ref_values[i];
                 edge_counter += 1;
             }
         }
     }
 
-    update_gpma(gpma, keys, values);
+    d_new_keys = h_new_keys;
+    d_new_values = h_new_values;
+
+    update_gpma(gpma, d_new_keys, d_new_values);
     cudaDeviceSynchronize();
 }
 

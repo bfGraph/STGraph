@@ -62,7 +62,7 @@ extern "C" __global__ void K5(float *V24, float *Vnormcen, float *Vnorminb, floa
         long long int tx = threadIdx.x % thrs_per_group;
         for (; tx<feat_len; tx+=blockDim.x) {
             float V28_tmp = 0;
-            long long int offset3 = src_id * 32 + tx;long long int offset4 = src_id * 1 + tx/32;
+            long long int offset3 = src_id * 1 + tx/32;long long int offset4 = src_id * 32 + tx;
             for (long long int e=beg;e<end;++e) {
                 long long int dst_id = __ldg(column_indices + e);
                 long long int eid = __ldg(eids + e);
@@ -71,10 +71,10 @@ extern "C" __global__ void K5(float *V24, float *Vnormcen, float *Vnorminb, floa
                 unsigned int dst_check = (dst_id - mask);
                 dst_id = (dst_id - mask);
                 if(dst_check != 0xFFFFFFFF && eid != 0){
-                    long long int offset0 = dst_id * 32 + tx;long long int offset1 = dst_id * 1 + tx/32;long long int offset2 = eid * 1 + tx/32;
+                    long long int offset0 = dst_id * 1 + tx/32;long long int offset1 = dst_id * 32 + tx;long long int offset2 = eid * 1 + tx/32;
                     
                     
-                    float V25_tmp = V24[offset0]*Vnormcen[offset1];
+                    float V25_tmp = V24[offset1]*Vnormcen[offset0];
                     
                     
                     float V27_tmp = V25_tmp*Vweight[offset2];
@@ -87,7 +87,7 @@ extern "C" __global__ void K5(float *V24, float *Vnormcen, float *Vnorminb, floa
             
             
             
-            float V29_tmp = V28_tmp*Vnorminb[offset4];V29[offset3] = V29_tmp;
+            float V29_tmp = V28_tmp*Vnorminb[offset3];V29[offset4] = V29_tmp;
         }
     }
 }

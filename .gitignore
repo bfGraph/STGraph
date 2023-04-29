@@ -25,3 +25,4 @@ test_*.*
 *.csv
 *.prof
 .vscode/
+*.svg

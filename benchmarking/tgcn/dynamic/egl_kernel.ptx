@@ -711,23 +711,22 @@ $L__BB1_9:
 	or.pred  	%p9, %p7, %p8;
 	@%p9 bra 	$L__BB1_13;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd194, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd83, %rd80, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd84, %rd83, 5;
-	add.s64 	%rd85, %rd84, %rd201;
+	add.s64 	%rd84, %rd83, %rd194;
+	.loc	1 74 86
+	shl.b64 	%rd85, %rd83, 5;
+	add.s64 	%rd86, %rd85, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd86, %rd85, 2;
-	add.s64 	%rd87, %rd3, %rd86;
-	.loc	1 74 84
-	add.s64 	%rd88, %rd83, %rd194;
-	.loc	1 77 35
-	shl.b64 	%rd89, %rd88, 2;
+	shl.b64 	%rd87, %rd86, 2;
+	add.s64 	%rd88, %rd3, %rd87;
+	shl.b64 	%rd89, %rd84, 2;
 	add.s64 	%rd90, %rd2, %rd89;
 	ld.global.f32 	%f22, [%rd90];
-	ld.global.f32 	%f23, [%rd87];
+	ld.global.f32 	%f23, [%rd88];
 	mul.f32 	%f24, %f23, %f22;
 	.loc	1 74 127
 	add.s64 	%rd91, %rd34, %rd194;
@@ -762,23 +761,22 @@ $L__BB1_13:
 	or.pred  	%p13, %p11, %p12;
 	@%p13 bra 	$L__BB1_16;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd193, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd97, %rd94, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd98, %rd97, 5;
-	add.s64 	%rd99, %rd98, %rd201;
+	add.s64 	%rd98, %rd97, %rd193;
+	.loc	1 74 86
+	shl.b64 	%rd99, %rd97, 5;
+	add.s64 	%rd100, %rd99, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd100, %rd99, 2;
-	add.s64 	%rd101, %rd3, %rd100;
-	.loc	1 74 84
-	add.s64 	%rd102, %rd97, %rd193;
-	.loc	1 77 35
-	shl.b64 	%rd103, %rd102, 2;
+	shl.b64 	%rd101, %rd100, 2;
+	add.s64 	%rd102, %rd3, %rd101;
+	shl.b64 	%rd103, %rd98, 2;
 	add.s64 	%rd104, %rd2, %rd103;
 	ld.global.f32 	%f26, [%rd104];
-	ld.global.f32 	%f27, [%rd101];
+	ld.global.f32 	%f27, [%rd102];
 	mul.f32 	%f28, %f27, %f26;
 	.loc	1 74 127
 	add.s64 	%rd105, %rd36, %rd193;
@@ -815,23 +813,22 @@ $L__BB1_16:
 	mov.u64 	%rd202, %rd28;
 	@%p17 bra 	$L__BB1_19;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd192, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd111, %rd108, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd112, %rd111, 5;
-	add.s64 	%rd113, %rd112, %rd201;
+	add.s64 	%rd112, %rd111, %rd192;
+	.loc	1 74 86
+	shl.b64 	%rd113, %rd111, 5;
+	add.s64 	%rd114, %rd113, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd114, %rd113, 2;
-	add.s64 	%rd115, %rd3, %rd114;
-	.loc	1 74 84
-	add.s64 	%rd116, %rd111, %rd192;
-	.loc	1 77 35
-	shl.b64 	%rd117, %rd116, 2;
+	shl.b64 	%rd115, %rd114, 2;
+	add.s64 	%rd116, %rd3, %rd115;
+	shl.b64 	%rd117, %rd112, 2;
 	add.s64 	%rd118, %rd2, %rd117;
 	ld.global.f32 	%f30, [%rd118];
-	ld.global.f32 	%f31, [%rd115];
+	ld.global.f32 	%f31, [%rd116];
 	mul.f32 	%f32, %f31, %f30;
 	.loc	1 74 127
 	add.s64 	%rd119, %rd38, %rd192;
@@ -870,23 +867,22 @@ $L__BB1_21:
 	or.pred  	%p21, %p19, %p20;
 	@%p21 bra 	$L__BB1_23;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd195, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd126, %rd123, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd127, %rd126, 5;
-	add.s64 	%rd128, %rd127, %rd201;
+	add.s64 	%rd127, %rd126, %rd195;
+	.loc	1 74 86
+	shl.b64 	%rd128, %rd126, 5;
+	add.s64 	%rd129, %rd128, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd129, %rd128, 2;
-	add.s64 	%rd130, %rd3, %rd129;
-	.loc	1 74 84
-	add.s64 	%rd131, %rd126, %rd195;
-	.loc	1 77 35
-	shl.b64 	%rd132, %rd131, 2;
+	shl.b64 	%rd130, %rd129, 2;
+	add.s64 	%rd131, %rd3, %rd130;
+	shl.b64 	%rd132, %rd127, 2;
 	add.s64 	%rd133, %rd2, %rd132;
 	ld.global.f32 	%f34, [%rd133];
-	ld.global.f32 	%f35, [%rd130];
+	ld.global.f32 	%f35, [%rd131];
 	mul.f32 	%f36, %f35, %f34;
 	.loc	1 74 127
 	add.s64 	%rd134, %rd46, %rd195;
@@ -918,23 +914,22 @@ $L__BB1_23:
 	or.pred  	%p24, %p22, %p23;
 	@%p24 bra 	$L__BB1_25;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd198, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd140, %rd137, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd141, %rd140, 5;
-	add.s64 	%rd142, %rd141, %rd201;
+	add.s64 	%rd141, %rd140, %rd198;
+	.loc	1 74 86
+	shl.b64 	%rd142, %rd140, 5;
+	add.s64 	%rd143, %rd142, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd143, %rd142, 2;
-	add.s64 	%rd144, %rd3, %rd143;
-	.loc	1 74 84
-	add.s64 	%rd145, %rd140, %rd198;
-	.loc	1 77 35
-	shl.b64 	%rd146, %rd145, 2;
+	shl.b64 	%rd144, %rd143, 2;
+	add.s64 	%rd145, %rd3, %rd144;
+	shl.b64 	%rd146, %rd141, 2;
 	add.s64 	%rd147, %rd2, %rd146;
 	ld.global.f32 	%f38, [%rd147];
-	ld.global.f32 	%f39, [%rd144];
+	ld.global.f32 	%f39, [%rd145];
 	mul.f32 	%f40, %f39, %f38;
 	.loc	1 74 127
 	add.s64 	%rd148, %rd48, %rd198;
@@ -966,23 +961,22 @@ $L__BB1_25:
 	or.pred  	%p27, %p25, %p26;
 	@%p27 bra 	$L__BB1_27;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd197, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd154, %rd151, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd155, %rd154, 5;
-	add.s64 	%rd156, %rd155, %rd201;
+	add.s64 	%rd155, %rd154, %rd197;
+	.loc	1 74 86
+	shl.b64 	%rd156, %rd154, 5;
+	add.s64 	%rd157, %rd156, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd157, %rd156, 2;
-	add.s64 	%rd158, %rd3, %rd157;
-	.loc	1 74 84
-	add.s64 	%rd159, %rd154, %rd197;
-	.loc	1 77 35
-	shl.b64 	%rd160, %rd159, 2;
+	shl.b64 	%rd158, %rd157, 2;
+	add.s64 	%rd159, %rd3, %rd158;
+	shl.b64 	%rd160, %rd155, 2;
 	add.s64 	%rd161, %rd2, %rd160;
 	ld.global.f32 	%f42, [%rd161];
-	ld.global.f32 	%f43, [%rd158];
+	ld.global.f32 	%f43, [%rd159];
 	mul.f32 	%f44, %f43, %f42;
 	.loc	1 74 127
 	add.s64 	%rd162, %rd50, %rd197;
@@ -1014,23 +1008,22 @@ $L__BB1_27:
 	or.pred  	%p30, %p28, %p29;
 	@%p30 bra 	$L__BB1_29;
 
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd196, %rd201, 5;
 	.loc	1 72 17
 	sub.s64 	%rd168, %rd165, %rd17;
 	.loc	1 74 43
-	shl.b64 	%rd169, %rd168, 5;
-	add.s64 	%rd170, %rd169, %rd201;
+	add.s64 	%rd169, %rd168, %rd196;
+	.loc	1 74 86
+	shl.b64 	%rd170, %rd168, 5;
+	add.s64 	%rd171, %rd170, %rd201;
 	.loc	1 77 35
-	shl.b64 	%rd171, %rd170, 2;
-	add.s64 	%rd172, %rd3, %rd171;
-	.loc	1 74 84
-	add.s64 	%rd173, %rd168, %rd196;
-	.loc	1 77 35
-	shl.b64 	%rd174, %rd173, 2;
+	shl.b64 	%rd172, %rd171, 2;
+	add.s64 	%rd173, %rd3, %rd172;
+	shl.b64 	%rd174, %rd169, 2;
 	add.s64 	%rd175, %rd2, %rd174;
 	ld.global.f32 	%f46, [%rd175];
-	ld.global.f32 	%f47, [%rd172];
+	ld.global.f32 	%f47, [%rd173];
 	mul.f32 	%f48, %f47, %f46;
 	.loc	1 74 127
 	add.s64 	%rd176, %rd52, %rd196;
@@ -1053,7 +1046,7 @@ $L__BB1_29:
 $L__BB1_30:
 	.loc	1 0 13
 	shl.b64 	%rd186, %rd8, 5;
-	.loc	1 65 76
+	.loc	1 65 35
 	shr.u64 	%rd185, %rd201, 5;
 	add.s64 	%rd179, %rd185, %rd8;
 	.loc	1 90 27
@@ -1061,7 +1054,7 @@ $L__BB1_30:
 	add.s64 	%rd181, %rd30, %rd180;
 	ld.global.f32 	%f50, [%rd181];
 	mul.f32 	%f51, %f57, %f50;
-	.loc	1 65 35
+	.loc	1 65 78
 	add.s64 	%rd182, %rd201, %rd186;
 	.loc	1 90 55
 	shl.b64 	%rd183, %rd182, 2;

@@ -239,17 +239,17 @@ def gpma_version(args):
     
     print(f'\n⏱️ Time taken for forward propagation: {b-a}\n')
     
-    # print("\n### Reverse Graph\n")
+    print("\n### Reverse Graph\n")
     
-    # a = time.time()
-    # for i in reversed(range(1,50)):
-    #     t0 = time.time()
-    #     G.get_backward_graph_for_timestamp(i)
-    #     t1 = time.time()
-    #     print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
-    # b = time.time()
+    a = time.time()
+    for i in reversed(range(1,18)):
+        t0 = time.time()
+        G.get_backward_graph_for_timestamp(i)
+        t1 = time.time()
+        print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    b = time.time()
 
-    # print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
+    print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
     
 def pcsr_version(args):
     print("🎉 PCSR Version")
@@ -278,17 +278,17 @@ def pcsr_version(args):
     
     print(f'\n⏱️ Time taken for forward propagation: {b-a}\n')
     
-    # print("\n### Reverse Graph\n")
+    print("\n### Reverse Graph\n")
     
-    # a = time.time()
-    # for i in reversed(range(1,50)):
-    #     t0 = time.time()
-    #     G.get_backward_graph_for_timestamp(i)
-    #     t1 = time.time()
-    #     print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
-    # b = time.time()
+    a = time.time()
+    for i in reversed(range(1,18)):
+        t0 = time.time()
+        G.get_backward_graph_for_timestamp(i)
+        t1 = time.time()
+        print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
+    b = time.time()
 
-    # print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
+    print(f'\n⏱️ Time taken for backward propagation: {b-a}\n')
 
 gpma_version(None)
 print("\n----------------------------------------------------------\n")
