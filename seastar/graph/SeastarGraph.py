@@ -6,9 +6,17 @@ class SeastarGraph(ABC):
         self.num_nodes = 0
         self.num_edges = 0
         
-        self.row_offset_ptr = None
-        self.column_indices_ptr = None
-        self.eids_ptr = None
+        self.fwd_row_offset_ptr = None
+        self.fwd_column_indices_ptr = None
+        self.fwd_eids_ptr = None
+        
+        self.bwd_row_offset_ptr = None
+        self.bwd_column_indices_ptr = None
+        self.bwd_eids_ptr = None
+    
+    @abstractmethod
+    def _get_graph_csr_ptrs(self):
+        pass
     
     @property
     @abstractmethod

@@ -64,7 +64,9 @@ def extract_dataset():
     register_data_args(parser)
     args = parser.parse_args()
     dataset_name = ['cora', 'citeseer', 'pubmed', 'reddit', 'CoraFull', 'Coauthor_cs', 'Coauthor_physics', 'AmazonCoBuy_computers', 'AmazonCoBuy_photo']
-
+    
+    # TODO: Remove
+    dataset_name = ['cora'] 
     print("Now PATH IS ", os.getcwd())
     for name in dataset_name:
         '''

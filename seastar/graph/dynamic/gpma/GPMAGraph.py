@@ -35,16 +35,6 @@ class GPMAGraph(DynamicGraph):
     
     def out_degrees(self):
         return np.array(self.forward_graph.in_degree, dtype='int32')
-        
-    def _get_graph_csr_ptrs(self):
-        if not self._is_reverse_graph:
-            csr_ptrs = get_csr_ptrs(self.forward_graph)
-        else:
-            csr_ptrs = get_csr_ptrs(self.backward_graph)
-
-        self.row_offset_ptr = csr_ptrs[0]
-        self.column_indices_ptr = csr_ptrs[1]
-        self.eids_ptr = csr_ptrs[2]
     
     #TODO: Right now this returns (max_num_nodes,num_edges) see if this is what is required
     def _get_graph_attributes(self):
@@ -60,15 +50,15 @@ class GPMAGraph(DynamicGraph):
     def _update_graph_forward(self):
         
         # if we went through the entire time-stamps
-        if str(self.current_time_stamp + 1) not in self.graph_updates:
+        if str(self.current_timestamp + 1) not in self.graph_updates:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
         
-        self.current_time_stamp += 1
+        self.current_timestamp += 1
         
         # getting the graph edge modifications in 
         # the following form list[tuple(int, int)]
-        graph_additions = self.graph_updates[str(self.current_time_stamp)]["add"]
-        graph_deletions = self.graph_updates[str(self.current_time_stamp)]["delete"]
+        graph_additions = self.graph_updates[str(self.current_timestamp)]["add"]
+        graph_deletions = self.graph_updates[str(self.current_timestamp)]["delete"]
 
         edge_update_list(self.forward_graph, graph_additions, is_reverse_edge=True)
         edge_update_list(self.forward_graph, graph_deletions, is_delete=True, is_reverse_edge=True)
@@ -98,13 +88,13 @@ class GPMAGraph(DynamicGraph):
         self._get_graph_attributes() # NOTE:
         
     def _update_graph_backward(self):
-        if self.current_time_stamp < 0:
+        if self.current_timestamp < 0:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
-        self.current_time_stamp -= 1
+        self.current_timestamp -= 1
         
-        graph_additions = self.graph_updates[str(self.current_time_stamp + 1)]["delete"]
-        graph_deletions = self.graph_updates[str(self.current_time_stamp + 1)]["add"]
+        graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
+        graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
 
         edge_update_list(self.backward_graph, graph_additions)
         edge_update_list(self.backward_graph, graph_deletions, is_delete=True)

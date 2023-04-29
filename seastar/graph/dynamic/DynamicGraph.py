@@ -14,7 +14,7 @@ class DynamicGraph(SeastarGraph):
         self.graph_cache = {}
         self._is_reverse_graph = False
 
-        self.current_time_stamp = 0
+        self.current_timestamp = 0
         
     def _update_graph_cache(self, is_reverse=False):
         # saving base graph in cache
@@ -36,27 +36,37 @@ class DynamicGraph(SeastarGraph):
         self._get_graph_csr_ptrs()
         self._is_reverse_graph = False
         
-    def get_forward_graph_for_timestamp(self, timestamp: int):
+    def get_graph(self, timestamp: int):
 
         if self._is_reverse_graph:
             self._revert_to_base_graph()
         
-        if timestamp < self.current_time_stamp:
+        if timestamp < self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
 
-        while self.current_time_stamp < timestamp:
+        while self.current_timestamp < timestamp:
             self._update_graph_forward()
 
-    def get_backward_graph_for_timestamp(self, timestamp: int):
+    def get_backward_graph(self, timestamp: int):
 
         if not self._is_reverse_graph:
             self._init_reverse_graph()
         
-        if timestamp > self.current_time_stamp:
+        if timestamp > self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
-        while self.current_time_stamp > timestamp:
+        while self.current_timestamp > timestamp:
             self._update_graph_backward()
+    
+    def _get_graph_csr_ptrs(self):
+        if not self._is_reverse_graph:
+            csr_ptrs = self.forward_graph.get_csr_ptrs()
+        else:
+            csr_ptrs = self.backward_graph.get_csr_ptrs()
+        
+        self.row_offset_ptr = csr_ptrs[0]
+        self.column_indices_ptr = csr_ptrs[1]
+        self.eids_ptr = csr_ptrs[2]
     
     @abstractmethod
     def in_degrees(self):
@@ -66,9 +76,6 @@ class DynamicGraph(SeastarGraph):
     def out_degrees(self):
         pass
     
-    @abstractmethod
-    def _get_graph_csr_ptrs(self):
-        pass
     
     @abstractmethod
     def _update_graph_forward(self):

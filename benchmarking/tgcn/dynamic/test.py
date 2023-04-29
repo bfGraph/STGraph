@@ -232,7 +232,7 @@ def gpma_version(args):
     a = time.time()
     for i in range(1,18):
         t0 = time.time()
-        G.get_forward_graph_for_timestamp(i)
+        G.get_graph(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
     b = time.time()
@@ -244,7 +244,7 @@ def gpma_version(args):
     a = time.time()
     for i in reversed(range(1,18)):
         t0 = time.time()
-        G.get_backward_graph_for_timestamp(i)
+        G.get_backward_graph(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
     b = time.time()
@@ -271,7 +271,7 @@ def pcsr_version(args):
     a = time.time()
     for i in range(1,18):
         t0 = time.time()
-        G.get_forward_graph_for_timestamp(i)
+        G.get_graph(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
     b = time.time()
@@ -283,7 +283,7 @@ def pcsr_version(args):
     a = time.time()
     for i in reversed(range(1,18)):
         t0 = time.time()
-        G.get_backward_graph_for_timestamp(i)
+        G.get_backward_graph(i)
         t1 = time.time()
         print("Timestamp = {}   |   Time Taken = {:.5f}".format(i,t1-t0))
     b = time.time()

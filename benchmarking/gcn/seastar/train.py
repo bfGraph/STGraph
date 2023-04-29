@@ -4,9 +4,9 @@ import networkx as nx
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import dgl
-from dgl import DGLGraph
-from dgl.data import register_data_args, load_data
+
+from seastar.graph.static.StaticGraph import StaticGraph
+
 import snoop
 
 from gcn_spmv import EglGCN
@@ -91,11 +91,21 @@ def main(args):
     '''
     u = edges[:,0]
     v = edges[:,1]
-    g = dgl.graph((u,v), num_nodes=num_nodes)
+    
+    u = [1,2,2,3,5]
+    v = [5,1,3,4,4]
+
+    edge_list = [(u[node_idx], v[node_idx]) for node_idx in range(len(u))]
+    # g = dgl.graph((u,v), num_nodes=num_nodes)
+    num_nodes = 6
+    g = StaticGraph(edge_list, num_nodes)
+    quit()
+    
     # add self loop
-    if args.self_loop:
-        g = dgl.add_self_loop(g)
-    g = g.to(features.device)
+    # if args.self_loop:
+    #     g = dgl.add_self_loop(g)
+    
+    # g = g.to(features.device)
 
     # normalization
     degs = g.in_degrees().float()
@@ -160,14 +170,14 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='GCN')
-    #add_argument --dataset
-    register_data_args(parser)
 
     # COMMENT IF SNOOP IS TO BE ENABLED
     snoop.install(enabled=False)
 
     parser.add_argument("--dropout", type=float, default=0.5,
             help="dropout probability")
+    parser.add_argument("--dataset", type=str,
+            help="Datset to train your model")
     parser.add_argument("--gpu", type=int, default=0,
             help="gpu")
     parser.add_argument("--lr", type=float, default=1e-2,

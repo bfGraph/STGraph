@@ -222,9 +222,9 @@ def main(args):
     cuda = True
 
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
-    # G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
+    G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
     
-    G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
+    # G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
 
     # inspect(train_graph_log_dict)
     # inspect(train_max_num_nodes)
@@ -236,8 +236,6 @@ def main(args):
     # train
     print("Training...\n")
     for epoch in range(args.num_epochs):
-        # print(f'For epoch {epoch}')
-        # inspect(G.current_time_stamp)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -250,7 +248,10 @@ def main(args):
         # print("🔴🔴 Attempting Forward prop at t={}".format(epoch))
 
         # dyn_graph_index is dynamic graph index
-        for index in range(len(train_features)):  
+        for index in range(0,len(train_features),2): 
+            
+            # Getting the graph for a particular timestamp
+            G.get_graph(index) 
 
             # normalization
             degs = torch.from_numpy(G.in_degrees()).type(torch.int32)

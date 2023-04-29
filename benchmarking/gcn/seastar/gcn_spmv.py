@@ -10,8 +10,8 @@ import torch
 import torch.nn as nn
 import dgl
 import dgl.function as fn
-from seastar import CtxManager
-from seastar.backend.pytorch_backend import run_egl
+from seastar.compiler import CtxManager
+from seastar.compiler.backend.pytorch_backend import run_egl
 
 class EglGCNLayer(nn.Module):
     def __init__(self,

@@ -2,6 +2,7 @@ import torch
 from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque
+from ..graph.dynamic.DynamicGraph import DynamicGraph
 
 class Stack:
     def __init__(self, val=None):
@@ -18,9 +19,6 @@ class Stack:
     def top(self):
         return self.content[-1]
     
-    def len(self):
-        return len(self.content)
-    
     def print(self):
         for elem in self.content:
             print(elem)
@@ -31,6 +29,9 @@ class ExeState(object):
 
         # contains tensors for all previous execution of nb_compute
         self.tensor_map_stack = Stack()
+        
+        # contains timestamps of graphs that were forward propagated
+        self.graph_timestamp_stack = Stack()
 
         # contains arg tensors for the current execution of nb_compute only
         self.current_tensor_map = {}
@@ -206,10 +207,11 @@ class Executor(object):
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
         if graph != None:
             
+            # TODO: REMOVE
             # TODO: getting graph of current timestamp, probably better to move
             # this outside the compiler
-            current_timestamp = self.ts.tensor_map_stack.len() 
-            self.graph.get_forward_graph_for_timestamp(current_timestamp)
+            # current_timestamp = self.ts.tensor_map_stack.len() 
+            # self.graph.get_forward_graph_for_timestamp(current_timestamp)
             
             for mu in self.forward_exec_units:
                 for u in mu:
@@ -245,7 +247,9 @@ class Executor(object):
         # bytes_list = [v.numel() *4 for k,v in self.ts.tensor_map.items()]
         #print('after forward', self.ts.tensor_map.keys(), ' bytes ', bytes_list, sum(bytes_list))
 
-        self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        # Old position
+        # self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        # self.ts.graph_timestamp_stack.push(self.graph.current_timestamp)
 
         # print("🔴 After ForwardProp status of tensor_map")
         # for index in range(len(self.ts.tensor_map_stack.content)):
@@ -294,6 +298,11 @@ class Executor(object):
         units = self.forward_exec_units[uid]
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
+            
+        self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        
+        if isinstance(self.graph,DynamicGraph):
+            self.ts.graph_timestamp_stack.push(self.graph.current_timestamp)
 
         return tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
 
@@ -309,9 +318,9 @@ class Executor(object):
         ret_grads = [ret._grad for ret in rets] # ret_grads corresponds vars in grad_list
         tensor_map = self.ts.tensor_map_stack.top()
         
-        # TODO: getting graph of current timestamp (lem -1 since timestamp starts at 0)
-        current_timestamp = self.ts.tensor_map_stack.len() - 1
-        self.graph.get_backward_graph_for_timestamp(current_timestamp)
+        if isinstance(self.graph,DynamicGraph):
+            current_timestamp = self.ts.graph_timestamp_stack.top()
+            self.graph.get_backward_graph(current_timestamp)
 
         for i,grad in enumerate(ret_grads):
             # We track the ret_grads as its value is fixed to grad_list
@@ -334,11 +343,8 @@ class Executor(object):
         
         del tensor_map
         self.ts.tensor_map_stack.pop()
-
-        # print("🔴 After Backprop status of tensor_map")
-        # for index in range(len(self.ts.tensor_map_stack.content)):
-        #     print("Index: {}".format(index))
-        #     print(self.ts.tensor_map_stack.content[index])
+        self.ts.graph_timestamp_stack.pop()
+        
         return ret
 
     def execute_prog(self, units):
