@@ -270,7 +270,7 @@ public:
     void add_node();
     void add_edge(uint32_t src, uint32_t dest, uint32_t value);
     void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
-    void edge_update_list(std::vector<std::tuple<uin32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false);
+    void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
     void delete_edge(uint32_t src, uint32_t dest);
     uint64_t get_n();
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
@@ -279,6 +279,7 @@ public:
     std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
     void label_edges();
     uint32_t find_edge_id(uint32_t src, uint32_t dest);
+    std::tuple<uint32_t, uint32_t> get_graph_attr();
 
     uint32_t insert(uint32_t index, edge_t elem, uint32_t src);
     void double_list();
@@ -744,7 +745,7 @@ void PCSR::print_graph()
                     matrix_index++;
                 }
                 // printf("%03d ", edges.items[j].value);
-                printf(" •  ");
+                printf(" %d  ", edges.items[j].value);
                 matrix_index++;
             }
         }
@@ -812,6 +813,10 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
         }
     }
 
+    for (int i = 0; i < eids.size(); ++i)
+        cout << eids[i] << " ";
+    cout << "\n";
+
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
     DEV_VEC eids_device = eids;
@@ -846,10 +851,7 @@ uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
     e.value = 0;
 
     uint32_t loc = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end);
-
-    // since eid+1 as stored in value attribute
-    uint32_t eid = edges.items[loc].value - 1;
-    return eid;
+    return edges.items[loc].value;
 }
 
 std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
@@ -860,19 +862,20 @@ std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
     return t;
 }
 
-void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
+void copy_label_edges(PCSR &pcsr, PCSR &ref_pcsr)
 {
-    uint64_t n = gpma.get_n();
+    uint64_t n = pcsr.get_n();
 
     for (int i = 0; i < n; i++)
     {
-        uint32_t start = gpma.nodes[i].beginning;
-        uint32_t end = gpma.nodes[i].end;
+        uint32_t start = pcsr.nodes[i].beginning;
+        uint32_t end = pcsr.nodes[i].end;
         for (int j = start + 1; j < end; j++)
         {
-            if (!is_null(gpma.edges.items[j]))
+            if (!is_null(pcsr.edges.items[j]))
             {
-                gpma.edges.items[j].value = ref_gpma.find_edge_id(i, gpma.edges.items[j].dest);
+                // Searching for the edge_id of reverse edge from reference_pcsr
+                pcsr.edges.items[j].value = ref_pcsr.find_edge_id(pcsr.edges.items[j].dest, i);
             }
         }
     }
@@ -901,7 +904,7 @@ void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
         uint32_t src = std::get<1>(edge);
         uint32_t dst = std::get<0>(edge);
         uint32_t val = std::get<2>(edge);
-        add_edge(src, dst, val);
+        pcsr.add_edge(src, dst, val);
     }
 }
 
@@ -958,7 +961,7 @@ PYBIND11_MODULE(pcsr, m)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
         .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
-        .def("label_edges", &label_edges, "Creates edge labels for the current GPMA")
+        .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
         .def("delete_edge", &PCSR::delete_edge)
         .def("get_n", &PCSR::get_n)
         .def("get_edges", &PCSR::get_edges)

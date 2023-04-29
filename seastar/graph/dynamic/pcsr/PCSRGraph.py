@@ -3,7 +3,7 @@ import numpy as np
 from rich import inspect
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.pcsr.pcsr import PCSR, copy_label_edges
+from seastar.graph.dynamic.pcsr.pcsr import PCSR, copy_label_edges, build_reverse_pcsr
 
 class PCSRGraph(DynamicGraph):
     def __init__(self, graph_updates, max_num_nodes):
@@ -70,8 +70,7 @@ class PCSRGraph(DynamicGraph):
         if 'reverse' in self.graph_cache:
             self.backward_graph = self._get_cached_graph(is_reverse=True)
         else:
-            edges = self.forward_graph.get_edges()
-            self.backward_graph.edge_update_list(edges,is_reverse_edge=True)
+            build_reverse_pcsr(self.backward_graph, self.forward_graph)
 
             # storing the reverse base graph in cache after building
             # it for the first time
