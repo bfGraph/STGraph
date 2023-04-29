@@ -31,7 +31,7 @@ __inline__ __host__ __device__ void gpuAssert(cudaError_t code, const char *file
 }
 
 typedef unsigned long long KEY_TYPE;
-typedef double VALUE_TYPE;
+typedef unsigned int VALUE_TYPE;
 typedef unsigned int SIZE_TYPE;
 
 typedef thrust::device_vector<KEY_TYPE> DEV_VEC_KEY;

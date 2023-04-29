@@ -9,7 +9,7 @@ setuptools.setup(
     url='https://github.com/bfGraph/Seastar',
     packages=setuptools.find_packages(),
     package_data={
-        "": ["*.so"]
+        "": ["*.so","*.jinja"]
     },
     classifiers=[
         "Programming Language :: Python :: 3",

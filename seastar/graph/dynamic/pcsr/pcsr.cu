@@ -813,10 +813,6 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
         }
     }
 
-    for (int i = 0; i < eids.size(); ++i)
-        cout << eids[i] << " ";
-    cout << "\n";
-
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
     DEV_VEC eids_device = eids;

@@ -84,9 +84,9 @@ class Context():
         backward_exe_units = diff(vars, grads, forward_exe_units, fprog)
         visualize.plot_exec_units(forward_exe_units + backward_exe_units)
         
-        # TODO: The last parameter here was ('int' if graph.nbits == 32 else 'long long int') but we changed
-        # it for the time being since we are working with the new graph object
-        compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'long long int')
+        # NOTE: The last parameter here was ('int' if graph.nbits == 32 else 'long long int') but we changed
+        # it to just 'int' since that should be sufficient for all use case that we can think of now
+        compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int', graph.graph_type())
         return Executor(graph, forward_exe_units, backward_exe_units, compiled_module, vars)
         
     def _init_central_node(self, nfeats, efeats, fprog, backend):

@@ -222,9 +222,9 @@ def main(args):
     cuda = True
 
     train_graph_log_dict, train_max_num_nodes = preprocess_graph_structure(train_edges_lst)
-    G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
+    # G = GPMAGraph(train_graph_log_dict,train_max_num_nodes)
     
-    # G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
+    G = PCSRGraph(train_graph_log_dict,train_max_num_nodes)
 
     # inspect(train_graph_log_dict)
     # inspect(train_max_num_nodes)
@@ -299,39 +299,39 @@ def main(args):
     print('^^^{:6f}^^^{:6f}'.format(Used_memory, np.mean(dur)))
 
     # evaluate
-    print("Evaluating...\n")
-    model.eval()
-    cost = 0
+    # print("Evaluating...\n")
+    # model.eval()
+    # cost = 0
 
-    test_graph_log_dict, test_max_num_nodes = preprocess_graph_structure(test_edges_lst)
-    G = GPMAGraph(test_graph_log_dict,test_max_num_nodes)
+    # test_graph_log_dict, test_max_num_nodes = preprocess_graph_structure(test_edges_lst)
+    # G = GPMAGraph(test_graph_log_dict,test_max_num_nodes)
     
-    # G = PCSRGraph(test_graph_log_dict,test_max_num_nodes)
+    # # G = PCSRGraph(test_graph_log_dict,test_max_num_nodes)
 
-    predictions = []
-    true_y = []
-    hidden_state=None
-    # dyn_graph_index is dynamic graph index
-    for index in range(len(test_features)):
-        # normalization
-        # degs = G.in_degrees().float()
-        degs = torch.from_numpy(G.in_degrees())
-        norm = torch.pow(degs, -0.5)
-        norm[torch.isinf(norm)] = 0
-        norm = to_default_device(norm)
-        G.ndata['norm'] = norm.unsqueeze(1)
-        edge_weight = to_default_device(torch.FloatTensor(test_edge_weights_lst[index]))
-        edge_weight = torch.unsqueeze(edge_weight,1)
+    # predictions = []
+    # true_y = []
+    # hidden_state=None
+    # # dyn_graph_index is dynamic graph index
+    # for index in range(len(test_features)):
+    #     # normalization
+    #     # degs = G.in_degrees().float()
+    #     degs = torch.from_numpy(G.in_degrees())
+    #     norm = torch.pow(degs, -0.5)
+    #     norm[torch.isinf(norm)] = 0
+    #     norm = to_default_device(norm)
+    #     G.ndata['norm'] = norm.unsqueeze(1)
+    #     edge_weight = to_default_device(torch.FloatTensor(test_edge_weights_lst[index]))
+    #     edge_weight = torch.unsqueeze(edge_weight,1)
         
-        # forward propagation
-        y_hat, hidden_state = model(G, test_features[index], edge_weight, hidden_state)
-        cost = cost + torch.mean((y_hat-test_targets[index])**2)
-        predictions.append(y_hat)
-        true_y.append(test_targets[index])
+    #     # forward propagation
+    #     y_hat, hidden_state = model(G, test_features[index], edge_weight, hidden_state)
+    #     cost = cost + torch.mean((y_hat-test_targets[index])**2)
+    #     predictions.append(y_hat)
+    #     true_y.append(test_targets[index])
 
-    cost = cost / (index+1)
-    cost = cost.item()
-    print("MSE: {:.4f}".format(cost))
+    # cost = cost / (index+1)
+    # cost = cost.item()
+    # print("MSE: {:.4f}".format(cost))
 
 
 

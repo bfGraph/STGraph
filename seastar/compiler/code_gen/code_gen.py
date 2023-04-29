@@ -1,5 +1,12 @@
-from .template import gen_cuda, EdgeInfo, AggInfo, ArgInfo, NodeInfo
 from ..utils import is_const_scalar, ParallelMode
+from collections import namedtuple
+from .compiler import compile_cuda
+from jinja2 import Environment, PackageLoader
+
+EdgeInfo = namedtuple('EdgeInfo', ['load', 'compute', 'inner_write'])
+NodeInfo = namedtuple('NodeInfo', ['load', 'compute', 'inner_write'])
+ArgInfo = namedtuple('ArgInfo', ['name', 'type', 'is_ptr'])
+AggInfo = namedtuple('AggInfo', ['init', 'compute', 'inner_write', 'outter_write'])
 
 const_id = 0
 def gen_arg_info(arg):
@@ -29,7 +36,7 @@ def gen_node_info(stmt, ctx):
         raise NotImplementedError('Cannot generate code for', stmt)
     return NodeInfo(**m)
 
-def gen_code(exe_units, index_type):
+def gen_code(exe_units, index_type, graph_type):
     '''Generating cuda code by instantiate code template'''
     if not isinstance(exe_units, list):
         exe_units = [exe_units]
@@ -71,5 +78,34 @@ def gen_code(exe_units, index_type):
             'col_index': 'src_id' if dst_parallel else 'dst_id',
             'init_inner_offset': (ctx.src_var_offset_init if dst_parallel else ctx.dst_var_offset_init) + ctx.edge_var_offset_init,
             'template_name': ctx.template_name,
+            'graph_type': graph_type
         })
     return gen_cuda(configs)
+
+def render_template(config, template_name):
+    env = Environment(
+    loader=PackageLoader("seastar.compiler.code_gen"),
+    )
+    tpl = env.get_template("fa/{}.jinja".format(template_name))
+    return tpl.render(**config)
+
+def gen_cuda(configs):
+    h = ''
+    for config in configs:
+        if config['template_name'] == 'fa':
+            if config['graph_type'] == 'csr':
+                rendered_tpl = render_template(config, "tpl_fa_csr")
+            elif config['graph_type'] == 'pcsr': 
+                rendered_tpl = render_template(config, "tpl_fa_pcsr")
+            elif config['graph_type'] == 'gpma':   
+                rendered_tpl = render_template(config, "tpl_fa_gpma")
+            else:
+                raise NotImplementedError('{} Template for {} is not supported'.format(config['template_name'],config['graph_type']))
+        elif config['template_name'] == 'v2':
+            raise NotImplementedError('{} Template for {} is not supported'.format(config['template_name'],config['graph_type']))
+        else:
+            raise NotImplementedError('{} Template not supported'.format(config['template_name']))
+        h += rendered_tpl
+    # UNCOMMENT IF KERNEL IS TO BE PRINTED    
+    print(h)
+    return compile_cuda(h)

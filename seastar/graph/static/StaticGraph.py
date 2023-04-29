@@ -14,3 +14,6 @@ class StaticGraph(SeastarGraph):
         
         # TODO: Add these
         # self._get_graph_csr_ptrs()
+        
+    def graph_type(self):
+        return "csr"

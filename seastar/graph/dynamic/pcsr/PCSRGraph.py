@@ -18,6 +18,9 @@ class PCSRGraph(DynamicGraph):
         self._get_graph_attributes()
         self._update_graph_cache()  # saving the base graph in cache
         
+    def graph_type(self):
+        return "pcsr"
+        
     def in_degrees(self):
         return np.array([node.num_neighbors for node in self.forward_graph.nodes], dtype='int32')
     

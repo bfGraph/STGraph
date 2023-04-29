@@ -27,6 +27,9 @@ class GPMAGraph(DynamicGraph):
         self._get_graph_attributes() # NOTE:
         self._update_graph_cache()
         
+    def graph_type(self):
+        return "gpma"
+        
     def in_degrees(self):
         return np.array(self.forward_graph.out_degree, dtype='int32')
     

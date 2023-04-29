@@ -10,3 +10,7 @@ class SeastarGraph(ABC):
         self.column_indices_ptr = None
         self.eids_ptr = None
     
+    @property
+    @abstractmethod
+    def graph_type(self):
+        pass
