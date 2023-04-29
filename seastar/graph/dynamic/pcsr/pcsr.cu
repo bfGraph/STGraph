@@ -261,6 +261,7 @@ public:
     // data members
     std::vector<node_t> nodes;
     edge_list_t edges;
+    uint32_t edge_count = 0;
 
     // member functions
     PCSR(uint32_t init_n);
@@ -269,6 +270,7 @@ public:
     void add_node();
     void add_edge(uint32_t src, uint32_t dest, uint32_t value);
     void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
+    void edge_update_list(std::vector<std::tuple<uin32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false);
     void delete_edge(uint32_t src, uint32_t dest);
     uint64_t get_n();
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
@@ -644,6 +646,7 @@ void PCSR::add_edge(uint32_t src, uint32_t dest, uint32_t value)
         uint32_t loc_to_add =
             binary_search(&edges, &e, node.beginning + 1, node.end);
         insert(loc_to_add, e, src);
+        ++edge_count;
     }
 }
 
@@ -667,6 +670,7 @@ void PCSR::add_edge_update(uint32_t src, uint32_t dest, uint32_t value)
         nodes[src].num_neighbors++;
         nodes[dest].in_degree++;
         insert(loc_to_add, e, src);
+        ++edge_count;
     }
 }
 
@@ -683,6 +687,7 @@ void PCSR::delete_edge(uint32_t src, uint32_t dest)
         nodes[src].num_neighbors -= 1;
         nodes[dest].in_degree -= 1;
     }
+    --edge_count;
 }
 
 uint64_t PCSR::get_n()
@@ -777,48 +782,6 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-// py::dict PCSR::get_csr_arrays()
-// {
-//   std::vector<int> beg_array;
-//   std::vector<int> end_array;
-//   std::vector<int> num_neighbors_array;
-//   std::vector<int> dest_array;
-//   std::vector<int> value_array;
-
-//   std::vector<int> row_offset;
-//   std::vector<int> column_indices;
-
-//   int row_offset_size = nodes.size() + 1;
-//   int column_indices_size = edges.items.size();
-
-//   for (int i = 0; i < row_offset_size - 1; ++i)
-//   {
-//     row_offset.push_back(nodes[i].beginning);
-//     num_neighbors_array.push_back(nodes[i].num_neighbors);
-//   }
-
-//   row_offset.push_back(nodes[row_offset_size - 2].end);
-
-//   for (int i = 0; i < column_indices_size; ++i)
-//   {
-//     if (is_sentinel(edges.items[i]) || is_null(edges.items[i]))
-//     {
-//       column_indices.push_back(-1);
-//     }
-//     else
-//     {
-//       column_indices.push_back(edges.items[i].dest);
-//     }
-//   }
-
-//   py::list beg_list = py::cast(beg_array);
-//   py::list end_list = py::cast(end_array);
-//   py::list num_neigh_list = py::cast(num_neighbors_array);
-
-//   py::dict csr_arrays("row_offset"_a = row_offset, "column_indices"_a = column_indices);
-//   return csr_arrays;
-// }
-
 std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
 {
 
@@ -827,6 +790,7 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
 
     thrust::host_vector<int> row_offset;
     thrust::host_vector<int> column_indices;
+    thrust::host_vector<int> eids;
 
     int row_offset_size = nodes.size() + 1;
     int column_indices_size = edges.items.size();
@@ -844,16 +808,18 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
         {
             column_indices.push_back(edges.items[i].dest);
+            eids.push_back(edges.items[i].value);
         }
     }
 
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
+    DEV_VEC eids_device = eids;
 
     std::tuple<std::size_t, std::size_t, std::size_t> t;
     std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
     std::get<1>(t) = (std::size_t)RAW_PTR(column_indices_device);
-    std::get<2>(t) = (std::size_t)RAW_PTR(row_offset_device);
+    std::get<2>(t) = (std::size_t)RAW_PTR(eids_device);
     return t;
 }
 
@@ -886,6 +852,59 @@ uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
     return eid;
 }
 
+std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
+{
+    std::tuple<uint32_t, uint32_t> t;
+    std::get<0>(t) = nodes.size();
+    std::get<1>(t) = edge_count;
+    return t;
+}
+
+void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
+{
+    uint64_t n = gpma.get_n();
+
+    for (int i = 0; i < n; i++)
+    {
+        uint32_t start = gpma.nodes[i].beginning;
+        uint32_t end = gpma.nodes[i].end;
+        for (int j = start + 1; j < end; j++)
+        {
+            if (!is_null(gpma.edges.items[j]))
+            {
+                gpma.edges.items[j].value = ref_gpma.find_edge_id(i, gpma.edges.items[j].dest);
+            }
+        }
+    }
+}
+
+void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
+{
+    for (auto &edge : edge_list)
+    {
+        uint32_t src = (is_reverse_edge == true) ? std::get<1>(edge) : std::get<0>(edge);
+        uint32_t dst = (is_reverse_edge == true) ? std::get<0>(edge) : std::get<1>(edge);
+
+        if (is_delete)
+            delete_edge(src, dst);
+        else
+            add_edge(src, dst, 1);
+    }
+}
+
+void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
+{
+    vector<tuple<uint32_t, uint32_t, uint32_t>> edge_list = ref_pcsr.get_edges();
+    for (auto &edge : edge_list)
+    {
+        // since reverse graph the src and dst are swapped
+        uint32_t src = std::get<1>(edge);
+        uint32_t dst = std::get<0>(edge);
+        uint32_t val = std::get<2>(edge);
+        add_edge(src, dst, val);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
 // PCSR Python Module
@@ -893,6 +912,8 @@ uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
 PYBIND11_MODULE(pcsr, m)
 {
     m.doc() = "PCSR Dynamic Graph Representation";
+    m.def("copy_label_edges", &copy_label_edges, "Label edges of a PCSR based on another PCSR");
+    m.def("build_reverse_pcsr", &build_reverse_pcsr, "Builds the reverse PCSR based on another PCSR");
 
     py::class_<node_t>(m, "Node")
         .def(py::init<int, int, int>(), py::arg("beg") = 0, py::arg("_end") = 0, py::arg("num_neigh") = 0)
@@ -936,12 +957,14 @@ PYBIND11_MODULE(pcsr, m)
         .def("print_graph", &PCSR::print_graph)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
+        .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
+        .def("label_edges", &label_edges, "Creates edge labels for the current GPMA")
         .def("delete_edge", &PCSR::delete_edge)
         .def("get_n", &PCSR::get_n)
         .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
         .def("get_csr_ptrs", &PCSR::get_csr_ptrs)
-        .def("label_edges", &PCSR::label_edges)
+        .def("get_graph_attr", &PCSR::get_graph_attr)
         .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)
         .def_readwrite("edges", &PCSR::edges)

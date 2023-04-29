@@ -3,7 +3,7 @@ import numpy as np
 from rich import inspect
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.pcsr.pcsr import PCSR
+from seastar.graph.dynamic.pcsr.pcsr import PCSR, copy_label_edges
 
 class PCSRGraph(DynamicGraph):
     def __init__(self, graph_updates, max_num_nodes):
@@ -11,13 +11,11 @@ class PCSRGraph(DynamicGraph):
         
         self.forward_graph = PCSR(max_num_nodes)
         self.backward_graph = PCSR(max_num_nodes)
-        
-        initial_graph_additions = graph_updates["0"]["add"]
+        self.forward_graph.edge_update_list(graph_updates["0"]["add"],is_reverse_edge=True)
 
-        for edge in initial_graph_additions:
-            self.forward_graph.add_edge(edge[1], edge[0], 1)
-
+        self.forward_graph.label_edges()
         self._get_graph_csr_ptrs()
+        self._get_graph_attributes()
         self._update_graph_cache()  # saving the base graph in cache
         
     def in_degrees(self):
@@ -26,7 +24,6 @@ class PCSRGraph(DynamicGraph):
     def out_degrees(self):
         return np.array([node.in_degree for node in self.forward_graph.nodes], dtype='int32')
     
-    # TODO: Need to figure out the GPU pointer bug
     def _get_graph_csr_ptrs(self):
         if not self._is_reverse_graph:
             csr_ptrs = self.forward_graph.get_csr_ptrs()
@@ -36,10 +33,18 @@ class PCSRGraph(DynamicGraph):
         self.row_offset_ptr = csr_ptrs[0]
         self.column_indices_ptr = csr_ptrs[1]
         self.eids_ptr = csr_ptrs[2]
+
+    def _get_graph_attributes(self):
+        if not self._is_reverse_graph:
+            graph_attr = self.forward_graph.get_graph_attr()
+        else:
+            graph_attr = self.backward_graph.get_graph_attr()
+        
+        self.num_nodes = graph_attr[0]
+        self.num_edges = graph_attr[1]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
-        
         '''
 
         if str(self.current_time_stamp + 1) not in self.graph_updates:
@@ -50,13 +55,12 @@ class PCSRGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_time_stamp)]["add"]
         graph_deletions = self.graph_updates[str(self.current_time_stamp)]["delete"]
 
-        for edge in graph_additions:
-            self.forward_graph.add_edge(edge[1], edge[0], 1)
+        self.forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
+        self.forward_graph.edge_update_list(graph_deletions,is_delete=True,is_reverse_edge=True)
 
-        for edge in graph_deletions:
-            self.forward_graph.delete_edge(edge[1], edge[0])
-
+        self.forward_graph.label_edges()
         self._get_graph_csr_ptrs()
+        self._get_graph_attributes()
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
@@ -67,16 +71,15 @@ class PCSRGraph(DynamicGraph):
             self.backward_graph = self._get_cached_graph(is_reverse=True)
         else:
             edges = self.forward_graph.get_edges()
-            for src, dst, val in edges:
-                self.backward_graph.add_edge(dst, src, val)
+            self.backward_graph.edge_update_list(edges,is_reverse_edge=True)
 
             # storing the reverse base graph in cache after building
             # it for the first time
             self._update_graph_cache(is_reverse=True)
 
         self._is_reverse_graph = True
-
         self._get_graph_csr_ptrs()
+        self._get_graph_attributes()
         
     def _update_graph_backward(self):
         if self.current_time_stamp < 0:
@@ -87,12 +90,13 @@ class PCSRGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_time_stamp + 1)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_time_stamp + 1)]["add"]
 
-        for edge in graph_additions:
-            self.backward_graph.add_edge(edge[0], edge[1], 1)
-            self.forward_graph.add_edge(edge[1], edge[0], 1)
+        self.backward_graph.edge_update_list(graph_additions)
+        self.forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
+        
+        self.backward_graph.edge_update_list(graph_deletions,is_delete=True)
+        self.forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
 
-        for edge in graph_deletions:
-            self.backward_graph.delete_edge(edge[0], edge[1])
-            self.forward_graph.delete_edge(edge[1], edge[0])
-
+        self.forward_graph.label_edges()
+        copy_label_edges(self.backward_graph, self.forward_graph)
         self._get_graph_csr_ptrs()
+        self._get_graph_attributes()
