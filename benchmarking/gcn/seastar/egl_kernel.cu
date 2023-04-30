@@ -28,11 +28,11 @@ extern "C" __global__ void K2
                 int src_id = __ldg(column_indices + e);
                 int eid = __ldg(eids + e);
                 
-                int offset0 = src_id * 1 + tx/7;int offset1 = src_id * 7 + tx;
+                int offset0 = src_id * 7 + tx;int offset1 = src_id * 1 + tx/7;
                 
                 
                 
-                float V8_tmp = Vhinb[offset1]*Vnorminb[offset0];
+                float V8_tmp = Vhinb[offset0]*Vnorminb[offset1];
                 
                 
                 
@@ -76,7 +76,7 @@ extern "C" __global__ void K2
         for (; tx<feat_len; tx+=blockDim.x) {
             
             float V14_tmp = 0;
-            int offset2 = src_id * 7 + tx;int offset3 = src_id * 1 + tx/7;
+            int offset2 = src_id * 1 + tx/7;int offset3 = src_id * 7 + tx;
             
             for (int e=beg;e<end;++e) {
                 
@@ -103,8 +103,8 @@ extern "C" __global__ void K2
             
             
             
-            float V15_tmp = V14_tmp*Vnorminb[offset3];
-            V15[offset2] = V15_tmp;
+            float V15_tmp = V14_tmp*Vnorminb[offset2];
+            V15[offset3] = V15_tmp;
             
         }
     }

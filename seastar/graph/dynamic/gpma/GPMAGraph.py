@@ -7,18 +7,18 @@ from seastar.graph.dynamic.gpma.gpma import GPMA, init_gpma, print_gpma_info, ed
 
 
 class GPMAGraph(DynamicGraph):
-    def __init__(self, graph_updates, max_num_nodes):
-        super().__init__(graph_updates, max_num_nodes)
+    def __init__(self, edge_list):
+        super().__init__(edge_list)
         
         # forward and backward graphs for GPMA
         self.forward_graph = GPMA()
         self.backward_graph = GPMA()
         
-        init_gpma(self.forward_graph, max_num_nodes)
-        init_gpma(self.backward_graph, max_num_nodes)
+        init_gpma(self.forward_graph, self.max_num_nodes)
+        init_gpma(self.backward_graph, self.max_num_nodes)
         
         # initialise the graph for the first time stamp
-        initial_graph_additions = graph_updates["0"]["add"]
+        initial_graph_additions = self.graph_updates["0"]["add"]
 
         edge_update_list(self.forward_graph, initial_graph_additions, is_reverse_edge=True)
         label_edges(self.forward_graph)

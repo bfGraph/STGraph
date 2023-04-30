@@ -6,12 +6,12 @@ from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.graph.dynamic.pcsr.pcsr import PCSR, copy_label_edges, build_reverse_pcsr
 
 class PCSRGraph(DynamicGraph):
-    def __init__(self, graph_updates, max_num_nodes):
-        super().__init__(graph_updates, max_num_nodes)
+    def __init__(self, edge_list):
+        super().__init__(edge_list)
         
-        self.forward_graph = PCSR(max_num_nodes)
-        self.backward_graph = PCSR(max_num_nodes)
-        self.forward_graph.edge_update_list(graph_updates["0"]["add"],is_reverse_edge=True)
+        self.forward_graph = PCSR(self.max_num_nodes)
+        self.backward_graph = PCSR(self.max_num_nodes)
+        self.forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
 
         self.forward_graph.label_edges()
         self._get_graph_csr_ptrs()

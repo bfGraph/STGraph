@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 class SeastarGraph(ABC):
     def __init__(self):
         self.ndata = {}
-        self.num_nodes = 0
-        self.num_edges = 0
         
         self.fwd_row_offset_ptr = None
         self.fwd_column_indices_ptr = None

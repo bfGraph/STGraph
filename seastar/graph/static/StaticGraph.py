@@ -9,17 +9,30 @@ from seastar.graph.SeastarGraph import SeastarGraph
 from seastar.graph.static.csr import CSR
 
 class StaticGraph(SeastarGraph):
-    def __init__(self, edge_list, num_nodes):    
+    def __init__(self, edge_list):    
         super().__init__()
-        self.forward_graph = CSR(edge_list, num_nodes, is_edge_reverse=True)
-        self.backward_graph = CSR(edge_list, num_nodes)
+        self._num_nodes = 0
+        self._num_edges = 0
+        
+        self._get_graph_attr(edge_list)
+        
+        self.forward_graph = CSR(edge_list, self._num_nodes, is_edge_reverse=True)
+        self.backward_graph = CSR(edge_list, self._num_nodes)
         self.forward_graph.label_edges()
         self.backward_graph.copy_label_edges(self.forward_graph)
         
-        self._num_nodes = num_nodes
-        self._num_edges = len(edge_list)
-        
         self._get_graph_csr_ptrs()
+        
+    def _get_graph_attr(self, edge_list):
+        node_set = set()
+        for edge in edge_list:
+            src, dst = edge[0], edge[1]
+            node_set.add(src)
+            node_set.add(dst)
+        
+        self._num_nodes = len(node_set)
+        self._num_edges = len(edge_list)
+            
         
     def _get_graph_csr_ptrs(self):
         fwd_csr_ptrs = self.forward_graph.get_csr_ptrs()

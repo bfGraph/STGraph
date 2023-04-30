@@ -47,49 +47,19 @@ def to_default_device(data):
 
 def main(args):
     
-    cora = CoraDataset(split=1)
+    cora = CoraDataset()
+    # inspect(cora._test_mask)
+    # inspect(cora._train_mask)
+    # quit()
     
-    # load and preprocess dataset
-    path = '../../dataset/' + str(args.dataset) + '/'
-    '''
-    edges = np.loadtxt(path + 'edges.txt')
-    edges = edges.astype(int)
-
-    features = np.loadtxt(path + 'features.txt')
-
-    train_mask = np.loadtxt(path + 'train_mask.txt')
-    train_mask = train_mask.astype(int)
-
-    labels = np.loadtxt(path + 'labels.txt')
-    labels = labels.astype(int)
-    '''
-    # edges = np.load(path + 'edges.npy')
-    # features = np.load(path + 'features.npy')
-    # train_mask = np.load(path + 'train_mask.npy')
-    # labels = np.load(path + 'labels.npy')
+    features = torch.FloatTensor(cora.get_all_features())
+    labels = torch.LongTensor(cora.get_all_targets())
     
-    # num_edges = edges.shape[0]
-    # num_nodes = features.shape[0]
-    # num_feats = features.shape[1]
-    # n_classes = int(max(labels) - min(labels) + 1)
+    train_mask = cora.get_train_mask()
+    test_mask = cora.get_test_mask()
 
-    # assert train_mask.shape[0] == num_nodes
-
-    # print('dataset {}'.format(args.dataset))
-    # print('# of edges : {}'.format(num_edges))
-    # print('# of nodes : {}'.format(num_nodes))
-    # print('# of features : {}'.format(num_feats))
-    
-    
-    
-    features = torch.FloatTensor(cora.get_train_features())
-    labels = torch.LongTensor(cora.get_train_targets())
-
-    # if hasattr(torch, 'BoolTensor'):
-    #     train_mask = torch.BoolTensor(train_mask)
-
-    # else:
-    #     train_mask = torch.ByteTensor(train_mask)
+    train_mask = torch.BoolTensor(train_mask)
+    test_mask = torch.BoolTensor(test_mask)
 
     if args.gpu < 0:
         cuda = False
@@ -98,27 +68,10 @@ def main(args):
         torch.cuda.set_device(args.gpu)
         features = features.cuda()
         labels = labels.cuda()
-        # train_mask = train_mask.cuda()
+        train_mask = train_mask.cuda()
+        test_mask = test_mask.cuda()
 
-    '''
-    # graph preprocess and calculate normalization factor
-    g = data.graph
-    # add self loop
-    if args.self_loop:
-        g.remove_edges_from(nx.selfloop_edges(g))
-        g.add_edges_from(zip(g.nodes(), g.nodes()))
-    g = DGLGraph(g)
-    n_edges = g.number_of_edges()
-    '''
-    # u = edges[:,0]
-    # v = edges[:,1]
-    
-    # u = [1,2,2,3,5]
-    # v = [5,1,3,4,4]
-
-    # edge_list = [(u[node_idx], v[node_idx]) for node_idx in range(len(u))]
-    # num_nodes = 6
-    g = StaticGraph(cora.get_edges(), cora.num_nodes)
+    g = StaticGraph(cora.get_edges())
     
     # add self loop
     # if args.self_loop:
@@ -165,7 +118,7 @@ def main(args):
         t0 = time.time()
         # forward
         logits = model(features)
-        loss = loss_fcn(logits, labels)
+        loss = loss_fcn(logits[train_mask], labels[train_mask])
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)
 
@@ -181,7 +134,7 @@ def main(args):
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-        train_acc = accuracy(logits, labels)
+        train_acc = accuracy(logits[train_mask], labels[train_mask])
         print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb'.format(
             epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
         ))
