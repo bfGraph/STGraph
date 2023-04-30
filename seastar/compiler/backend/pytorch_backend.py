@@ -13,7 +13,7 @@ class KernelWrapper(torch.autograd.Function):
         executor, kid = ctx.backward_cache
         return (None, None, None, None) +  executor.backward_cb(kid, gradout)
 
-def run_egl(executor):
+def backend_cb(executor):
 
     def new_zeros_call_back(size, dtype, device, requires_grad=True):
         return torch.zeros(size=size, dtype=dtype, device=device, requires_grad=requires_grad)

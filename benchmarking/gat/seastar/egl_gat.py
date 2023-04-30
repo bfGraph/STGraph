@@ -5,10 +5,10 @@ import argparse
 import torch
 import dgl
 from torch import nn
-from seastar import CtxManager
-from seastar.backend.pytorch_backend import run_egl
+from seastar import Seastar
+from seastar.backend.pytorch_backend import backend_cb
 
-from seastar import CtxManager
+from seastar import Seastar
 
 # pylint: enable=W0235
 class EglGATConv(nn.Module):
@@ -37,7 +37,7 @@ class EglGATConv(nn.Module):
                     self._in_feats, num_heads * out_feats, bias=False)
         self.reset_parameters()
         self.activation = activation
-        self.cm = CtxManager(run_egl)
+        self.seastar = Seastar(backend_cb)
 
     def reset_parameters(self):
         """Reinitialize learnable parameters."""
@@ -56,7 +56,7 @@ class EglGATConv(nn.Module):
         er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
 
         # Vertex-centric implementation.
-        @self.cm.zoomIn(nspace=[self, torch])
+        @self.seastar.compile(nspace=[self, torch])
         def nb_forward(v):
            embs = [nb.el + v.er for nb in v.innbs]
            coeff = [torch.exp(self.leaky_relu(emb - max(embs))) for emb in embs]

@@ -21,7 +21,6 @@ from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
 from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from seastar.dataset.EnglandCOVID import EnglandCOVID
 
-from doorah import get_doorah_dataset
 
 # GPU | CPU
 def get_default_device():

@@ -1,4 +1,3 @@
-import torch
 from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque

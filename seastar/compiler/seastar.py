@@ -15,8 +15,6 @@ from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 from .debugging.pretty_printers import pretty_print_GIR, pretty_print_Central_Node
 import snoop
 
-# REMOVE THIS
-import torch
 
 class Context():
     def __init__(self, func, nspace, run_cb):
@@ -188,12 +186,12 @@ class Context():
         return str(name_space_id) + str(original_key)
 
 
-class CtxManager():
+class Seastar():
     def __init__(self, run_cb):
         self._ctx_map = {}
         self._run_cb = run_cb
     
-    def zoomIn(self, nspace, hetero_graph=False):
+    def compile(self, nspace, hetero_graph=False):
         def wrapper(func):
             if not func.__name__ in self._ctx_map:
                 if not hetero_graph:

@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import dgl
 import dgl.function as fn
-from seastar import CtxManager
+from seastar import Seastar
 import torch.nn.functional as F
-from seastar.backend.pytorch_backend import run_egl
+from seastar.backend.pytorch_backend import backend_cb
 import snoop
 import inspect
 
@@ -31,7 +31,7 @@ class SeastarGCNLayer(nn.Module):
         else:
             self.dropout = 0.
         self.reset_parameters()
-        self.cm = CtxManager(run_egl)
+        self.seastar = Seastar(backend_cb)
 
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight.size(1))
@@ -45,7 +45,7 @@ class SeastarGCNLayer(nn.Module):
 
         h = torch.mm(h, self.weight)
 
-        @self.cm.zoomIn(nspace=[self, torch])
+        @self.seastar.compile(nspace=[self, torch])
         def nb_compute(v):
             # The nb_edge.src returns a list with one element, this element is an object of NbNode type
             # hence the translation. Can be cleaned up later.

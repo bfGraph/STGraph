@@ -31,11 +31,11 @@ extern "C" __global__ void K4
                 // Seastar requires edgs to be indexed from 0
                 int eid = __ldg(eids + e) - 1;
                 
-                int offset0 = src_id * 32 + tx;int offset1 = src_id * 1 + tx/32;int offset2 = eid * 1 + tx/32;
+                int offset0 = src_id * 1 + tx/32;int offset1 = src_id * 32 + tx;int offset2 = eid * 1 + tx/32;
                 
                 
                 
-                float V20_tmp = Vnorminb[offset1]*Vhinb[offset0];
+                float V20_tmp = Vnorminb[offset0]*Vhinb[offset1];
                 
                 
                 
@@ -83,7 +83,7 @@ extern "C" __global__ void K4
         for (; tx<feat_len; tx+=blockDim.x) {
             
             float V28_tmp = 0;
-            int offset3 = src_id * 32 + tx;int offset4 = src_id * 1 + tx/32;
+            int offset3 = src_id * 1 + tx/32;int offset4 = src_id * 32 + tx;
             
             for (int e=beg;e<end;++e) {
                 
@@ -117,8 +117,8 @@ extern "C" __global__ void K4
             
             
             
-            float V29_tmp = V28_tmp*Vnorminb[offset4];
-            V29[offset3] = V29_tmp;
+            float V29_tmp = V28_tmp*Vnorminb[offset3];
+            V29[offset4] = V29_tmp;
             
         }
     }

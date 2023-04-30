@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import dgl
 import dgl.function as fn
-from seastar import CtxManager
+from seastar import Seastar
 import torch.nn.functional as F
-from seastar.backend.pytorch_backend import run_egl
+from seastar.backend.pytorch_backend import backend_cb
 import snoop
 import inspect
 
@@ -40,7 +40,7 @@ class SeastarGATLayer(nn.Module):
             self.res_fc = None
         self.reset_parameters()
         self.activation = activation
-        self.cm = CtxManager(run_egl)
+        self.seastar = Seastar(backend_cb)
 
     def reset_parameters(self):
         """Reinitialize learnable parameters."""
@@ -58,7 +58,7 @@ class SeastarGATLayer(nn.Module):
         er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
 
         # Vertex-centric implementation.
-        @self.cm.zoomIn(nspace=[self, torch])
+        @self.seastar.compile(nspace=[self, torch])
         def nb_forward(v):
            embs = [nb.el + v.er for nb in v.innbs]
            coeff = [torch.exp(self.leaky_relu(emb - max(embs))) for emb in embs]
