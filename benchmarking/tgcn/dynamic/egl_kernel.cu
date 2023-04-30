@@ -26,10 +26,7 @@ extern "C" __global__ void K4
             for (int e=beg;e<end;++e) {
                 
                 int src_id = __ldg(column_indices + e);
-
-                // PCSR indexes edges starting from 1
-                // Seastar requires edgs to be indexed from 0
-                int eid = __ldg(eids + e) - 1;
+                int eid = __ldg(eids + e);
                 
                 int offset0 = src_id * 32 + tx;int offset1 = src_id * 1 + tx/32;int offset2 = eid * 1 + tx/32;
                 
@@ -88,16 +85,13 @@ extern "C" __global__ void K4
             for (int e=beg;e<end;++e) {
                 
                 int dst_id = __ldg(column_indices + e);
-
-                // PCSR indexes edges starting from 1
-                // Seastar requires edgs to be indexed from 0
-                int eid = __ldg(eids + e) - 1;
+                int eid = __ldg(eids + e);
                 
-                int offset0 = dst_id * 32 + tx;int offset1 = dst_id * 1 + tx/32;int offset2 = eid * 1 + tx/32;
+                int offset0 = dst_id * 1 + tx/32;int offset1 = dst_id * 32 + tx;int offset2 = eid * 1 + tx/32;
                 
                 
                 
-                float V25_tmp = V24[offset0]*Vnormcen[offset1];
+                float V25_tmp = V24[offset1]*Vnormcen[offset0];
                 
                 
                 

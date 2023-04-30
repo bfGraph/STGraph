@@ -36,10 +36,10 @@ class GPMAGraph:
 
         self._get_graph_csr_ptrs()
         self._get_graph_attributes()
-        self._update_graph_cache()
+        self._update_reverse_graph_cache()
 
 
-    def _update_graph_cache(self, is_reverse=False):
+    def _update_reverse_graph_cache(self, is_reverse=False):
         ''' Sets the base graph cache with the current base graph
         
             The base graph and it's CSR arrays are stored in a dictionary
@@ -55,7 +55,7 @@ class GPMAGraph:
         # saving reverse base graph in cache
             self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
 
-    def _get_cached_graph(self, is_reverse=False):
+    def _get_reverse_cached_graph(self, is_reverse=False):
         if not is_reverse:
             return copy.deepcopy(self.graph_cache['base'])
         else:
@@ -113,13 +113,13 @@ class GPMAGraph:
         # checking if the reverse base graph exists in the cache
         # we can load it from there instead of building it each time
         if 'reverse' in self.graph_cache:
-            self._backward_graph = self._get_cached_graph(is_reverse=True)
+            self._backward_graph = self._get_reverse_cached_graph(is_reverse=True)
         else:
             build_reverse_gpma(self._backward_graph, self._forward_graph)
 
             # storing the reverse base graph in cache after building
             # it for the first time
-            self._update_graph_cache(is_reverse=True)
+            self._update_reverse_graph_cache(is_reverse=True)
 
         self._is_backprop_state = True
 

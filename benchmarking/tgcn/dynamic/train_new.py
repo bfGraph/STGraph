@@ -18,6 +18,7 @@ from rich.pretty import pprint
 
 from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
 from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from seastar.dataset.EnglandCOVID import EnglandCOVID
 
 from doorah import get_doorah_dataset
@@ -83,6 +84,7 @@ def main(args):
 
     # G = GPMAGraph(train_edges_lst)
     G = PCSRGraph(train_edges_lst)
+    # G = NaiveGraph(train_edges_lst)
 
     # train
     print("Training...\n")

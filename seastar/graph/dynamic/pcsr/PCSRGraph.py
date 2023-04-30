@@ -15,8 +15,6 @@ class PCSRGraph(DynamicGraph):
 
         self._forward_graph.label_edges()
         self._get_graph_csr_ptrs()
-        # self._get_graph_attributes()
-        self._update_graph_cache()  # saving the base graph in cache
         
     def graph_type(self):
         return "pcsr"
@@ -26,6 +24,13 @@ class PCSRGraph(DynamicGraph):
     
     def out_degrees(self):
         return np.array([node.in_degree for node in self._forward_graph.nodes], dtype='int32')
+    
+    def _update_reverse_graph_cache(self):
+        # saving reverse base graph in cache
+        self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
+            
+    def _get_reverse_cached_graph(self):
+        return copy.deepcopy(self.graph_cache['reverse'])
     
     def _get_graph_csr_ptrs(self):
         forward_csr_ptrs = self._forward_graph.get_csr_ptrs()
@@ -71,13 +76,13 @@ class PCSRGraph(DynamicGraph):
         # checking if the reverse base graph exists in the cache
         # we can load it from there instead of building it each time
         if 'reverse' in self.graph_cache:
-            self._backward_graph = self._get_cached_graph(is_reverse=True)
+            self._backward_graph = self._get_reverse_cached_graph()
         else:
             build_reverse_pcsr(self._backward_graph, self._forward_graph)
 
             # storing the reverse base graph in cache after building
             # it for the first time
-            self._update_graph_cache(is_reverse=True)
+            self._update_reverse_graph_cache()
 
         self._get_graph_csr_ptrs()
         # self._get_graph_attributes()

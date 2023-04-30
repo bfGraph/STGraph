@@ -267,5 +267,11 @@ PYBIND11_MODULE(csr, m)
         .def_readwrite("column_indices", &CSR::column_indices)
         .def_readwrite("eids", &CSR::eids)
         .def_readwrite("out_degrees", &CSR::out_degrees)
-        .def_readwrite("in_degrees", &CSR::in_degrees);
+        .def_readwrite("in_degrees", &CSR::in_degrees)
+        .def("__copy__", [](const CSR &self)
+             { return CSR(self); })
+        .def(
+            "__deepcopy__", [](const CSR &self, py::dict)
+            { return CSR(self); },
+            "memo"_a);
 }

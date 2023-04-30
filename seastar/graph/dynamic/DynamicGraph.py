@@ -68,30 +68,9 @@ class DynamicGraph(SeastarGraph):
                 "num_edges": graph_attr[str(i)][1],
             }
         
-    def _update_graph_cache(self, is_reverse=False):
-        # saving base graph in cache
-        if not is_reverse:
-            self.graph_cache['base'] = copy.deepcopy(self._forward_graph)
-        else:
-        # saving reverse base graph in cache
-            self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
-            
-    def _get_cached_graph(self, is_reverse=False):
-        if not is_reverse:
-            return copy.deepcopy(self.graph_cache['base'])
-        else:
-            return copy.deepcopy(self.graph_cache['reverse'])
-    
-    def _revert_to_base_graph(self):
-        self._forward_graph = self._get_cached_graph(is_reverse=False)
-
-        self._get_graph_csr_ptrs()
-        self._is_backprop_state = False
-        
     def get_graph(self, timestamp: int):
 
-        if self._is_backprop_state:
-            self._revert_to_base_graph()
+        self._is_backprop_state = False
         
         if timestamp < self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
