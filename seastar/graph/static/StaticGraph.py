@@ -16,10 +16,10 @@ class StaticGraph(SeastarGraph):
         
         self._get_graph_attr(edge_list)
         
-        self.forward_graph = CSR(edge_list, self._num_nodes, is_edge_reverse=True)
-        self.backward_graph = CSR(edge_list, self._num_nodes)
-        self.forward_graph.label_edges()
-        self.backward_graph.copy_label_edges(self.forward_graph)
+        self._forward_graph = CSR(edge_list, self._num_nodes, is_edge_reverse=True)
+        self._backward_graph = CSR(edge_list, self._num_nodes)
+        self._forward_graph.label_edges()
+        self._backward_graph.copy_label_edges(self._forward_graph)
         
         self._get_graph_csr_ptrs()
         
@@ -35,12 +35,12 @@ class StaticGraph(SeastarGraph):
             
         
     def _get_graph_csr_ptrs(self):
-        fwd_csr_ptrs = self.forward_graph.get_csr_ptrs()
+        fwd_csr_ptrs = self._forward_graph.get_csr_ptrs()
         self.fwd_row_offset_ptr = fwd_csr_ptrs[0]
         self.fwd_column_indices_ptr = fwd_csr_ptrs[1]
         self.fwd_eids_ptr = fwd_csr_ptrs[2]
         
-        bwd_csr_ptrs = self.backward_graph.get_csr_ptrs()
+        bwd_csr_ptrs = self._backward_graph.get_csr_ptrs()
         self.bwd_row_offset_ptr = bwd_csr_ptrs[0]
         self.bwd_column_indices_ptr = bwd_csr_ptrs[1]
         self.bwd_eids_ptr = bwd_csr_ptrs[2]
@@ -55,7 +55,7 @@ class StaticGraph(SeastarGraph):
         return "csr"
     
     def in_degrees(self):
-        return np.array(self.forward_graph.out_degrees, dtype='int32')
+        return np.array(self._forward_graph.out_degrees, dtype='int32')
     
     def out_degrees(self):
-        return np.array(self.forward_graph.in_degrees, dtype='int32')
+        return np.array(self._forward_graph.in_degrees, dtype='int32')

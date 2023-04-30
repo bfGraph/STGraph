@@ -81,7 +81,8 @@ def main(args):
     Used_memory = 0
     cuda = True
 
-    G = GPMAGraph(train_edges_lst)
+    # G = GPMAGraph(train_edges_lst)
+    G = PCSRGraph(train_edges_lst)
 
     # train
     print("Training...\n")

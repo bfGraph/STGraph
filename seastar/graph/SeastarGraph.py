@@ -4,6 +4,9 @@ class SeastarGraph(ABC):
     def __init__(self):
         self.ndata = {}
         
+        self._forward_graph = None
+        self._backward_graph = None
+        
         self.fwd_row_offset_ptr = None
         self.fwd_column_indices_ptr = None
         self.fwd_eids_ptr = None

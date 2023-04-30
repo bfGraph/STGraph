@@ -11,7 +11,9 @@ class DynamicGraph(SeastarGraph):
         self.graph_updates = {}
         self.max_num_nodes = 0
         self.graph_cache = {}
-        self._is_reverse_graph = False
+        
+        # Indicates whether the graph is currently undergoing backprop
+        self._is_backprop_state = False
         self.current_timestamp = 0
         
         self._preprocess_graph_structure(edge_list)
@@ -69,10 +71,10 @@ class DynamicGraph(SeastarGraph):
     def _update_graph_cache(self, is_reverse=False):
         # saving base graph in cache
         if not is_reverse:
-            self.graph_cache['base'] = copy.deepcopy(self.forward_graph)
+            self.graph_cache['base'] = copy.deepcopy(self._forward_graph)
         else:
         # saving reverse base graph in cache
-            self.graph_cache['reverse'] = copy.deepcopy(self.backward_graph)
+            self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
             
     def _get_cached_graph(self, is_reverse=False):
         if not is_reverse:
@@ -81,14 +83,14 @@ class DynamicGraph(SeastarGraph):
             return copy.deepcopy(self.graph_cache['reverse'])
     
     def _revert_to_base_graph(self):
-        self.forward_graph = self._get_cached_graph(is_reverse=False)
+        self._forward_graph = self._get_cached_graph(is_reverse=False)
 
         self._get_graph_csr_ptrs()
-        self._is_reverse_graph = False
+        self._is_backprop_state = False
         
     def get_graph(self, timestamp: int):
 
-        if self._is_reverse_graph:
+        if self._is_backprop_state:
             self._revert_to_base_graph()
         
         if timestamp < self.current_timestamp:
@@ -96,17 +98,20 @@ class DynamicGraph(SeastarGraph):
 
         while self.current_timestamp < timestamp:
             self._update_graph_forward()
+            self.current_timestamp += 1
 
     def get_backward_graph(self, timestamp: int):
 
-        if not self._is_reverse_graph:
+        if not self._is_backprop_state:
             self._init_reverse_graph()
+            self._is_backprop_state = True
         
         if timestamp > self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
         while self.current_timestamp > timestamp:
             self._update_graph_backward()
+            self.current_timestamp -= 1
     
     def get_num_nodes(self):
         return self.graph_updates[str(self.current_timestamp)]["num_nodes"]
@@ -115,10 +120,10 @@ class DynamicGraph(SeastarGraph):
         return self.graph_updates[str(self.current_timestamp)]["num_edges"]
     
     # def _get_graph_csr_ptrs(self):
-    #     if not self._is_reverse_graph:
-    #         csr_ptrs = self.forward_graph.get_csr_ptrs()
+    #     if not self._is_backprop_state:
+    #         csr_ptrs = self._forward_graph.get_csr_ptrs()
     #     else:
-    #         csr_ptrs = self.backward_graph.get_csr_ptrs()
+    #         csr_ptrs = self._backward_graph.get_csr_ptrs()
         
     #     self.row_offset_ptr = csr_ptrs[0]
     #     self.column_indices_ptr = csr_ptrs[1]
