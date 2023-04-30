@@ -29,7 +29,7 @@ extern "C" __global__ void {{kernel_name}}(
 
                 // GPMA indexes edges starting from 1
                 // Seastar requires edgs to be indexed from 0
-                double eid = __ldg(eids + e) - 1;
+                unsigned int eid = __ldg(eids + e) - 1;
                 
                 unsigned long long mask = (unsigned long long){{row_offset}} << 32;
                 unsigned int dst_check = ({{col_index}} - mask);
