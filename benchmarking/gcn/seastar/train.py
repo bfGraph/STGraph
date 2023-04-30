@@ -47,10 +47,7 @@ def to_default_device(data):
 
 def main(args):
     
-    cora = CoraDataset()
-    # inspect(cora._test_mask)
-    # inspect(cora._train_mask)
-    # quit()
+    cora = CoraDataset(verbose=True)
     
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())

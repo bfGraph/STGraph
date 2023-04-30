@@ -22,7 +22,6 @@ class CoraDataset:
         self._train_split = split
         self._test_split = 1-split
 
-        self._local_file_path = "cora.json"
         self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/cora.json"
         self._verbose = verbose
 
@@ -37,26 +36,12 @@ class CoraDataset:
         self._get_mask_info()
 
     def _load_dataset(self) -> None:
-        if self._is_local_exists():
-            # loading the dataset from the local folder
-            if self._verbose:
-                console.log(f'Loading [cyan]{self.name}[/cyan] dataset locally')
-            with open(self._local_file_path) as dataset_json:
-                self._dataset = json.load(dataset_json)
-        else:
-            # loading the dataset by downloading them online
-            if self._verbose:
-                console.log(f'Downloading [cyan]{self.name}[/cyan] dataset')
-            self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        
+        # loading the dataset by downloading them online
+        if self._verbose:
+            console.log(f'Downloading [cyan]{self.name}[/cyan] dataset')
+        self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
 
-            # TODO: Fix local file loadup
-            # saving the dataset dictionary as a JSON file in local
-            # with open(self._local_file_path, "w") as fp:
-            #     json.dump(self._dataset, fp)
-            #     if self._verbose:
-            #         console.log(
-            #             f"Successfully dowloaded [cyan]{self.name}[/cyan] dataset to [green]{self._local_file_path}[/green]"
-            #         )
 
     def _get_edge_info(self):
         edges = np.array(self._dataset["edges"])
@@ -68,7 +53,6 @@ class CoraDataset:
         self._edge_list = edge_list
 
     def _get_targets_and_features(self):
-        # NOTE: Should we return the transpose?
         self._all_features = np.array(self._dataset["features"])
         self._all_targets = np.array(self._dataset["labels"]).T
 
@@ -126,11 +110,3 @@ class CoraDataset:
             
         self.num_nodes = len(node_set)
         self.num_edges = len(self._edge_list)
-
-    def _is_local_exists(self) -> bool:
-        # TODO: Fix local path issue
-        return True
-        return os.path.exists(self._local_file_path)
-    
-c = CoraDataset(verbose=True)
-inspect(c._edge_list)

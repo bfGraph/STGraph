@@ -82,7 +82,7 @@ class Context():
         for var in vars:
             grads.append(Var.create_var(var_shape=var.var_shape, var_dtype=var.var_dtype, val_type=var.val_type, device=var.device))
         backward_exe_units = diff(vars, grads, forward_exe_units, fprog)
-        visualize.plot_exec_units(forward_exe_units + backward_exe_units)
+        # visualize.plot_exec_units(forward_exe_units + backward_exe_units)
         
         # NOTE: The last parameter here was ('int' if graph.nbits == 32 else 'long long int') but we changed
         # it to just 'int' since that should be sufficient for all use case that we can think of now

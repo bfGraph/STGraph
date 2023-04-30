@@ -25,7 +25,6 @@ class EnglandCOVID:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_file_path = "england_covid.json"
         self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
         self._verbose = verbose
 
@@ -39,26 +38,10 @@ class EnglandCOVID:
         return self._graph_updates, self._max_num_nodes
 
     def _load_dataset(self) -> None:
-        if self._is_local_exists():
-            # loading the dataset from the local folder
-            if self._verbose:
-                console.log(f"Loading [cyan]{self.name}[/cyan] dataset locally")
-            with open(self._local_file_path) as dataset_json:
-                self._dataset = json.load(dataset_json)
-        else:
-            # loading the dataset by downloading them online
-            if self._verbose:
-                console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
-            self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
-
-            # TODO: Fix local file loadup
-            # saving the dataset dictionary as a JSON file in local
-            # with open(self._local_file_path, "w") as fp:
-            #     json.dump(self._dataset, fp)
-            #     if self._verbose:
-            #         console.log(
-            #             f"Successfully dowloaded [cyan]WikiMath[/cyan] dataset to [green]{self._local_file_path}[/green]"
-            #         )
+        # loading the dataset by downloading them online
+        if self._verbose:
+            console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
+        self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
 
     def _get_edge_info(self):
         # getting the edge_list and edge_weights
@@ -142,8 +125,3 @@ class EnglandCOVID:
 
     def get_all_targets(self):
         return self._all_targets
-
-    def _is_local_exists(self) -> bool:
-        # TODO: Fix local path issue
-        return True
-        return os.path.exists(self._local_file_path)

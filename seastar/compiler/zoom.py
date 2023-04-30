@@ -169,7 +169,7 @@ def zoomOut(out_set, fprog, graph):
     for var in vars:
         grads.append(Var.create_var(var_shape=var.var_shape, var_dtype=var.var_dtype, val_type=var.val_type, device=var.device))
     backward_exe_units, full_grad_map = diff(vars, grads, forward_exe_units)
-    visualize.plot_exec_units(forward_exe_units + backward_exe_units)
+    # visualize.plot_exec_units(forward_exe_units + backward_exe_units)
     compiled_module = code_gen.gen_code(forward_exe_units + backward_exe_units, 'int' if graph.nbits == 32 else 'long long int')
     ex = Executor(graph, forward_exe_units, backward_exe_units, compiled_module, full_grad_map, vars)
     return ex 
