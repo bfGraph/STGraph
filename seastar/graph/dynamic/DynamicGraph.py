@@ -58,15 +58,27 @@ class DynamicGraph(SeastarGraph):
         while self.current_timestamp > timestamp:
             self._update_graph_backward()
     
-    def _get_graph_csr_ptrs(self):
-        if not self._is_reverse_graph:
-            csr_ptrs = self.forward_graph.get_csr_ptrs()
-        else:
-            csr_ptrs = self.backward_graph.get_csr_ptrs()
+    # def _get_graph_csr_ptrs(self):
+    #     if not self._is_reverse_graph:
+    #         csr_ptrs = self.forward_graph.get_csr_ptrs()
+    #     else:
+    #         csr_ptrs = self.backward_graph.get_csr_ptrs()
         
-        self.row_offset_ptr = csr_ptrs[0]
-        self.column_indices_ptr = csr_ptrs[1]
-        self.eids_ptr = csr_ptrs[2]
+    #     self.row_offset_ptr = csr_ptrs[0]
+    #     self.column_indices_ptr = csr_ptrs[1]
+    #     self.eids_ptr = csr_ptrs[2]
+        
+    def _get_graph_csr_ptrs(self):
+        forward_csr_ptrs = self.forward_graph.get_csr_ptrs()
+        backward_csr_ptrs = self.backward_graph.get_csr_ptrs()
+        
+        self.fwd_row_offset_ptr = forward_csr_ptrs[0]
+        self.fwd_column_indices_ptr = forward_csr_ptrs[1]
+        self.fwd_eids_ptr = forward_csr_ptrs[2]
+        
+        self.bwd_row_offset_ptr = backward_csr_ptrs[0]
+        self.bwd_column_indices_ptr = backward_csr_ptrs[1]
+        self.bwd_eids_ptr = backward_csr_ptrs[2]
     
     @abstractmethod
     def in_degrees(self):
