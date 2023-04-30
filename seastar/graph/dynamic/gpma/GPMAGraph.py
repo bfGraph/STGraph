@@ -36,6 +36,18 @@ class GPMAGraph(DynamicGraph):
     def out_degrees(self):
         return np.array(self.forward_graph.in_degree, dtype='int32')
     
+    def _get_graph_csr_ptrs(self):
+        forward_csr_ptrs = get_csr_ptrs(self.forward_graph)
+        backward_csr_ptrs = get_csr_ptrs(self.backward_graph)
+        
+        self.fwd_row_offset_ptr = forward_csr_ptrs[0]
+        self.fwd_column_indices_ptr = forward_csr_ptrs[1]
+        self.fwd_eids_ptr = forward_csr_ptrs[2]
+        
+        self.bwd_row_offset_ptr = backward_csr_ptrs[0]
+        self.bwd_column_indices_ptr = backward_csr_ptrs[1]
+        self.bwd_eids_ptr = backward_csr_ptrs[2]
+    
     #TODO: Right now this returns (max_num_nodes,num_edges) see if this is what is required
     def _get_graph_attributes(self):
 

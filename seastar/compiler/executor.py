@@ -343,7 +343,9 @@ class Executor(object):
         
         del tensor_map
         self.ts.tensor_map_stack.pop()
-        self.ts.graph_timestamp_stack.pop()
+        
+        if isinstance(self.graph,DynamicGraph):
+            self.ts.graph_timestamp_stack.pop()
         
         return ret
 

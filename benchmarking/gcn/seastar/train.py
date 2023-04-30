@@ -9,6 +9,7 @@ from rich import inspect
 from rich.pretty import pprint
 
 from seastar.graph.static.StaticGraph import StaticGraph
+from seastar.dataset.cora import CoraDataset
 
 import snoop
 
@@ -29,7 +30,25 @@ def evaluate(model, features, labels, mask):
         correct = torch.sum(indices == labels)
         return correct.item() * 1.0 / len(labels)
 
+# GPU | CPU
+def get_default_device():
+    
+    if torch.cuda.is_available():
+        return torch.device('cuda:0')
+    else:
+        return torch.device('cpu')
+
+def to_default_device(data):
+    
+    if isinstance(data,(list,tuple)):
+        return [to_default_device(x,get_default_device()) for x in data]
+    
+    return data.to(get_default_device(),non_blocking = True)
+
 def main(args):
+    
+    cora = CoraDataset(split=1)
+    
     # load and preprocess dataset
     path = '../../dataset/' + str(args.dataset) + '/'
     '''
@@ -44,34 +63,33 @@ def main(args):
     labels = np.loadtxt(path + 'labels.txt')
     labels = labels.astype(int)
     '''
-    edges = np.load(path + 'edges.npy')
-    features = np.load(path + 'features.npy')
-    train_mask = np.load(path + 'train_mask.npy')
-    labels = np.load(path + 'labels.npy')
+    # edges = np.load(path + 'edges.npy')
+    # features = np.load(path + 'features.npy')
+    # train_mask = np.load(path + 'train_mask.npy')
+    # labels = np.load(path + 'labels.npy')
     
-    num_edges = edges.shape[0]
-    num_nodes = features.shape[0]
-    num_feats = features.shape[1]
-    n_classes = int(max(labels) - min(labels) + 1)
+    # num_edges = edges.shape[0]
+    # num_nodes = features.shape[0]
+    # num_feats = features.shape[1]
+    # n_classes = int(max(labels) - min(labels) + 1)
 
-    assert train_mask.shape[0] == num_nodes
+    # assert train_mask.shape[0] == num_nodes
 
-    print('dataset {}'.format(args.dataset))
-    print('# of edges : {}'.format(num_edges))
-    print('# of nodes : {}'.format(num_nodes))
-    print('# of features : {}'.format(num_feats))
+    # print('dataset {}'.format(args.dataset))
+    # print('# of edges : {}'.format(num_edges))
+    # print('# of nodes : {}'.format(num_nodes))
+    # print('# of features : {}'.format(num_feats))
     
-    features = torch.FloatTensor(features)
-    labels = torch.LongTensor(labels)
+    
+    
+    features = torch.FloatTensor(cora.get_train_features())
+    labels = torch.LongTensor(cora.get_train_targets())
 
-    print("Features Shape")
-    print(features.shape)
+    # if hasattr(torch, 'BoolTensor'):
+    #     train_mask = torch.BoolTensor(train_mask)
 
-    if hasattr(torch, 'BoolTensor'):
-        train_mask = torch.BoolTensor(train_mask)
-
-    else:
-        train_mask = torch.ByteTensor(train_mask)
+    # else:
+    #     train_mask = torch.ByteTensor(train_mask)
 
     if args.gpu < 0:
         cuda = False
@@ -80,7 +98,7 @@ def main(args):
         torch.cuda.set_device(args.gpu)
         features = features.cuda()
         labels = labels.cuda()
-        train_mask = train_mask.cuda()
+        # train_mask = train_mask.cuda()
 
     '''
     # graph preprocess and calculate normalization factor
@@ -92,16 +110,15 @@ def main(args):
     g = DGLGraph(g)
     n_edges = g.number_of_edges()
     '''
-    u = edges[:,0]
-    v = edges[:,1]
+    # u = edges[:,0]
+    # v = edges[:,1]
     
-    u = [1,2,2,3,5]
-    v = [5,1,3,4,4]
+    # u = [1,2,2,3,5]
+    # v = [5,1,3,4,4]
 
-    edge_list = [(u[node_idx], v[node_idx]) for node_idx in range(len(u))]
-    num_nodes = 6
-    g = StaticGraph(edge_list, num_nodes)
-    
+    # edge_list = [(u[node_idx], v[node_idx]) for node_idx in range(len(u))]
+    # num_nodes = 6
+    g = StaticGraph(cora.get_edges(), cora.num_nodes)
     
     # add self loop
     # if args.self_loop:
@@ -110,12 +127,15 @@ def main(args):
     # g = g.to(features.device)
 
     # normalization
-    degs = g.in_degrees().float()
+    degs = torch.from_numpy(g.in_degrees()).type(torch.int32)
     norm = torch.pow(degs, -0.5)
     norm[torch.isinf(norm)] = 0
-    if cuda:
-        norm = norm.cuda()
+    
+    norm = to_default_device(norm)
     g.ndata['norm'] = norm.unsqueeze(1)
+
+    num_feats = features.shape[1]
+    n_classes = int(max(labels) - min(labels) + 1)
 
     model = EglGCN(g,
                 num_feats,
@@ -145,7 +165,7 @@ def main(args):
         t0 = time.time()
         # forward
         logits = model(features)
-        loss = loss_fcn(logits[train_mask], labels[train_mask])
+        loss = loss_fcn(logits, labels)
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)
 
@@ -161,7 +181,7 @@ def main(args):
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-        train_acc = accuracy(logits[train_mask], labels[train_mask])
+        train_acc = accuracy(logits, labels)
         print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb'.format(
             epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
         ))

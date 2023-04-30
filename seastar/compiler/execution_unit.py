@@ -237,15 +237,15 @@ class ExecutionUnit(object):
 
     def prepare_compiled_kernel(self, graph, compiled_module):
         if self.parallel_mode() == ParallelMode.DstParallel:
-            row_offsets_ptr = graph.row_offset_ptr
-            col_indices_ptr = graph.column_indices_ptr
-            eids_ptr = graph.eids_ptr
+            row_offsets_ptr = graph.fwd_row_offset_ptr
+            col_indices_ptr = graph.fwd_column_indices_ptr
+            eids_ptr = graph.fwd_eids_ptr
         else:
             #TODO: Will probably have to change this so that this accesses 
             #backward row_offset, col_indices, eids
-            row_offsets_ptr = graph.row_offset_ptr
-            col_indices_ptr = graph.column_indices_ptr
-            eids_ptr = graph.eids_ptr
+            row_offsets_ptr = graph.bwd_row_offset_ptr
+            col_indices_ptr = graph.bwd_column_indices_ptr
+            eids_ptr = graph.bwd_eids_ptr
         max_dims = [1, 1]
         if len(self.max_dims()) == 1:
             max_dims[-1] = self.max_dims()[-1]
@@ -265,15 +265,15 @@ class ExecutionUnit(object):
 
     def reset_graph_info(self, graph):
         if self.parallel_mode() == ParallelMode.DstParallel:
-            row_offsets_ptr = graph.row_offset_ptr
-            col_indices_ptr = graph.column_indices_ptr
-            eids_ptr = graph.eids_ptr
+            row_offsets_ptr = graph.fwd_row_offset_ptr
+            col_indices_ptr = graph.fwd_column_indices_ptr
+            eids_ptr = graph.fwd_eids_ptr
         else:
             #TODO: Will probably have to change this so that this accesses 
             #backward row_offset, col_indices, eids
-            row_offsets_ptr = graph.row_offset_ptr
-            col_indices_ptr = graph.column_indices_ptr
-            eids_ptr = graph.eids_ptr
+            row_offsets_ptr = graph.bwd_row_offset_ptr
+            col_indices_ptr = graph.bwd_column_indices_ptr
+            eids_ptr = graph.bwd_eids_ptr
         self._K.reset_graph_info(graph.num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr)
 
     def kernel_run(self, tensor_list):

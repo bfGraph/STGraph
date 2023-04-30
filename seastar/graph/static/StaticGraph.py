@@ -16,10 +16,8 @@ class StaticGraph(SeastarGraph):
         self.forward_graph.label_edges()
         self.backward_graph.copy_label_edges(self.forward_graph)
         
-        self.forward_graph.print_graph()
-        
-        self.backward_graph.print_graph()
-        
+        self.num_nodes = num_nodes
+        self.num_edges = len(edge_list)
         
         self._get_graph_csr_ptrs()
         

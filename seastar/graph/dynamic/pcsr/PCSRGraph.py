@@ -26,6 +26,18 @@ class PCSRGraph(DynamicGraph):
     
     def out_degrees(self):
         return np.array([node.in_degree for node in self.forward_graph.nodes], dtype='int32')
+    
+    def _get_graph_csr_ptrs(self):
+        forward_csr_ptrs = self.forward_graph.get_csr_ptrs()
+        backward_csr_ptrs = self.backward_graph.get_csr_ptrs()
+        
+        self.fwd_row_offset_ptr = forward_csr_ptrs[0]
+        self.fwd_column_indices_ptr = forward_csr_ptrs[1]
+        self.fwd_eids_ptr = forward_csr_ptrs[2]
+        
+        self.bwd_row_offset_ptr = backward_csr_ptrs[0]
+        self.bwd_column_indices_ptr = backward_csr_ptrs[1]
+        self.bwd_eids_ptr = backward_csr_ptrs[2]
 
     def _get_graph_attributes(self):
         if not self._is_reverse_graph:

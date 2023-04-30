@@ -36,11 +36,11 @@ extern "C" __global__ void K4(
                 src_id = (src_id - mask);
 
                 if(dst_check != 0xFFFFFFFF && eid != 0){
-                    int offset0 = src_id * 32 + tx;int offset1 = src_id * 1 + tx/32;int offset2 = eid * 1 + tx/32;
+                    int offset0 = src_id * 1 + tx/32;int offset1 = src_id * 32 + tx;int offset2 = eid * 1 + tx/32;
 
                     
                     
-                    float V20_tmp = Vnorminb[offset1]*Vhinb[offset0];
+                    float V20_tmp = Vnorminb[offset0]*Vhinb[offset1];
                     
                     
                     
