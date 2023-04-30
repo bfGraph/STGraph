@@ -5,6 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from rich import inspect
+from rich.pretty import pprint
+
 from seastar.graph.static.StaticGraph import StaticGraph
 
 import snoop
@@ -96,10 +99,9 @@ def main(args):
     v = [5,1,3,4,4]
 
     edge_list = [(u[node_idx], v[node_idx]) for node_idx in range(len(u))]
-    # g = dgl.graph((u,v), num_nodes=num_nodes)
     num_nodes = 6
     g = StaticGraph(edge_list, num_nodes)
-    quit()
+    
     
     # add self loop
     # if args.self_loop:

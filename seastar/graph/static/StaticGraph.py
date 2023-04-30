@@ -1,8 +1,10 @@
-# TODO: add this import as well
+from abc import ABC, abstractmethod
+import copy
+
+import numpy as np
+
 from seastar.graph.SeastarGraph import SeastarGraph
 
-import copy
-from abc import ABC, abstractmethod
 
 from seastar.graph.static.csr import CSR
 
@@ -14,10 +16,10 @@ class StaticGraph(SeastarGraph):
         self.forward_graph.label_edges()
         self.backward_graph.copy_label_edges(self.forward_graph)
         
-        self.forward_graph.print_csr_arrays()
-        print(self.forward_graph.num_neighbours)
-        self.backward_graph.print_csr_arrays()
-        print(self.backward_graph.num_neighbours)
+        self.forward_graph.print_graph()
+        
+        self.backward_graph.print_graph()
+        
         
         self._get_graph_csr_ptrs()
         
@@ -35,3 +37,9 @@ class StaticGraph(SeastarGraph):
         
     def graph_type(self):
         return "csr"
+    
+    def in_degrees(self):
+        return np.array(self.forward_graph.out_degrees, dtype='int32')
+    
+    def out_degrees(self):
+        return np.array(self.forward_graph.in_degrees, dtype='int32')
