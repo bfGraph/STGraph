@@ -58,6 +58,12 @@ class DynamicGraph(SeastarGraph):
         while self.current_timestamp > timestamp:
             self._update_graph_backward()
     
+    def get_num_nodes(self):
+        return self.graph_updates[str(self.current_timestamp)]["num_nodes"]
+    
+    def get_num_edges(self):
+        return self.graph_updates[str(self.current_timestamp)]["num_edges"]
+    
     # def _get_graph_csr_ptrs(self):
     #     if not self._is_reverse_graph:
     #         csr_ptrs = self.forward_graph.get_csr_ptrs()

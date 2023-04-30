@@ -167,8 +167,8 @@ class Executor(object):
         self.ts = ExeState()
         self.new_zeros = None
         self.raw_ptr = None
-        self.num_nodes = graph.num_nodes
-        self.num_edges = graph.num_edges
+        self.num_nodes = graph.get_num_nodes()
+        self.num_edges = graph.get_num_edges()
         self.graph = graph
         for mu in self.forward_exec_units:
             for u in mu:
@@ -218,11 +218,14 @@ class Executor(object):
                     if u.compiled:
                         # TODO: (Joel) Feel like this is going to be problematic for dynamic graphs
                         u.reset_graph_info(graph)
-            for u in self.bulist:
-                if u.compiled:
-                    u.reset_graph_info(graph)
-            self.num_nodes = graph.num_nodes
-            self.num_edges = graph.num_nodes
+            
+            # NOTE: COMMENTED OUT NOW SINCE THIS IS HANDLED IN BACKWARD_CB
+            # for u in self.bulist:
+            #     if u.compiled:
+            #         u.reset_graph_info(graph)
+            
+            self.num_nodes = graph.get_num_nodes()
+            self.num_edges = graph.get_num_edges()
 
     
     def set_raw_ptr_cb(self, cb):
@@ -327,9 +330,14 @@ class Executor(object):
             tensor_map[grad.id] = grad_list[i]
         arg_grads = [arg._grad if arg in inputs and arg.requires_grad else None for arg in args] # arg_grads corresponds to the grads of funit.unit_args
         for bu in self.bulist:
+
             if bu.compiled:
                 # if self.ts.is_executed_bu(bu):
                 #     continue
+                
+                # NOTE: Added to fix gpma
+                bu.reset_graph_info(self.graph)
+                
                 tensor_map = self.create_tensor_for_grad_vars(bu.unit_rets(),tensor_map)
 
                 self.execute_unit(bu, [tensor_map[arg.id] for arg in bu.kernel_args()])

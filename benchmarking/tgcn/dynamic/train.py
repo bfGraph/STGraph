@@ -18,129 +18,9 @@ from rich.pretty import pprint
 
 from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
 from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+from seastar.dataset.EnglandCOVID import EnglandCOVID
 
 from doorah import get_doorah_dataset
-
-class EnglandCovidDatasetLoader(object):
-
-    def __init__(self):
-        self._read_web_data()
-
-    def _read_web_data(self):
-
-        if os.path.exists("../../dataset/england_covid/data.json"):
-            with open('../../dataset/england_covid/data.json', 'r') as openfile:
-                self._dataset = json.load(openfile)
-        else:
-            url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
-            self._dataset = json.loads(urllib.request.urlopen(url).read())
-            self._save_dataset()
-
-        
-
-    def _save_dataset(self):
-        with open("../../dataset/england_covid/data.json", "w") as outfile:
-            json.dump(self._dataset,outfile)
-
-    def _get_edges(self):
-        self._edges = []
-        for time in range(self._dataset["time_periods"] - self.lags):
-            self._edges.append(
-                np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
-            )
-
-    def _get_edge_weights(self):
-        self._edge_weights = []
-        for time in range(self._dataset["time_periods"] - self.lags):
-            self._edge_weights.append(
-                np.array(self._dataset["edge_mapping"]["edge_weight"][str(time)])
-            )
-
-    def _get_targets_and_features(self):
-        stacked_target = np.array(self._dataset["y"])
-        standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
-            np.std(stacked_target, axis=0) + 10 ** -10
-        )
-        self.features = [
-            standardized_target[i : i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
-        ]
-        self.targets = [
-            standardized_target[i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
-        ]
-
-    def get_dataset(self, lags: int = 8):
-        self.lags = lags
-        self._get_edges()
-        self._get_edge_weights()
-        self._get_targets_and_features()
-        return self._edges, self._edge_weights, self.features, self.targets
-
-def presort_edge_weights(edges_lst, edge_weights_lst):
-    '''
-        Presorting edges according to (dest,src) since that is how eids are formed
-        allowing forward and backward kernel to access edge weights
-    '''
-    final_edges_lst = []
-    final_edge_weights_lst = []
-
-    for i in range(len(edges_lst)):
-        src_list = edges_lst[i][0]
-        dst_list = edges_lst[i][1]
-        weights = edge_weights_lst[i]
-
-        edge_info_list = []
-        sorted_edges_lst = []
-        sorted_edge_weights_lst = []
-
-        for j in range(len(weights)):
-            edge_info = (src_list[j], dst_list[j], weights[j])
-            edge_info_list.append(edge_info)
-
-        # sorted_edge_info_list = sorted(edge_info_list, key=lambda element: (element[0], element[1]))
-
-        # since it has to be sorted according to the reverse order
-        sorted_edge_info_list = sorted(edge_info_list, key=lambda element: (element[1], element[0]))
-
-        temp_src = []
-        temp_dst = []
-
-        for edge in sorted_edge_info_list:
-            temp_src.append(edge[0])
-            temp_dst.append(edge[1])
-            sorted_edge_weights_lst.append(edge[2])
-
-        sorted_edges_lst.append(temp_src)
-        sorted_edges_lst.append(temp_dst)
-        sorted_edges_lst = np.array(sorted_edges_lst)
-
-        final_edges_lst.append(sorted_edges_lst)
-        final_edge_weights_lst.append(np.array(sorted_edge_weights_lst))
-
-def preprocess_graph_structure(edges):
-    # inspect(edges)
-    tmp_set = set()
-    for i in range(len(edges)):
-        tmp_set = set()
-        for j in range(len(edges[i][0])):
-            tmp_set.add(edges[i][0][j])
-            tmp_set.add(edges[i][1][j])
-    max_num_nodes = len(tmp_set)
-
-    edge_dict = {}
-    for i in range(len(edges)):
-        edge_set = set()
-        for j in range(len(edges[i][0])):
-            edge_set.add((edges[i][0][j],edges[i][1][j]))
-        edge_dict[str(i)] = edge_set
-    
-    edge_final_dict = {}
-    edge_final_dict["0"] = {"add": list(edge_dict["0"]),"delete": []}
-    for i in range(1,len(edges)):
-        edge_final_dict[str(i)] = {"add": list(edge_dict[str(i)].difference(edge_dict[str(i-1)])), "delete": list(edge_dict[str(i-1)].difference(edge_dict[str(i)]))}
-    
-    return edge_final_dict, max_num_nodes
 
 # GPU | CPU
 def get_default_device():
@@ -165,19 +45,22 @@ def main(args):
         print("😔 CUDA is not available")
 
     # Data
-    dataset = EnglandCovidDatasetLoader()
+    # dataset = EnglandCovidDatasetLoader()
+    
+    eng_covid = EnglandCOVID()
+    
+    # edges_lst, edge_weights_lst, all_features, all_targets = get_doorah_dataset()
 
     # edges_lst is a list of all edges of dynamic dataset, edge_weights_lst is the
     # corresponding edge weights.
     
-    edges_lst, edge_weights_lst, all_features, all_targets = dataset.get_dataset()
-    presort_edge_weights(edges_lst, edge_weights_lst)
+    # edges_lst, edge_weights_lst, all_features, all_targets = dataset.get_dataset()
+    # edges_lst, edge_weights_lst = presort_edge_weights(edges_lst, edge_weights_lst)
 
     # inspect(all_features)
     # read = input()
 
     # NOTE: Using Doorah Dataset
-    # edges_lst, edge_weights_lst, all_features, all_targets = get_doorah_dataset()
 
     # inspect(edges_lst)
     # inspect(edge_weights_lst)
@@ -186,19 +69,21 @@ def main(args):
 
     # read = input()
 
-    all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
-    all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
+    # all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
+    # all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
 
     # Hyperparameters
     # NOTE: Split put to 50% for Doorah Dataset
-    train_test_split = 0.8
+    # train_test_split = 0.8
     # train_test_split = 0.5
     
     # train_test_split for graph
-    train_edges_lst = edges_lst[:int(len(edges_lst) * train_test_split)]
-    test_edges_lst = edges_lst[int(len(edges_lst) * train_test_split):]
-    train_edge_weights_lst = edge_weights_lst[:int(len(edge_weights_lst) * train_test_split)]
-    test_edge_weights_lst = edge_weights_lst[int(len(edge_weights_lst) * train_test_split):]
+    # train_edges_lst = edges_lst[:int(len(edges_lst) * train_test_split)]
+    # test_edges_lst = edges_lst[int(len(edges_lst) * train_test_split):]
+    # train_edge_weights_lst = edge_weights_lst[:int(len(edge_weights_lst) * train_test_split)]
+    # test_edge_weights_lst = edge_weights_lst[int(len(edge_weights_lst) * train_test_split):]
+    
+    
 
     # train_test_split for features
     train_features = all_features[:int(len(all_features) * train_test_split)]
@@ -248,7 +133,7 @@ def main(args):
         # print("🔴🔴 Attempting Forward prop at t={}".format(epoch))
 
         # dyn_graph_index is dynamic graph index
-        for index in range(0,len(train_features),2): 
+        for index in range(0,len(train_features)): 
             
             # Getting the graph for a particular timestamp
             G.get_graph(index) 
@@ -267,6 +152,13 @@ def main(args):
 
             # forward propagation
             y_hat, hidden_state = model(G, train_features[index], edge_weight, hidden_state)
+            
+            # print("Epoch={} t={} isNan={}".format(epoch, index, torch.isnan(y_hat).any()))
+            
+            # print("✨✨✨")
+            # inspect(y_hat)
+            # inspect(hidden_state)
+            
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
             
     
@@ -279,6 +171,18 @@ def main(args):
 
 
         # print("🔵🔵 Attempting Backward Prop")
+        
+        # print("\n📨 CSR Pointers:\n")
+        # print("⏩ Forward:\n")
+        # print(f'row_offset: {G.fwd_row_offset_ptr}')
+        # print(f'column_indices: {G.fwd_column_indices_ptr}')
+        # print(f'eids: {G.fwd_eids_ptr}')
+        
+        # print("\n\n🔙 Backward:")
+        # print(f'row_offset: {G.bwd_row_offset_ptr}')
+        # print(f'column_indices: {G.bwd_column_indices_ptr}')
+        # print(f'eids: {G.bwd_eids_ptr}')
+        
         cost.backward()
         # print("🟡🟡 Optimizing")
         optimizer.step()

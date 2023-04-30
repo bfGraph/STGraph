@@ -24,7 +24,7 @@ class GPMAGraph(DynamicGraph):
         label_edges(self.forward_graph)
 
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes() # NOTE:
+        # self._get_graph_attributes() # NOTE:
         self._update_graph_cache()
         
     def graph_type(self):
@@ -49,15 +49,15 @@ class GPMAGraph(DynamicGraph):
         self.bwd_eids_ptr = backward_csr_ptrs[2]
     
     #TODO: Right now this returns (max_num_nodes,num_edges) see if this is what is required
-    def _get_graph_attributes(self):
+    # def _get_graph_attributes(self):
 
-        if not self._is_reverse_graph:
-            graph_attr = get_graph_attr(self.forward_graph)
-        else:
-            graph_attr = get_graph_attr(self.backward_graph)
+    #     if not self._is_reverse_graph:
+    #         graph_attr = get_graph_attr(self.forward_graph)
+    #     else:
+    #         graph_attr = get_graph_attr(self.backward_graph)
         
-        self.num_nodes = graph_attr[0]
-        self.num_edges = graph_attr[1]
+    #     self.num_nodes = graph_attr[0]
+    #     self.num_edges = graph_attr[1]
     
     def _update_graph_forward(self):
         
@@ -78,7 +78,7 @@ class GPMAGraph(DynamicGraph):
         # TODO: UNCOMMENT LATER
         label_edges(self.forward_graph)
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()  # NOTE:
+        # self._get_graph_attributes()  # NOTE:
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
@@ -97,7 +97,7 @@ class GPMAGraph(DynamicGraph):
         self._is_reverse_graph = True
 
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes() # NOTE:
+        # self._get_graph_attributes() # NOTE:
         
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
@@ -119,4 +119,4 @@ class GPMAGraph(DynamicGraph):
         copy_label_edges(self.backward_graph, self.forward_graph)
 
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()  # NOTE:
+        # self._get_graph_attributes()  # NOTE:

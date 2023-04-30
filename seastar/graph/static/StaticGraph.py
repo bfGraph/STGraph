@@ -16,8 +16,8 @@ class StaticGraph(SeastarGraph):
         self.forward_graph.label_edges()
         self.backward_graph.copy_label_edges(self.forward_graph)
         
-        self.num_nodes = num_nodes
-        self.num_edges = len(edge_list)
+        self._num_nodes = num_nodes
+        self._num_edges = len(edge_list)
         
         self._get_graph_csr_ptrs()
         
@@ -32,6 +32,11 @@ class StaticGraph(SeastarGraph):
         self.bwd_column_indices_ptr = bwd_csr_ptrs[1]
         self.bwd_eids_ptr = bwd_csr_ptrs[2]
         
+    def get_num_nodes(self):
+        return self._num_nodes
+    
+    def get_num_edges(self):
+        return self._num_edges
         
     def graph_type(self):
         return "csr"

@@ -74,7 +74,6 @@ public:
     // addition for csr
     SIZE_TYPE row_num; // number of nodes
     DEV_VEC_SIZE row_offset;
-    SIZE_TYPE *row_offset_ptr;
 
     int edge_count = 0;
     std::vector<unsigned int> in_degree;

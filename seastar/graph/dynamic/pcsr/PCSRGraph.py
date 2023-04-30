@@ -15,7 +15,7 @@ class PCSRGraph(DynamicGraph):
 
         self.forward_graph.label_edges()
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()
+        # self._get_graph_attributes()
         self._update_graph_cache()  # saving the base graph in cache
         
     def graph_type(self):
@@ -39,14 +39,14 @@ class PCSRGraph(DynamicGraph):
         self.bwd_column_indices_ptr = backward_csr_ptrs[1]
         self.bwd_eids_ptr = backward_csr_ptrs[2]
 
-    def _get_graph_attributes(self):
-        if not self._is_reverse_graph:
-            graph_attr = self.forward_graph.get_graph_attr()
-        else:
-            graph_attr = self.backward_graph.get_graph_attr()
+    # def _get_graph_attributes(self):
+    #     if not self._is_reverse_graph:
+    #         graph_attr = self.forward_graph.get_graph_attr()
+    #     else:
+    #         graph_attr = self.backward_graph.get_graph_attr()
         
-        self.num_nodes = graph_attr[0]
-        self.num_edges = graph_attr[1]
+    #     self.num_nodes = graph_attr[0]
+    #     self.num_edges = graph_attr[1]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
@@ -65,7 +65,7 @@ class PCSRGraph(DynamicGraph):
 
         self.forward_graph.label_edges()
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()
+        # self._get_graph_attributes()
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
@@ -83,7 +83,7 @@ class PCSRGraph(DynamicGraph):
 
         self._is_reverse_graph = True
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()
+        # self._get_graph_attributes()
         
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
@@ -103,4 +103,4 @@ class PCSRGraph(DynamicGraph):
         self.forward_graph.label_edges()
         copy_label_edges(self.backward_graph, self.forward_graph)
         self._get_graph_csr_ptrs()
-        self._get_graph_attributes()
+        # self._get_graph_attributes()

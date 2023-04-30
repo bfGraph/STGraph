@@ -253,7 +253,7 @@ class ExecutionUnit(object):
             max_dims = self.max_dims()
         else:
             raise NotImplementedError('Feature dimension larger than 2 are not supported.')
-        num_nodes = graph.num_nodes
+        num_nodes = graph.get_num_nodes()
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
             print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config)
@@ -274,7 +274,7 @@ class ExecutionUnit(object):
             row_offsets_ptr = graph.bwd_row_offset_ptr
             col_indices_ptr = graph.bwd_column_indices_ptr
             eids_ptr = graph.bwd_eids_ptr
-        self._K.reset_graph_info(graph.num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr)
+        self._K.reset_graph_info(graph.get_num_nodes(), row_offsets_ptr, col_indices_ptr, eids_ptr)
 
     def kernel_run(self, tensor_list):
         assert self._K, 'Must call prepare_compiled_kernel before call kernel_run.'
