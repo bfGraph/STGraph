@@ -15,9 +15,9 @@ console = Console()
 from rich.traceback import install
 install(show_locals=True)
 
-class EnglandCOVID:
+class SoorahBase:
     def __init__(self, verbose: bool = False, lags: int = 8, split=0.75) -> None:
-        self.name = "EnglandCOVID"
+        self.name = "SoorahBase"
         self.lags = lags
         self.split = split
 
@@ -25,8 +25,8 @@ class EnglandCOVID:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = "england_covid.json"
-        self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
+        self._local_path = "soorah_base.json"
+        self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/Soorah/soorah_base.json"
         self._verbose = verbose
 
         self._load_dataset()
@@ -43,6 +43,8 @@ class EnglandCOVID:
         if self._verbose:
             console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
         self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        # dataset_file = open(self._local_path)
+        # self._dataset = json.load(dataset_file)
 
     def _get_edge_info(self):
         # getting the edge_list and edge_weights

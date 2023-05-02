@@ -102,7 +102,7 @@ def create_graph(
     num_edges_upp_limit = upp_limit * edge_count
 
     # creating the base graph
-    edge_list = []
+    edge_list = set()
     edge_weight_list = []
     feature_list = []
 
@@ -110,31 +110,20 @@ def create_graph(
     # for the current time stamp
     curr_time_edge_count = randint(int(num_edges_low_limit), int(num_edges_upp_limit))
 
-    total = 0
-    exists = 0
-    not_exists = 0
-
     while len(edge_list) != curr_time_edge_count:
-        edge = [randint(0, num_nodes - 1), randint(0, num_nodes - 1)]
-        total += 1
+        edge = (randint(0, num_nodes - 1), randint(0, num_nodes - 1))
+        edge_list.add(edge)
 
-        if edge not in edge_list:
-            edge_list.append(edge)
-            edge_weight_list.append(randint(1, 1000))
-            not_exists += 1
-        else:
-            exists += 1
+    edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
             
-    print(f'Exists : {(exists/total) * 100}%')
-    print(f'Not exists : {(not_exists/total) * 100}%')
-
-
     # getting the node features for each node of the base graph
     a0 = time.time()
     feature_list = [randint(0, 100) for i in range(num_nodes)]
     a1 = time.time()
 
     print(f'Time to get all features: {a1-a0}')
+    
+    edge_list = list(edge_list)
     
     graph_json["edge_mapping"]["edge_index"]["0"] = edge_list
     graph_json["edge_mapping"]["edge_weight"]["0"] = edge_weight_list
@@ -149,18 +138,18 @@ def create_graph(
         del_edge_count = int(len(prev_edge_list) * del_coeff)
         add_edge_count = int(len(prev_edge_list) * add_coeff)
 
-        curr_edge_list = prev_edge_list[del_edge_count:]
+        curr_edge_list = set(prev_edge_list[del_edge_count:])
         curr_edge_weight_list = [randint(1, 1000) for i in range(len(curr_edge_list))]
         curr_time_edge_count = len(curr_edge_list) + add_edge_count
 
         while len(curr_edge_list) != curr_time_edge_count:
-            edge = [randint(0, num_nodes - 1), randint(0, num_nodes - 1)]
+            edge = (randint(0, num_nodes - 1), randint(0, num_nodes - 1))
+            curr_edge_list.add(edge)
 
-            if edge not in curr_edge_list:
-                curr_edge_list.append(edge)
-                curr_edge_weight_list.append(randint(1, 1000))
-
+        curr_edge_weight_list = [randint(1, 1000) for i in range(len(curr_edge_list))]
         curr_feature_list = [randint(0, 100) for i in range(num_nodes)]
+
+        curr_edge_list = list(curr_edge_list)
 
         graph_json["edge_mapping"]["edge_index"][str(time_stamp)] = curr_edge_list
         graph_json["edge_mapping"]["edge_weight"][str(time_stamp)] = curr_edge_weight_list
@@ -181,6 +170,8 @@ if os.path.exists(dataset_path + graph_name):
 t0 = time.time()
 
 graph_json = create_graph(args.N, args.M, args.A, args.D, args.T, args.L, args.U)
+
+inspect(graph_json)
 
 folder_path = os.path.join(dataset_path, graph_name)
 os.mkdir(folder_path)

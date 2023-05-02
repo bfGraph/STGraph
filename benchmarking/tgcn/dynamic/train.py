@@ -20,6 +20,7 @@ from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
 from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
 from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from seastar.dataset.EnglandCOVID import EnglandCOVID
+from seastar.dataset.SoorahBase import SoorahBase
 
 
 # GPU | CPU
@@ -44,7 +45,7 @@ def main(args):
     else:
         print("😔 CUDA is not available")
     
-    eng_covid = EnglandCOVID(verbose=True)
+    eng_covid = SoorahBase(verbose=True)
     
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -82,8 +83,8 @@ def main(args):
     cuda = True
 
     # G = GPMAGraph(train_edges_lst)
-    G = PCSRGraph(train_edges_lst)
-    # G = NaiveGraph(train_edges_lst)
+    # G = PCSRGraph(train_edges_lst)
+    G = NaiveGraph(train_edges_lst)
 
     # train
     print("Training...\n")
