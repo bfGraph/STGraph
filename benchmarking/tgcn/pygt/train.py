@@ -7,22 +7,18 @@ import torch.nn.functional as F
 import json
 import urllib
 from tqdm import tqdm
-from tgcn import SeastarTGCN
+from tgcn import PyGT_TGCN
 import snoop
 import os
-
 import nvidia_smi
 import psutil
 
 from rich import inspect
 from rich.pretty import pprint
+
 # from rich.traceback import install
 # install(show_locals=True)
 
-from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
-from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
-from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
-from seastar.dataset.EnglandCOVID import EnglandCOVID
 from seastar.dataset.SoorahBase import SoorahBase
 
 
@@ -45,16 +41,18 @@ def main(args):
 
     if torch.cuda.is_available():
         print("🎉 CUDA is available")
+        
     else:
         print("😔 CUDA is not available")
-        
+    
     nvidia_smi.nvmlInit()
     handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
-    eng_covid = SoorahBase(verbose=True, for_seastar=True)
+    
+    eng_covid = SoorahBase(verbose=True)
     
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -81,7 +79,7 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split):]
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
-    model = to_default_device(SeastarTGCN(8))
+    model = to_default_device(PyGT_TGCN(8))
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -90,15 +88,9 @@ def main(args):
     dur = []
     cuda = True
 
-    if args.type == "naive":
-        G = NaiveGraph(train_edges_lst)
-    elif args.type == "pcsr":
-        G = PCSRGraph(train_edges_lst)
-    elif args.type == "gpma":
-        G = GPMAGraph(train_edges_lst)
-    else:
-        print("Error: Invalid Type")
-        quit()
+    # G = GPMAGraph(train_edges_lst)
+    # G = PCSRGraph(train_edges_lst)
+    # G = NaiveGraph(train_edges_lst)
 
     # train
     print("Training...\n")
@@ -118,21 +110,11 @@ def main(args):
         # dyn_graph_index is dynamic graph index
         for index in range(0,len(train_features)): 
             
-            # Getting the graph for a particular timestamp
-            G.get_graph(index) 
-
-            # normalization
-            degs = torch.from_numpy(G.in_degrees()).type(torch.int32)
-            norm = torch.pow(degs, -0.5)
-            norm[torch.isinf(norm)] = 0
-            norm = to_default_device(norm)
-            G.ndata['norm'] = norm.unsqueeze(1)
-            edge_weight = to_default_device(torch.FloatTensor(train_edge_weights_lst[index]))
-            edge_weight = torch.unsqueeze(edge_weight,1)
-
-            # forward propagation
-            y_hat, hidden_state = model(G, train_features[index], edge_weight, hidden_state)
             
+            edge_weight = to_default_device(torch.FloatTensor(train_edge_weights_lst[index]))
+            train_edges = to_default_device(torch.from_numpy(train_edges_lst[index]))
+            # forward propagation
+            y_hat, hidden_state = model(train_features[index], train_edges, edge_weight, hidden_state)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
             
             used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
@@ -158,43 +140,8 @@ def main(args):
             epoch, run_time_this_epoch, cost, (max(gpu_mem_arr) * 1.0 / (1024**2)), ((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))), (max(cpu_mem_arr) * 1.0 / (1024**2)), ((sum(cpu_mem_arr) * 1.0) / ((1024**2) * len(cpu_mem_arr)))
         ))
 
+
     print('Average Time taken: {:6f}'.format(np.mean(dur)))
-
-    # evaluate
-    # print("Evaluating...\n")
-    # model.eval()
-    # cost = 0
-
-    # test_graph_log_dict, test_max_num_nodes = preprocess_graph_structure(test_edges_lst)
-    # G = GPMAGraph(test_graph_log_dict,test_max_num_nodes)
-    
-    # # G = PCSRGraph(test_graph_log_dict,test_max_num_nodes)
-
-    # predictions = []
-    # true_y = []
-    # hidden_state=None
-    # # dyn_graph_index is dynamic graph index
-    # for index in range(len(test_features)):
-    #     # normalization
-    #     # degs = G.in_degrees().float()
-    #     degs = torch.from_numpy(G.in_degrees())
-    #     norm = torch.pow(degs, -0.5)
-    #     norm[torch.isinf(norm)] = 0
-    #     norm = to_default_device(norm)
-    #     G.ndata['norm'] = norm.unsqueeze(1)
-    #     edge_weight = to_default_device(torch.FloatTensor(test_edge_weights_lst[index]))
-    #     edge_weight = torch.unsqueeze(edge_weight,1)
-        
-    #     # forward propagation
-    #     y_hat, hidden_state = model(G, test_features[index], edge_weight, hidden_state)
-    #     cost = cost + torch.mean((y_hat-test_targets[index])**2)
-    #     predictions.append(y_hat)
-    #     true_y.append(test_targets[index])
-
-    # cost = cost / (index+1)
-    # cost = cost.item()
-    # print("MSE: {:.4f}".format(cost))
-
 
 
 if __name__ == '__main__':
@@ -206,8 +153,6 @@ if __name__ == '__main__':
 
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
-    parser.add_argument("--type", type=str, default="naive",
-            help="Seastar Type")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
     args = parser.parse_args()

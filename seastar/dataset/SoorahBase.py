@@ -15,9 +15,9 @@ console = Console()
 from rich.traceback import install
 install(show_locals=True)
 
-class EnglandCOVID:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75) -> None:
-        self.name = "EnglandCOVID"
+class SoorahBase:
+    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar= False) -> None:
+        self.name = "SoorahBase"
         self.lags = lags
         self.split = split
 
@@ -25,15 +25,19 @@ class EnglandCOVID:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = "england_covid.json"
-        self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
+        self._local_path = "soorah_base.json"
+        self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/Soorah/soorah_base.json"
         self._verbose = verbose
 
         self._load_dataset()
         self.total_timestamps = self._dataset["time_periods"]
-        self._get_edge_info()
         self._get_targets_and_features()
-        self._presort_edge_weights()
+        
+        if for_seastar:
+            self._get_edge_info_seastar()
+            self._presort_edge_weights()
+        else:
+            self._get_edge_info_pygt()
 
     def get_graph_data(self):
         return self._graph_updates, self._max_num_nodes
@@ -42,9 +46,15 @@ class EnglandCOVID:
         # loading the dataset by downloading them online
         if self._verbose:
             console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
-        self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        
+        # for online download
+        # self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        
+        # for local
+        dataset_file = open(self._local_path)
+        self._dataset = json.load(dataset_file)
 
-    def _get_edge_info(self):
+    def _get_edge_info_seastar(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
         self._edge_weights = []
@@ -61,6 +71,18 @@ class EnglandCOVID:
 
             self._edge_list.append(time_edge_list)
             self._edge_weights.append(time_edge_weights)
+    
+    def _get_edge_info_pygt(self):
+        self._edge_list  = []
+        self._edge_weights = []
+        
+        for time in range(self._dataset["time_periods"] - self.lags):
+            self._edge_list.append(
+                np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
+            )
+            self._edge_weights.append(
+                np.array(self._dataset["edge_mapping"]["edge_weight"][str(time)])
+            )
 
     def _get_targets_and_features(self):
         stacked_target = np.array(self._dataset["y"])
