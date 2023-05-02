@@ -82,8 +82,8 @@ def main(args):
     cuda = True
 
     # G = GPMAGraph(train_edges_lst)
-    # G = PCSRGraph(train_edges_lst)
-    G = NaiveGraph(train_edges_lst)
+    G = PCSRGraph(train_edges_lst)
+    # G = NaiveGraph(train_edges_lst)
 
     # train
     print("Training...\n")
