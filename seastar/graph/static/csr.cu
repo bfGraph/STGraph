@@ -14,14 +14,15 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+typedef thrust::device_vector<int> DEV_VEC;
 #define RAW_PTR(x) thrust::raw_pointer_cast((x).data())
 
 class CSR
 {
 public:
-    thrust::device_vector<int> row_offset;
-    thrust::device_vector<int> column_indices;
-    thrust::device_vector<int> eids;
+    thrust::host_vector<int> row_offset;
+    thrust::host_vector<int> column_indices;
+    thrust::host_vector<int> eids;
 
     std::vector<int> in_degrees;
     std::vector<int> out_degrees;
@@ -49,13 +50,10 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
     else
         sort(edge_list.begin(), edge_list.end());
 
-    thrust::host_vector<int> h_row_offset;
-    thrust::host_vector<int> h_column_indices;
-
     // initialising row_offset values all to -1
-    h_row_offset.resize(num_nodes + 1);
-    thrust::fill(h_row_offset.begin(), h_row_offset.end(), -1);
-    h_row_offset[0] = 0;
+    row_offset.resize(num_nodes + 1);
+    thrust::fill(row_offset.begin(), row_offset.end(), -1);
+    row_offset[0] = 0;
 
     in_degrees.resize(num_nodes, 0);
     out_degrees.resize(num_nodes, 0);
@@ -78,8 +76,8 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
         if (current_src != src)
         {
             // update row_offset
-            h_row_offset[current_src] = beg;
-            h_row_offset[current_src + 1] = end;
+            row_offset[current_src] = beg;
+            row_offset[current_src + 1] = end;
 
             current_src = src;
             beg = end;
@@ -87,7 +85,7 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
 
         // adding the dst node to the column indices
         // and incrementing the end range by 1
-        h_column_indices.push_back(dst);
+        column_indices.push_back(dst);
         end += 1;
 
         // updating the degree arrays
@@ -95,29 +93,30 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
         in_degrees[dst] += 1;
     }
 
-    h_row_offset[current_src + 1] = end;
+    row_offset[current_src + 1] = end;
 
     // removing the -1
-    int curr_val = h_row_offset[0];
-    for (int i = 1; i < h_row_offset.size(); ++i)
+    int curr_val = row_offset[0];
+    for (int i = 1; i < row_offset.size(); ++i)
     {
-        if (h_row_offset[i] != curr_val && h_row_offset[i] != -1)
-            curr_val = h_row_offset[i];
+        if (row_offset[i] != curr_val && row_offset[i] != -1)
+            curr_val = row_offset[i];
 
-        if (h_row_offset[i] == -1)
-            h_row_offset[i] = curr_val;
+        if (row_offset[i] == -1)
+            row_offset[i] = curr_val;
     }
-
-    row_offset = h_row_offset;
-    column_indices = h_column_indices;
 }
 
 std::tuple<std::size_t, std::size_t, std::size_t> CSR::get_csr_ptrs()
 {
+    DEV_VEC row_offset_device = row_offset;
+    DEV_VEC column_indices_device = column_indices;
+    DEV_VEC eids_device = eids;
+
     std::tuple<std::size_t, std::size_t, std::size_t> t;
-    std::get<0>(t) = (std::size_t)RAW_PTR(row_offset);
-    std::get<1>(t) = (std::size_t)RAW_PTR(column_indices);
-    std::get<2>(t) = (std::size_t)RAW_PTR(eids);
+    std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::size_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::size_t)RAW_PTR(eids_device);
     return t;
 }
 
@@ -134,17 +133,14 @@ int binary_search_idx(thrust::host_vector<int> vec, int start, int end, int elem
 
 int CSR::find_edge_id(int src, int dst)
 {
-    thrust::host_vector<int> h_row_offset = row_offset;
-    thrust::host_vector<int> h_column_indices = column_indices;
-    thrust::host_vector<int> h_eids = eids;
 
-    int beg = h_row_offset[src];
-    int end = h_row_offset[src + 1];
+    int beg = row_offset[src];
+    int end = row_offset[src + 1];
 
-    int col_idx = binary_search_idx(h_column_indices, beg, end, dst);
+    int col_idx = binary_search_idx(column_indices, beg, end, dst);
 
     if (col_idx != -1)
-        return h_eids[col_idx];
+        return eids[col_idx];
     else
         return -1;
 }
@@ -157,26 +153,21 @@ void CSR::label_edges()
 
 void CSR::copy_label_edges(CSR ref_csr)
 {
+    eids.resize(column_indices.size());
 
-    thrust::host_vector<int> h_row_offset = row_offset;
-    thrust::host_vector<int> h_column_indices = column_indices;
-    thrust::host_vector<int> h_eids(h_column_indices.size());
-
-    int num_nodes = h_row_offset.size() - 1;
+    int num_nodes = row_offset.size() - 1;
     for (int src = 0; src < num_nodes; ++src)
     {
-        int beg = h_row_offset[src];
-        int end = h_row_offset[src + 1];
+        int beg = row_offset[src];
+        int end = row_offset[src + 1];
 
         for (int dst_idx = beg; dst_idx < end; ++dst_idx)
         {
-            int dst = h_column_indices[dst_idx];
+            int dst = column_indices[dst_idx];
             int id = ref_csr.find_edge_id(dst, src);
-            h_eids[dst_idx] = id;
+            eids[dst_idx] = id;
         }
     }
-
-    eids = h_eids;
 }
 
 void CSR::print_csr_arrays()

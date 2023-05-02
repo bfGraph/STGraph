@@ -1,7 +1,9 @@
-# TODO: add this import as well
+import copy
+import time
+
+
 from seastar.graph.SeastarGraph import SeastarGraph
 
-import copy
 
 from abc import ABC, abstractmethod
 
@@ -80,7 +82,6 @@ class DynamicGraph(SeastarGraph):
             self.current_timestamp += 1
 
     def get_backward_graph(self, timestamp: int):
-
         if not self._is_backprop_state:
             self._init_reverse_graph()
             self._is_backprop_state = True
@@ -97,16 +98,6 @@ class DynamicGraph(SeastarGraph):
     
     def get_num_edges(self):
         return self.graph_updates[str(self.current_timestamp)]["num_edges"]
-    
-    # def _get_graph_csr_ptrs(self):
-    #     if not self._is_backprop_state:
-    #         csr_ptrs = self._forward_graph.get_csr_ptrs()
-    #     else:
-    #         csr_ptrs = self._backward_graph.get_csr_ptrs()
-        
-    #     self.row_offset_ptr = csr_ptrs[0]
-    #     self.column_indices_ptr = csr_ptrs[1]
-    #     self.eids_ptr = csr_ptrs[2]
     
     @abstractmethod
     def in_degrees(self):
