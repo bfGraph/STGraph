@@ -16,7 +16,7 @@ from rich.traceback import install
 install(show_locals=True)
 
 class SoorahBase:
-    def __init__(self, dataset_name ,verbose: bool = False, lags: int = 8, split=0.75, for_seastar= False) -> None:
+    def __init__(self, dataset_name, verbose: bool = False, lags: int = 8, split=0.75, for_seastar= False) -> None:
         self.name = dataset_name
         self.lags = lags
         self.split = split
@@ -25,12 +25,12 @@ class SoorahBase:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = dataset_name + '.json'
+        self._local_path = dataset_name
         self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/Soorah/soorah_base.json"
         self._verbose = verbose
 
         self._load_dataset()
-        self.total_timestamps = self._dataset["time_periods"]
+        self.total_timestamps = self._edge_index_data.shape[0]
         self._get_targets_and_features()
         
         if for_seastar:
@@ -51,22 +51,30 @@ class SoorahBase:
         # self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
         
         # for local
-        dataset_file = open(self._local_path)
-        self._dataset = json.load(dataset_file)
+        with open(self._local_path+'/edge_index.npy','rb') as f:
+            self._edge_index_data = np.load(f)
+        
+        with open(self._local_path+'/edge_weight.npy','rb') as f:
+            self._edge_weight_data = np.load(f)
+        
+        with open(self._local_path+'/y.npy','rb') as f:
+            self._y_data = np.load(f)
+        
+        console.log("Finised loading dataset")
 
     def _get_edge_info_seastar(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
         self._edge_weights = []
 
-        for time in range(self._dataset["time_periods"] - self.lags):
+        for time in range(self.total_timestamps - self.lags):
             time_edge_list = []
             time_edge_weights = []
 
-            for edge in self._dataset["edge_mapping"]["edge_index"][str(time)]:
+            for edge in self._edge_index_data[time]:
                 time_edge_list.append((edge[0], edge[1]))
 
-            for weight in self._dataset["edge_mapping"]["edge_weight"][str(time)]:
+            for weight in self._edge_weight_data[time]:
                 time_edge_weights.append(weight)
 
             self._edge_list.append(time_edge_list)
@@ -76,27 +84,27 @@ class SoorahBase:
         self._edge_list  = []
         self._edge_weights = []
         
-        for time in range(self._dataset["time_periods"] - self.lags):
+        for time in range(self.total_timestamps - self.lags):
             self._edge_list.append(
-                np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
+                self._edge_index_data[time].T
             )
             self._edge_weights.append(
-                np.array(self._dataset["edge_mapping"]["edge_weight"][str(time)])
+                self._edge_weight_data[time]
             )
 
     def _get_targets_and_features(self):
-        stacked_target = np.array(self._dataset["y"])
+        stacked_target = np.array(self._y_data)
         standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
             np.std(stacked_target, axis=0) + 10**-10
         )
 
         self._all_features = [
             standardized_target[i : i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
+            for i in range(self.total_timestamps - self.lags)
         ]
         self._all_targets = [
             standardized_target[i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
+            for i in range(self.total_timestamps - self.lags)
         ]
 
     def _presort_edge_weights(self):

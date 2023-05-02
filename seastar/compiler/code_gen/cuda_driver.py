@@ -4,6 +4,7 @@ import sys
 
 if 'linux' in sys.platform:
 	cuda = CDLL('/usr/lib/wsl/lib/libcuda.so')
+ 	# cuda = CDLL('libcuda.so')
 elif 'win' in sys.platform:
 	cuda = CDLL('nvcuda.dll')
 

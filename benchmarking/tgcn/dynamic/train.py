@@ -54,7 +54,9 @@ def main(args):
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
-    eng_covid = SoorahBase(verbose=True, for_seastar=True)
+    eng_covid = SoorahBase(args.dataset, verbose=True, for_seastar=True)
+    
+    print("Loaded dataset into the train.py seastar")
     
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -210,6 +212,8 @@ if __name__ == '__main__':
             help="Seastar Type")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
+    parser.add_argument("--dataset", type=str, default="soorah_base",
+            help="Name of the Soorah Dataset", metavar="dataset")
     args = parser.parse_args()
     print(args)
 

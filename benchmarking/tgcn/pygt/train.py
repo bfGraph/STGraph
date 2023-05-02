@@ -52,7 +52,9 @@ def main(args):
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
     
-    eng_covid = SoorahBase(verbose=True)
+    eng_covid = SoorahBase(args.dataset,verbose=True)
+    
+    print("Loaded dataset into the train.py pygt")
     
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -155,6 +157,8 @@ if __name__ == '__main__':
             help="learning rate")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
+    parser.add_argument("--dataset", type=str, default="soorah_base",
+            help="Name of the Soorah Dataset", metavar="dataset")
     args = parser.parse_args()
     print(args)
 
