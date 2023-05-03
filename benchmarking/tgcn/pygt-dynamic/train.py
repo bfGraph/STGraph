@@ -1,6 +1,7 @@
 import argparse, time
 import numpy as np
 import networkx as nx
+from seastar.dataset.wikimaths import WikiMaths
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -67,7 +68,7 @@ def main(args):
     # Hyperparameters
     train_test_split = 0.8
     
-    # train_test_split for graph
+    # train_test_split for graph (Graph)
     train_edges_lst = edge_list[:int(len(edge_list) * train_test_split)]
     test_edges_lst = edge_list[int(len(edge_list) * train_test_split):]
     
@@ -115,6 +116,7 @@ def main(args):
             
             edge_weight = to_default_device(torch.FloatTensor(train_edge_weights_lst[index]))
             train_edges = to_default_device(torch.from_numpy(train_edges_lst[index]))
+
             # forward propagation
             y_hat, hidden_state = model(train_features[index], train_edges, edge_weight, hidden_state)
             cost = cost + torch.mean((y_hat-train_targets[index])**2)

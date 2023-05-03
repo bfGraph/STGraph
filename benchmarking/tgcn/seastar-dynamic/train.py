@@ -54,10 +54,6 @@ def main(args):
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
-    wiki = WikiMaths(verbose=True)
-    inspect(wiki)
-    quit()
-    
     eng_covid = SoorahBase(args.dataset, verbose=True, for_seastar=True)
     
     print("Loaded dataset into the train.py seastar")

@@ -12,14 +12,14 @@ from rich.console import Console
 console = Console()
 
 
-class WikiMaths:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
-        self.name = "WikiMaths"
+class BoorahBase:
+    def __init__(self, dataset_name, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
+        self.name = dataset_name
         self.lags = lags
         self.split = split
 
-        self._local_file_path = "../../dataset/wikimaths/wikimaths.json"
-        self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/wikivital_mathematics.json"
+        self._local_file_path = f"../../dataset/{dataset_name}/{dataset_name}.json"
+        self._url_path = None
         self._verbose = verbose
         self._is_static = False
         self._is_temporal = True
@@ -27,7 +27,6 @@ class WikiMaths:
 
         self._load_dataset()
         self.total_timestamps = self._dataset["time_periods"]
-        self._get_node_info()
         self._get_targets_and_features()
         self._get_edge_info()
         
@@ -60,9 +59,6 @@ class WikiMaths:
     def _get_edge_info(self):
         self._edge_list = np.array(self._dataset["edges"]).T
         self._edge_weights = np.array(self._dataset["weights"]).T
-
-    def _get_node_info(self):
-        self._node_ids = self._dataset["node_ids"]
 
     def _get_targets_and_features(self):
         targets = []
@@ -117,9 +113,6 @@ class WikiMaths:
     def get_edge_weights(self) -> np.ndarray:
         return self._edge_weights
 
-    def get_node_ids(self) -> dict:
-        return self._node_ids
-
     def get_all_features(self) -> np.ndarray:
         return self._all_features
 
@@ -129,8 +122,3 @@ class WikiMaths:
     def _is_local_exists(self) -> bool:
         return os.path.exists(self._local_file_path)
     
-    
-
-# G = WikiMaths(for_seastar=True)
-# inspect(G._dataset)
-# quit()

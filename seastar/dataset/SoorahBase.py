@@ -25,8 +25,8 @@ class SoorahBase:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = dataset_name + '.json'
-        self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/Soorah/soorah_base.json"
+        self._local_path = f'../../dataset/{dataset_name}/{dataset_name}.json'
+        self._url_path = None
         self._verbose = verbose
 
         self._load_dataset()
