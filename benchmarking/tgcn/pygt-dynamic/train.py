@@ -90,6 +90,9 @@ def main(args):
     # metrics
     dur = []
     cuda = True
+    
+    edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
+    train_edges_lst = [to_default_device(torch.from_numpy(edge_index)) for edge_index in train_edges_lst]
 
     # G = GPMAGraph(train_edges_lst)
     # G = PCSRGraph(train_edges_lst)
@@ -113,10 +116,10 @@ def main(args):
         # dyn_graph_index is dynamic graph index
         for index in range(0,len(train_features)): 
             
-            t1 = time.time()
+            # t1 = time.time()
             
-            edge_weight = to_default_device(torch.FloatTensor(train_edge_weights_lst[index]))
-            train_edges = to_default_device(torch.from_numpy(train_edges_lst[index]))
+            edge_weight = edge_weight_lst[index]
+            train_edges = train_edges_lst[index]
 
             # forward propagation
             y_hat, hidden_state = model(train_features[index], train_edges, edge_weight, hidden_state)

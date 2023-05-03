@@ -153,7 +153,13 @@ def main(args):
     
         cost = cost / (index+1)
         
+        # t1 = time.time()
         cost.backward()
+        # print(f"⌛⌛⌛ Time taken for backprop {time.time() - t1}")
+        
+        # if epoch == 1:
+        #     quit()
+        
         optimizer.step()
 
         if cuda:
