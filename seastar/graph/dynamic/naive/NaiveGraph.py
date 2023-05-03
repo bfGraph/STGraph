@@ -11,7 +11,6 @@ class NaiveGraph(DynamicGraph):
     def __init__(self, edge_list):
         super().__init__(edge_list)
         
-        self.graph_stack = deque()
         self._prepare_edge_lst_fwd(edge_list)
         self._prepare_edge_lst_bwd(self.fwd_edge_list)  
         self._forward_graph = [CSR(self.fwd_edge_list[i], self.graph_updates["0"]["num_nodes"], is_edge_reverse=True) for i in range(len(self.fwd_edge_list))]
@@ -57,11 +56,10 @@ class NaiveGraph(DynamicGraph):
         self.fwd_column_indices_ptr = fwd_csr_ptrs.column_indices_ptr
         self.fwd_eids_ptr = fwd_csr_ptrs.eids_ptr
         
-        if self._backward_graph is not None:
-            bwd_csr_ptrs = self._backward_graph[timestamp]
-            self.bwd_row_offset_ptr = bwd_csr_ptrs.row_offset_ptr
-            self.bwd_column_indices_ptr = bwd_csr_ptrs.column_indices_ptr
-            self.bwd_eids_ptr = bwd_csr_ptrs.eids_ptr
+        bwd_csr_ptrs = self._backward_graph[timestamp]
+        self.bwd_row_offset_ptr = bwd_csr_ptrs.row_offset_ptr
+        self.bwd_column_indices_ptr = bwd_csr_ptrs.column_indices_ptr
+        self.bwd_eids_ptr = bwd_csr_ptrs.eids_ptr
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp

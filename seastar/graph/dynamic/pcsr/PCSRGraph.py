@@ -9,12 +9,30 @@ class PCSRGraph(DynamicGraph):
     def __init__(self, edge_list):
         super().__init__(edge_list)
         
+        self._prepare_eid_bwd(edge_list) 
+        
         self._forward_graph = PCSR(self.max_num_nodes)
         self._backward_graph = PCSR(self.max_num_nodes)
         self._forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
-
-        self._forward_graph.label_edges()
-        self._get_graph_csr_ptrs()
+        self._update_graph_cache()
+        self._get_graph_csr_ptrs(eids=list())
+        print("💫💫💫 Completed")
+        quit()
+    
+    def _prepare_eid_bwd(self, edge_list):   
+        fwd_edge_list = []
+        for i in range(len(edge_list)):
+            edge_list_for_t = edge_list[i]
+            edge_list_for_t.sort(key = lambda x: (x[1],x[0]))
+            edge_list_for_t = [(edge_list_for_t[j][0],edge_list_for_t[j][1],j) for j in range(len(edge_list_for_t))]
+            fwd_edge_list.append(edge_list_for_t)
+             
+        self.bwd_eid_list = []
+        for i in range(len(fwd_edge_list)):
+            edge_list_for_t = fwd_edge_list[i]
+            edge_list_for_t.sort()
+            eid_t = [edge_list_for_t[i][2] for i in range(len(edge_list_for_t))]
+            self.bwd_eid_list.append(eid_t)
         
     def graph_type(self):
         return "pcsr"
@@ -25,16 +43,22 @@ class PCSRGraph(DynamicGraph):
     def out_degrees(self):
         return np.array([node.in_degree for node in self._forward_graph.nodes], dtype='int32')
     
-    def _update_reverse_graph_cache(self):
-        # saving reverse base graph in cache
-        self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
+    def _update_graph_cache(self, is_reverse=False):
+        if is_reverse:
+            # saving reverse base graph in cache
+            self.graph_cache['reverse'] = copy.deepcopy(self._backward_graph)
+        else:
+            self.graph_cache['base'] = copy.deepcopy(self._forward_graph)
             
-    def _get_reverse_cached_graph(self):
-        return copy.deepcopy(self.graph_cache['reverse'])
+    def _get_cached_graph(self, is_reverse=False):
+        if is_reverse:
+            return copy.deepcopy(self.graph_cache['reverse'])
+        else:
+            return copy.deepcopy(self.graph_cache['base'])
     
-    def _get_graph_csr_ptrs(self):
-        forward_csr_ptrs = self._forward_graph.get_csr_ptrs()
-        backward_csr_ptrs = self._backward_graph.get_csr_ptrs()
+    def _get_graph_csr_ptrs(self, eids):
+        forward_csr_ptrs = self._forward_graph.get_csr_ptrs(eids=eids)
+        backward_csr_ptrs = self._backward_graph.get_csr_ptrs(eids=eids)
         
         self.fwd_row_offset_ptr = forward_csr_ptrs[0]
         self.fwd_column_indices_ptr = forward_csr_ptrs[1]
@@ -43,15 +67,6 @@ class PCSRGraph(DynamicGraph):
         self.bwd_row_offset_ptr = backward_csr_ptrs[0]
         self.bwd_column_indices_ptr = backward_csr_ptrs[1]
         self.bwd_eids_ptr = backward_csr_ptrs[2]
-
-    # def _get_graph_attributes(self):
-    #     if not self._is_backprop_state:
-    #         graph_attr = self._forward_graph.get_graph_attr()
-    #     else:
-    #         graph_attr = self._backward_graph.get_graph_attr()
-        
-    #     self.num_nodes = graph_attr[0]
-    #     self.num_edges = graph_attr[1]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
@@ -65,10 +80,7 @@ class PCSRGraph(DynamicGraph):
 
         self._forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
         self._forward_graph.edge_update_list(graph_deletions,is_delete=True,is_reverse_edge=True)
-
-        self._forward_graph.label_edges()
-        self._get_graph_csr_ptrs()
-        # self._get_graph_attributes()
+        self._get_graph_csr_ptrs(eids=list())
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
@@ -76,16 +88,16 @@ class PCSRGraph(DynamicGraph):
         # checking if the reverse base graph exists in the cache
         # we can load it from there instead of building it each time
         if 'reverse' in self.graph_cache:
-            self._backward_graph = self._get_reverse_cached_graph()
+            self._backward_graph = self._get_cached_graph(is_reverse=True)
         else:
             build_reverse_pcsr(self._backward_graph, self._forward_graph)
 
             # storing the reverse base graph in cache after building
             # it for the first time
-            self._update_reverse_graph_cache()
+            self._update_graph_cache(is_reverse=True)
 
-        self._get_graph_csr_ptrs()
-        # self._get_graph_attributes()
+        self._get_graph_csr_ptrs(eids=self.bwd_eid_list)
+        self._forward_graph = self._get_cached_graph()
         
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
@@ -94,13 +106,6 @@ class PCSRGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
 
-        self._backward_graph.edge_update_list(graph_additions)
-        self._forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
-        
+        self._backward_graph.edge_update_list(graph_additions)   
         self._backward_graph.edge_update_list(graph_deletions,is_delete=True)
-        self._forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
-
-        self._forward_graph.label_edges()
-        copy_label_edges(self._backward_graph, self._forward_graph)
-        self._get_graph_csr_ptrs()
-        # self._get_graph_attributes()
+        self._get_graph_csr_ptrs(eids=self.bwd_eid_list)
