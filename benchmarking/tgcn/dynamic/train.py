@@ -24,7 +24,7 @@ from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
 from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from seastar.dataset.EnglandCOVID import EnglandCOVID
 from seastar.dataset.SoorahBase import SoorahBase
-
+from seastar.dataset.wikimaths import WikiMaths
 
 # GPU | CPU
 def get_default_device():
@@ -53,6 +53,10 @@ def main(args):
     
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
+    
+    wiki = WikiMaths(verbose=True)
+    inspect(wiki)
+    quit()
     
     eng_covid = SoorahBase(args.dataset, verbose=True, for_seastar=True)
     
