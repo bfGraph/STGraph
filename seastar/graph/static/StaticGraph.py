@@ -3,6 +3,10 @@ import copy
 
 import numpy as np
 
+from rich.console import Console
+
+console = Console()
+
 from seastar.graph.SeastarGraph import SeastarGraph
 
 
@@ -14,12 +18,21 @@ class StaticGraph(SeastarGraph):
         self._num_nodes = 0
         self._num_edges = 0
         
+        console.log("Getting graph attributes")
+        
         self._get_graph_attr(edge_list)
         
+        console.log("Creating forward graph")
         self._forward_graph = CSR(edge_list, self._num_nodes, is_edge_reverse=True)
+        
+        console.log("Creating backward graph")
         self._backward_graph = CSR(edge_list, self._num_nodes)
+        
+        console.log("Labelling forward")
         self._forward_graph.label_edges()
-        self._backward_graph.copy_label_edges(self._forward_graph)
+        
+        console.log("Labelling backward")
+        self._backward_graph.copy_label_edges(self._forward_graph)  
         
         self._get_graph_csr_ptrs()
         

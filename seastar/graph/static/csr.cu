@@ -131,18 +131,38 @@ int binary_search_idx(thrust::host_vector<int> vec, int start, int end, int elem
         return -1;
 }
 
+// int CSR::find_edge_id(int src, int dst)
+// {
+
+//     int beg = row_offset[src];
+//     int end = row_offset[src + 1];
+
+//     int col_idx = binary_search_idx(column_indices, beg, end, dst);
+
+//     if (col_idx != -1)
+//         return eids[col_idx];
+//     else
+//         return -1;
+// }
+
 int CSR::find_edge_id(int src, int dst)
 {
 
     int beg = row_offset[src];
     int end = row_offset[src + 1];
 
-    int col_idx = binary_search_idx(column_indices, beg, end, dst);
+    thrust::host_vector<int>::iterator col_idx = thrust::find(thrust::host, column_indices.begin() + beg, column_indices.begin() + end, dst);
 
-    if (col_idx != -1)
-        return eids[col_idx];
+    if (col_idx != column_indices.end())
+    {
+        int index = thrust::distance(column_indices.begin(), col_idx);
+        return eids[index];
+    }
     else
+    {
+        std::cout << "Ërror: Id not found\n";
         return -1;
+    }
 }
 
 void CSR::label_edges()

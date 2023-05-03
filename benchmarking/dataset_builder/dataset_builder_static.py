@@ -11,6 +11,10 @@ from tqdm import tqdm
 
 from rich import inspect
 
+from rich.console import Console
+
+console = Console()
+
 parser = ArgumentParser(
     description="Create custom Super Large Sparse Graph Dynamic Dataset - Soorah"
 )
@@ -67,24 +71,25 @@ def create_graph(
 
     # this will have the number of edges in the graph
     # for the current time stamp
-    curr_time_edge_count = edge_count
+    curr_time_edge_count = int(edge_count)
+
+    console.log("Going to create the edge list")
 
     while len(edge_list) != curr_time_edge_count:
         edge = (randint(0, num_nodes - 1), randint(0, num_nodes - 1))
         edge_list.add(edge)
 
+    console.log("Finished creating the edge list")
+
     # adding self loops
     for i in range(num_nodes):
         edge_list.add((i,i))
 
-    edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
-            
-    # getting the node features for each node of the base graph
-    a0 = time.time()
-    feature_list = [randint(0, 100) for i in range(num_nodes)]
-    a1 = time.time()
+    console.log("Added self-loops")
 
-    print(f'Time to get all features: {a1-a0}')
+    edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
+    
+    console.log("Generated edge weights")
     
     edge_list = list(edge_list)
     
@@ -94,6 +99,9 @@ def create_graph(
     for time_stamp in tqdm(range(total_time)):
         feature_list = [randint(0, 100) for i in range(num_nodes)]
         graph_json[str(time_stamp)] = {"y": feature_list}
+
+    console.log("Generated features")
+    # inspect(graph_json)
 
     return graph_json
 

@@ -37,13 +37,13 @@ class BoorahBase:
         if self._is_local_exists():
             # loading the dataset from the local folder
             if self._verbose:
-                console.log("Loading [cyan]WikiMath[/cyan] dataset locally")
+                console.log(f'Loading [cyan]{self.name}[/cyan] dataset locally')
             with open(self._local_file_path) as dataset_json:
                 self._dataset = json.load(dataset_json)
         else:
             # loading the dataset by downloading them online
             if self._verbose:
-                console.log("Downloading [cyan]WikiMath[/cyan] dataset")
+                console.log(f'Downloading [cyan]{self.name}[/cyan] dataset')
             self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
 
             # saving the dataset dictionary as a JSON file in local
