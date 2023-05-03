@@ -23,8 +23,10 @@ class NaiveGraph(DynamicGraph):
         self.graph_stack.append(elem)
     
     def _graph_stack_pop(self):
-        elem = self.graph_stack[-1]
-        return elem
+        self.graph_stack.pop()
+        
+    def _graph_stack_top(self):
+        return self.graph_stack[-1]
         
     def graph_type(self):
         return "csr"
@@ -54,15 +56,15 @@ class NaiveGraph(DynamicGraph):
         if str(self.current_timestamp + 1) not in self.graph_updates:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
 
-        self._forward_graph = CSR(self.edge_list[self.current_timestamp], self.graph_updates[str(self.current_timestamp+1)]["num_nodes"], is_edge_reverse=True)
+        self._forward_graph = CSR(self.edge_list[self.current_timestamp + 1], self.graph_updates[str(self.current_timestamp+1)]["num_nodes"], is_edge_reverse=True)
         self._forward_graph.label_edges()
         self._graph_stack_push(self._forward_graph)
         self._get_graph_csr_ptrs()
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
-
-        fwd_graph = self._graph_stack_pop()
+        
+        fwd_graph = self._graph_stack_top()
         self._backward_graph = CSR(self.edge_list[self.current_timestamp], self.graph_updates[str(self.current_timestamp)]["num_nodes"])
         self._backward_graph.copy_label_edges(fwd_graph) 
         self._get_graph_csr_ptrs()
@@ -71,7 +73,9 @@ class NaiveGraph(DynamicGraph):
         if self.current_timestamp < 0:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
-        fwd_graph = self._graph_stack_pop()
+        self._graph_stack_pop()
+        self._forward_graph = self._graph_stack_top()
+        
         self._backward_graph = CSR(self.edge_list[self.current_timestamp - 1], self.graph_updates[str(self.current_timestamp - 1)]["num_nodes"])
-        self._backward_graph.copy_label_edges(fwd_graph) 
+        self._backward_graph.copy_label_edges(self._forward_graph) 
         self._get_graph_csr_ptrs()

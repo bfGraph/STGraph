@@ -15,7 +15,7 @@ import os
 import nvidia_smi
 import psutil
 
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 from rich import inspect
 from rich.pretty import pprint
@@ -54,7 +54,6 @@ def main(args):
     
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
-    
     
     eng_covid = BoorahBase(args.dataset,verbose=True)
     # eng_covid = WikiMaths(verbose=True)

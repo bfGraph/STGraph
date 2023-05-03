@@ -153,6 +153,7 @@ int CSR::find_edge_id(int src, int dst)
 
     thrust::host_vector<int>::iterator col_idx = thrust::find(thrust::host, column_indices.begin() + beg, column_indices.begin() + end, dst);
 
+    // std::cout << "(" << src << "," << dst << ")";
     if (col_idx != column_indices.end())
     {
         int index = thrust::distance(column_indices.begin(), col_idx);
