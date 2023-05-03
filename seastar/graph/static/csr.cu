@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include <vector>
 #include <tuple>
+#include <chrono>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -43,12 +44,41 @@ bool sort_by_sec(const std::tuple<int, int> &a,
            std::tie(std::get<1>(b), std::get<0>(b));
 }
 
+std::vector<std::vector<std::tuple<int, int>>> sort_edge_list(std::vector<std::vector<std::tuple<int, int>>> edge_list, bool sort_reverse = false)
+{
+    std::vector<std::vector<std::tuple<int, int>>> sorted_lst;
+    std::vector<std::tuple<int, int>> tmp;
+
+    for (int i = 0; i < edge_list.size(); ++i)
+    {
+        tmp = edge_list[0];
+
+        if (sort_reverse)
+            sort(tmp.begin(), tmp.end(), sort_by_sec);
+        else
+            sort(tmp.begin(), tmp.end());
+
+        sorted_lst.push_back(tmp);
+    }
+
+    return sorted_lst;
+}
+
 CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edge_reverse = false)
 {
-    if (is_edge_reverse)
-        sort(edge_list.begin(), edge_list.end(), sort_by_sec);
-    else
-        sort(edge_list.begin(), edge_list.end());
+    // auto start = std::chrono::high_resolution_clock::now();
+
+    // if (is_edge_reverse)
+    //     sort(edge_list.begin(), edge_list.end(), sort_by_sec);
+    // else
+    //     sort(edge_list.begin(), edge_list.end());
+
+    // auto stop = std::chrono::high_resolution_clock::now();
+
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+    // std::cout << "Time taken by function: "
+    //           << duration.count() * 1.0) / 1000000 << " seconds" << std::endl;
 
     // initialising row_offset values all to -1
     row_offset.resize(num_nodes + 1);
@@ -120,16 +150,16 @@ std::tuple<std::size_t, std::size_t, std::size_t> CSR::get_csr_ptrs()
     return t;
 }
 
-int binary_search_idx(thrust::host_vector<int> vec, int start, int end, int elem)
-{
-    auto lower = std::lower_bound(vec.begin() + start, vec.begin() + end, elem);
-    const bool found = lower != vec.begin() + end && *lower == elem;
+// int binary_search_idx(thrust::host_vector<int> vec, int start, int end, int elem)
+// {
+//     auto lower = std::lower_bound(vec.begin() + start, vec.begin() + end, elem);
+//     const bool found = lower != vec.begin() + end && *lower == elem;
 
-    if (found)
-        return std::distance(vec.begin(), lower);
-    else
-        return -1;
-}
+//     if (found)
+//         return std::distance(vec.begin(), lower);
+//     else
+//         return -1;
+// }
 
 // int CSR::find_edge_id(int src, int dst)
 // {
@@ -267,6 +297,7 @@ void CSR::print_graph()
 PYBIND11_MODULE(csr, m)
 {
     m.doc() = "CPython module for CSR"; // optional module docstring
+    m.def("sort_edge_list", &sort_edge_list, py::arg("edge_list"), py::arg("sort_reverse") = false, "Sort Edge list");
 
     py::class_<CSR>(m, "CSR")
         .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)

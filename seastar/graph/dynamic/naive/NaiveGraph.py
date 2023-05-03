@@ -3,17 +3,19 @@ import numpy as np
 from rich import inspect
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.static.csr import CSR
+from seastar.graph.static.csr import CSR, sort_edge_list
 from collections import deque
+import time
 
 class NaiveGraph(DynamicGraph):
     def __init__(self, edge_list):
         super().__init__(edge_list)
         
         self.graph_stack = deque()
-        self.edge_list = edge_list
+        self.fwd_edge_list = sort_edge_list(edge_list, sort_reverse=True)
+        self.bwd_edge_list = sort_edge_list(edge_list)
         
-        self._forward_graph = CSR(edge_list[0], self.graph_updates["0"]["num_nodes"], is_edge_reverse=True)
+        self._forward_graph = CSR(self.fwd_edge_list[0], self.graph_updates["0"]["num_nodes"], is_edge_reverse=True)
         self._forward_graph.label_edges()
 
         self._graph_stack_push(self._forward_graph)
@@ -55,17 +57,26 @@ class NaiveGraph(DynamicGraph):
 
         if str(self.current_timestamp + 1) not in self.graph_updates:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
-
-        self._forward_graph = CSR(self.edge_list[self.current_timestamp + 1], self.graph_updates[str(self.current_timestamp+1)]["num_nodes"], is_edge_reverse=True)
+        # t0 = time.time()
+        self._forward_graph = CSR(self.fwd_edge_list[self.current_timestamp + 1], self.graph_updates[str(self.current_timestamp+1)]["num_nodes"], is_edge_reverse=True)
+        # t1 = time.time()
+        # print(f"💄💄💄 Time taken to make forward graph for t={self.current_timestamp} is {t1-t0}")
+        # t0 = time.time()
         self._forward_graph.label_edges()
+        # t1 = time.time()
+        # print(f"🔖🔖🔖 Time taken to label edges for t={self.current_timestamp} is {t1-t0}")
         self._graph_stack_push(self._forward_graph)
+        
+        # t0 = time.time()
         self._get_graph_csr_ptrs()
+        # t1 = time.time()
+        # print(f"🎁🎁🎁 Time taken to move to GPU for t={self.current_timestamp} is {t1-t0}")
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
         
         fwd_graph = self._graph_stack_top()
-        self._backward_graph = CSR(self.edge_list[self.current_timestamp], self.graph_updates[str(self.current_timestamp)]["num_nodes"])
+        self._backward_graph = CSR(self.bwd_edge_list[self.current_timestamp], self.graph_updates[str(self.current_timestamp)]["num_nodes"])
         self._backward_graph.copy_label_edges(fwd_graph) 
         self._get_graph_csr_ptrs()
         
@@ -76,6 +87,6 @@ class NaiveGraph(DynamicGraph):
         self._graph_stack_pop()
         self._forward_graph = self._graph_stack_top()
         
-        self._backward_graph = CSR(self.edge_list[self.current_timestamp - 1], self.graph_updates[str(self.current_timestamp - 1)]["num_nodes"])
+        self._backward_graph = CSR(self.bwd_edge_list[self.current_timestamp - 1], self.graph_updates[str(self.current_timestamp - 1)]["num_nodes"])
         self._backward_graph.copy_label_edges(self._forward_graph) 
         self._get_graph_csr_ptrs()

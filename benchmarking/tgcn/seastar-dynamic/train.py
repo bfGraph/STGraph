@@ -120,6 +120,8 @@ def main(args):
         # dyn_graph_index is dynamic graph index
         for index in range(0,len(train_features)): 
             
+            # t1 = time.time()
+            
             # Getting the graph for a particular timestamp
             G.get_graph(index) 
 
@@ -141,6 +143,12 @@ def main(args):
             gpu_mem_arr.append(used_gpu_mem)
             used_cpu_mem = (psutil.virtual_memory()[3]) - initial_used_cpu_mem
             cpu_mem_arr.append(used_cpu_mem)
+            
+            # run_time_this_timestamp = time.time() - t1
+            # print(f"⌛⌛⌛ Takes a total of {run_time_this_timestamp}")
+            
+            # if index == 1:
+            #     quit()
             
     
         cost = cost / (index+1)
