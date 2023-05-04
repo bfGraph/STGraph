@@ -7,7 +7,7 @@ Seastar is a cutting-edge system designed to enhance the performance of graph ne
 
 ## Why Seastar
 
-Show an image of the GCN layer formula, similar to the Seastar GCN version.
+![Seastar GCN Formula](https://github.com/bfGraph/Seastar/blob/main/assets/Seastar%20GCN%20Formula.png?raw=true)
 
 Seastars' objective is more natural GNN programming so that users’ learning curve is flattened. Our key observation is that the equation for a GCN layer shown above takes the form of vertex-centric computation, i.e., it computes the features of a center vertex 𝑣 by aggregating the features of its neighbours.
 
