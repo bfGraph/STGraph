@@ -276,7 +276,7 @@ public:
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void print_graph();
     void print_array();
-    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(std::vector<int> eids);
+    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
     void label_edges();
     uint32_t find_edge_id(uint32_t src, uint32_t dest);
     std::tuple<uint32_t, uint32_t> get_graph_attr();
@@ -783,7 +783,7 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector<int> eids)
+std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
 {
 
     // we are building a compressed CSR arrays without
@@ -791,6 +791,7 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector
 
     thrust::host_vector<int> row_offset;
     thrust::host_vector<int> column_indices;
+    thrust::host_vector<int> eids;
 
     int row_offset_size = nodes.size() + 1;
     int column_indices_size = edges.items.size();
@@ -814,17 +815,7 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector
 
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
-    DEV_VEC eids_device(eids.size());
-
-    if (eids.size() == 0)
-    {
-        thrust::sequence(eids_device.begin(), eids_device.end());
-    }
-    else
-    {
-        // copying eids
-        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
-    }
+    DEV_VEC eids_device = eids;
 
     std::tuple<std::size_t, std::size_t, std::size_t> t;
     std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
@@ -971,7 +962,7 @@ PYBIND11_MODULE(pcsr, m)
         .def("get_n", &PCSR::get_n)
         .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
-        .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
+        .def("get_csr_ptrs", &PCSR::get_csr_ptrs)
         .def("get_graph_attr", &PCSR::get_graph_attr)
         .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)
