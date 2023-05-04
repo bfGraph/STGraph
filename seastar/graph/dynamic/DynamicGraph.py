@@ -3,6 +3,7 @@ import time
 
 
 from seastar.graph.SeastarGraph import SeastarGraph
+from rich import inspect
 
 
 from abc import ABC, abstractmethod

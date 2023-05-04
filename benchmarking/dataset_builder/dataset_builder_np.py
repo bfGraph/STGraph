@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 import time
 from tqdm import tqdm
 
+import numpy as np
 from rich import inspect
 
 parser = ArgumentParser(
@@ -80,6 +81,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 def create_graph(
+    dataset_path,
     num_nodes=500,
     edge_multiplier=0.2,
     add_coeff=0.1,
@@ -88,48 +90,36 @@ def create_graph(
     low_limit=0.9,
     upp_limit=1.1,
 ):
-    graph_json = {
-        "edge_mapping": {"edge_index": {}, "edge_weight": {}},
-        "time_periods": total_time,
-        "y": [],
-    }
-
+    
+    np_edge_index = []
+    np_edge_weight = []
+    np_y = []
+    
     edge_count = (num_nodes * (num_nodes - 1)) * edge_multiplier
     num_edges_low_limit = low_limit * edge_count
     num_edges_upp_limit = upp_limit * edge_count
-
+    
     # creating the base graph
     edge_list = set()
     edge_weight_list = []
     feature_list = []
-
+    
     # this will have the number of edges in the graph
     # for the current time stamp
     curr_time_edge_count = randint(int(num_edges_low_limit), int(num_edges_upp_limit))
-
+    
     while len(edge_list) != curr_time_edge_count:
         edge = (randint(0, num_nodes - 1), randint(0, num_nodes - 1))
         edge_list.add(edge)
 
-    # adding self loops
-    for i in range(num_nodes):
-        edge_list.add((i,i))
-
     edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
-            
-    # getting the node features for each node of the base graph
-    a0 = time.time()
     feature_list = [randint(0, 100) for i in range(num_nodes)]
-    a1 = time.time()
-
-    print(f'Time to get all features: {a1-a0}')
-    
     edge_list = list(edge_list)
     
-    graph_json["edge_mapping"]["edge_index"]["0"] = edge_list
-    graph_json["edge_mapping"]["edge_weight"]["0"] = edge_weight_list
-    graph_json["y"].append(feature_list)
-
+    np_edge_index.append(edge_list)
+    np_edge_weight.append(edge_weight_list)
+    np_y.append(feature_list)
+    
     # creating the next time stamp info from previous
     # time stamps information
     prev_edge_list = edge_list
@@ -153,17 +143,29 @@ def create_graph(
 
         curr_edge_weight_list = [randint(1, 1000) for i in range(len(curr_edge_list))]
         curr_feature_list = [randint(0, 100) for i in range(num_nodes)]
-
+        
         curr_edge_list = list(curr_edge_list)
-
-        graph_json["edge_mapping"]["edge_index"][str(time_stamp)] = curr_edge_list
-        graph_json["edge_mapping"]["edge_weight"][str(time_stamp)] = curr_edge_weight_list
-        graph_json["y"].append(curr_feature_list)
-
+        
+        np_edge_index.append(curr_edge_list)
+        np_edge_weight.append(curr_edge_weight_list)
+        np_y.append(curr_feature_list)
+        
         prev_edge_list = curr_edge_list
-
-    return graph_json
-
+    
+        
+    np_edge_index = np.array(np_edge_index)
+    np_edge_weight = np.array(np_edge_weight)
+    np_y = np.array(np_y)
+    
+    with open(f'{dataset_path}/edge_index.npy', 'wb') as f:
+        np.save(f, np_edge_index)
+        
+    with open(f'{dataset_path}/edge_weight.npy', 'wb') as f:
+        np.save(f, np_edge_weight)
+        
+    with open(f'{dataset_path}/y.npy', 'wb') as f:
+        np.save(f, np_y)
+    
 graph_name = args.dataset_name
 dataset_path = "../dataset/"
 
@@ -172,16 +174,16 @@ if os.path.exists(dataset_path + graph_name):
     quit()
 
 
-t0 = time.time()
-
-graph_json = create_graph(args.N, args.M, args.A, args.D, args.T, args.L, args.U)
-
+# t0 = time.time()
 folder_path = os.path.join(dataset_path, graph_name)
 os.mkdir(folder_path)
 
-with open(f"{folder_path}/{graph_name}.json", "w") as fp:
-    json.dump(graph_json, fp)
+create_graph(folder_path, args.N, args.M, args.A, args.D, args.T, args.L, args.U)
 
-t1 = time.time()
 
-print(f'Total time taken: {t1-t0}')
+# with open(f"{folder_path}/{graph_name}.json", "w") as fp:
+#     json.dump(graph_json, fp)
+
+# t1 = time.time()
+
+# print(f'Total time taken: {t1-t0}')
