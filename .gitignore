@@ -26,3 +26,4 @@ test_*.*
 .vscode/
 *.svg
 *.json
+*.npy

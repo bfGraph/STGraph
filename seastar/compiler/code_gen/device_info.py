@@ -15,6 +15,7 @@ CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
 class deviceinfo():
 
     def __init__(self):
+        # /usr/lib/wsl/lib/libcuda.so
         libnames = ('/usr/lib/wsl/lib/libcuda.so', 'libcuda.dylib', 'cuda.dll')
         for libname in libnames:
             try:

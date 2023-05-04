@@ -107,5 +107,5 @@ def gen_cuda(configs):
             raise NotImplementedError('{} Template not supported'.format(config['template_name']))
         h += rendered_tpl
     # UNCOMMENT IF KERNEL IS TO BE PRINTED    
-    print(h)
+    # print(h)
     return compile_cuda(h)

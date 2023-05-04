@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include <vector>
 #include <tuple>
+#include <chrono>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -27,11 +28,16 @@ public:
     std::vector<int> in_degrees;
     std::vector<int> out_degrees;
 
-    CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edge_reverse);
-    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
-    void label_edges();
-    int find_edge_id(int src, int dst);
-    void copy_label_edges(CSR new_csr);
+    std::size_t row_offset_ptr;
+    std::size_t column_indices_ptr;
+    std::size_t eids_ptr;
+
+    CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool is_edge_reverse);
+    // std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
+    void get_csr_ptrs();
+    // void label_edges();
+    // int find_edge_id(int src, int dst);
+    // void copy_label_edges(CSR new_csr);
     void print_csr_arrays();
     void print_graph();
 };
@@ -43,15 +49,13 @@ bool sort_by_sec(const std::tuple<int, int> &a,
            std::tie(std::get<1>(b), std::get<0>(b));
 }
 
-CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edge_reverse = false)
+CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool is_edge_reverse = false)
 {
-    if (is_edge_reverse)
-        sort(edge_list.begin(), edge_list.end(), sort_by_sec);
-    else
-        sort(edge_list.begin(), edge_list.end());
 
     // initialising row_offset values all to -1
     row_offset.resize(num_nodes + 1);
+    column_indices.resize(edge_list.size());
+    eids.resize(edge_list.size());
     thrust::fill(row_offset.begin(), row_offset.end(), -1);
     row_offset[0] = 0;
 
@@ -63,10 +67,11 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
     int end = 0;
 
     // iterating through the edge_list
-    for (auto &edge : edge_list)
+    for (int i = 0; i < edge_list.size(); ++i)
     {
-        int src = is_edge_reverse ? std::get<1>(edge) : std::get<0>(edge);
-        int dst = is_edge_reverse ? std::get<0>(edge) : std::get<1>(edge);
+        int src = is_edge_reverse ? std::get<1>(edge_list[i]) : std::get<0>(edge_list[i]);
+        int dst = is_edge_reverse ? std::get<0>(edge_list[i]) : std::get<1>(edge_list[i]);
+        int eid = std::get<2>(edge_list[i]);
 
         // first edge
         if (beg == 0 && end == 0)
@@ -85,7 +90,8 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
 
         // adding the dst node to the column indices
         // and incrementing the end range by 1
-        column_indices.push_back(dst);
+        column_indices[i] = dst;
+        eids[i] = eid;
         end += 1;
 
         // updating the degree arrays
@@ -105,69 +111,19 @@ CSR::CSR(std::vector<std::tuple<int, int>> edge_list, int num_nodes, bool is_edg
         if (row_offset[i] == -1)
             row_offset[i] = curr_val;
     }
+
+    get_csr_ptrs();
 }
 
-std::tuple<std::size_t, std::size_t, std::size_t> CSR::get_csr_ptrs()
+void CSR::get_csr_ptrs()
 {
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
     DEV_VEC eids_device = eids;
 
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
-    std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
-    std::get<1>(t) = (std::size_t)RAW_PTR(column_indices_device);
-    std::get<2>(t) = (std::size_t)RAW_PTR(eids_device);
-    return t;
-}
-
-int binary_search_idx(thrust::host_vector<int> vec, int start, int end, int elem)
-{
-    auto lower = std::lower_bound(vec.begin() + start, vec.begin() + end, elem);
-    const bool found = lower != vec.begin() + end && *lower == elem;
-
-    if (found)
-        return std::distance(vec.begin(), lower);
-    else
-        return -1;
-}
-
-int CSR::find_edge_id(int src, int dst)
-{
-
-    int beg = row_offset[src];
-    int end = row_offset[src + 1];
-
-    int col_idx = binary_search_idx(column_indices, beg, end, dst);
-
-    if (col_idx != -1)
-        return eids[col_idx];
-    else
-        return -1;
-}
-
-void CSR::label_edges()
-{
-    eids.resize(column_indices.size());
-    thrust::sequence(eids.begin(), eids.end());
-}
-
-void CSR::copy_label_edges(CSR ref_csr)
-{
-    eids.resize(column_indices.size());
-
-    int num_nodes = row_offset.size() - 1;
-    for (int src = 0; src < num_nodes; ++src)
-    {
-        int beg = row_offset[src];
-        int end = row_offset[src + 1];
-
-        for (int dst_idx = beg; dst_idx < end; ++dst_idx)
-        {
-            int dst = column_indices[dst_idx];
-            int id = ref_csr.find_edge_id(dst, src);
-            eids[dst_idx] = id;
-        }
-    }
+    row_offset_ptr = (std::size_t)RAW_PTR(row_offset_device);
+    column_indices_ptr = (std::size_t)RAW_PTR(column_indices_device);
+    eids_ptr = (std::size_t)RAW_PTR(eids_device);
 }
 
 void CSR::print_csr_arrays()
@@ -248,15 +204,19 @@ PYBIND11_MODULE(csr, m)
     m.doc() = "CPython module for CSR"; // optional module docstring
 
     py::class_<CSR>(m, "CSR")
-        .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
-        .def("label_edges", &CSR::label_edges)
-        .def("copy_label_edges", &CSR::copy_label_edges)
+        // .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
+        .def(py::init<std::vector<std::tuple<int, int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
+        // .def("label_edges", &CSR::label_edges)
+        // .def("copy_label_edges", &CSR::copy_label_edges)
         .def("get_csr_ptrs", &CSR::get_csr_ptrs)
         .def("print_csr_arrays", &CSR::print_csr_arrays)
         .def("print_graph", &CSR::print_graph)
         .def_readwrite("row_offset", &CSR::row_offset)
         .def_readwrite("column_indices", &CSR::column_indices)
         .def_readwrite("eids", &CSR::eids)
+        .def_readwrite("row_offset_ptr", &CSR::row_offset_ptr)
+        .def_readwrite("column_indices_ptr", &CSR::column_indices_ptr)
+        .def_readwrite("eids_ptr", &CSR::eids_ptr)
         .def_readwrite("out_degrees", &CSR::out_degrees)
         .def_readwrite("in_degrees", &CSR::in_degrees)
         .def("__copy__", [](const CSR &self)

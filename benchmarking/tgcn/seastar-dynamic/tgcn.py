@@ -103,9 +103,11 @@ class SeastarTGCNCell(torch.nn.Module):
         return H
 
     def _calculate_update_gate(self, g, X, edge_weight, H):
+        # print(X.shape)
         h = self.conv_z(g, X, edge_weight=edge_weight)
         # print(h.shape)
         # print(H.shape)
+        # print("\n")
         Z = torch.cat((h, H), axis=1) # axis values need to be checked
         Z = self.linear_z(Z)
         Z = torch.sigmoid(Z)
