@@ -21,6 +21,7 @@ from rich.pretty import pprint
 # install(show_locals=True)
 
 from seastar.dataset.SoorahBase import SoorahBase
+# from seastar.dataset.EnglandCOVID import EnglandCOVID
 
 
 # GPU | CPU
@@ -54,6 +55,7 @@ def main(args):
     
     
     eng_covid = SoorahBase(args.dataset,verbose=True)
+    # eng_covid = EnglandCOVID(verbose=True)
     
     print("Loaded dataset into the train.py pygt")
     
@@ -92,7 +94,8 @@ def main(args):
     cuda = True
     
     edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
-    train_edges_lst = [to_default_device(torch.from_numpy(edge_index)) for edge_index in train_edges_lst]
+    train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
+    # train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index).T)) for edge_index in train_edges_lst]
 
     # G = GPMAGraph(train_edges_lst)
     # G = PCSRGraph(train_edges_lst)
