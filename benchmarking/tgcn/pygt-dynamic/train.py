@@ -94,7 +94,8 @@ def main(args):
     cuda = True
     
     edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
-    train_edges_lst = [to_default_device(torch.from_numpy(edge_index)) for edge_index in train_edges_lst]
+    train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
+    # train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index).T)) for edge_index in train_edges_lst]
 
     # G = GPMAGraph(train_edges_lst)
     # G = PCSRGraph(train_edges_lst)
