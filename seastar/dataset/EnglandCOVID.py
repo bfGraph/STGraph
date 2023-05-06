@@ -43,6 +43,10 @@ class EnglandCOVID:
         if self._verbose:
             console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
         self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        
+        # THIS NEEDS TO BE EDITED
+        # with open('../../dataset/eng_covid/eng_covid.json', 'w') as f:
+        #     json.dump(self._dataset,f)
 
     def _get_edge_info(self):
         # getting the edge_list and edge_weights

@@ -276,7 +276,7 @@ public:
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void print_graph();
     void print_array();
-    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
+    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(std::vector<int> eids);
     void label_edges();
     uint32_t find_edge_id(uint32_t src, uint32_t dest);
     std::tuple<uint32_t, uint32_t> get_graph_attr();
@@ -300,10 +300,12 @@ PCSR::PCSR(uint32_t init_n)
         edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
         edges.H = bsr_word(edges.N / edges.logN);
 
+        edges.items.resize(edges.N);
+
         for (int i = 0; i < edges.N; i++)
         {
             edge_t new_edge(0, 0);
-            edges.items.push_back(new_edge);
+            edges.items[i] = new_edge;
         }
 
         for (int i = 0; i < init_n; i++)
@@ -333,10 +335,11 @@ void PCSR::init_graph(std::string graph_file_path)
     edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
     edges.H = bsr_word(edges.N / edges.logN);
 
+    edges.items.resize(edges.N);
     for (int i = 0; i < edges.N; i++)
     {
         edge_t new_edge(0, 0);
-        edges.items.push_back(new_edge);
+        edges.items[i] = new_edge;
     }
 
     for (int i = 0; i < node_size; i++)
@@ -472,10 +475,11 @@ void PCSR::double_list()
     edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
     edges.H = bsr_word(edges.N / edges.logN);
 
+    edges.items.resize(edges.N);
     for (int i = edges.N / 2; i < edges.N; i++)
     {
         edge_t new_edge(0, 0);
-        edges.items.push_back(new_edge);
+        edges.items[i] = new_edge;
     }
 
     redistribute(0, edges.N);
@@ -701,6 +705,8 @@ vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
     uint64_t n = get_n();
     vector<tuple<uint32_t, uint32_t, uint32_t>> output;
 
+    output.resize(edge_count);
+    int iter = 0;
     for (int i = 0; i < n; i++)
     {
         uint32_t start = nodes[i].beginning;
@@ -709,8 +715,9 @@ vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
         {
             if (!is_null(edges.items[j]))
             {
-                output.push_back(
-                    make_tuple(i, edges.items[j].dest, edges.items[j].value));
+                output[iter] =
+                    make_tuple(i, edges.items[j].dest, edges.items[j].value);
+                iter += 1;
             }
         }
     }
@@ -783,7 +790,7 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
+std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector<int> eids)
 {
 
     // we are building a compressed CSR arrays without
@@ -791,31 +798,38 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
 
     thrust::host_vector<int> row_offset;
     thrust::host_vector<int> column_indices;
-    thrust::host_vector<int> eids;
 
     int row_offset_size = nodes.size() + 1;
     int column_indices_size = edges.items.size();
 
     // first element of row offset is always zero
-    row_offset.push_back(0);
+    row_offset.resize(row_offset_size);
+    column_indices.resize(edge_count);
+    row_offset[0] = 0;
 
     for (int i = 0; i < row_offset_size - 1; ++i)
     {
-        row_offset.push_back(nodes[i].num_neighbors + row_offset[i]);
+        row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
     }
 
+    int iter = 0;
     for (int i = 0; i < column_indices_size; ++i)
     {
         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
         {
-            column_indices.push_back(edges.items[i].dest);
-            eids.push_back(edges.items[i].value);
+            column_indices[iter] = edges.items[i].dest;
+            iter += 1;
         }
     }
 
     DEV_VEC row_offset_device = row_offset;
     DEV_VEC column_indices_device = column_indices;
-    DEV_VEC eids_device = eids;
+    DEV_VEC eids_device(edge_count);
+
+    if (eids.size() == 0)
+        thrust::sequence(eids_device.begin(), eids_device.end());
+    else
+        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
 
     std::tuple<std::size_t, std::size_t, std::size_t> t;
     std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
@@ -962,7 +976,7 @@ PYBIND11_MODULE(pcsr, m)
         .def("get_n", &PCSR::get_n)
         .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
-        .def("get_csr_ptrs", &PCSR::get_csr_ptrs)
+        .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
         .def("get_graph_attr", &PCSR::get_graph_attr)
         .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)

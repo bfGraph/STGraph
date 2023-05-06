@@ -9,6 +9,9 @@ from seastar.compiler.backend.pytorch_backend import backend_cb
 import snoop
 from rich import inspect
 
+from rich.traceback import install
+install(show_locals=True)
+
 class SeastarGCNLayer(nn.Module):
     def __init__(self,
                  in_feats,

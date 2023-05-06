@@ -21,6 +21,7 @@ from rich.pretty import pprint
 # install(show_locals=True)
 
 from seastar.dataset.SoorahBase import SoorahBase
+from seastar.dataset.EnglandCOVID import EnglandCOVID
 
 
 # GPU | CPU
@@ -54,6 +55,7 @@ def main(args):
     
     
     eng_covid = SoorahBase(args.dataset,verbose=True)
+    # eng_covid = EnglandCOVID(verbose=True)
     
     print("Loaded dataset into the train.py pygt")
     

@@ -72,7 +72,7 @@ class DynamicGraph(SeastarGraph):
             }
         
     def get_graph(self, timestamp: int):
-
+        # print("💄💄💄 Get_graph (forward) called",flush=True)
         self._is_backprop_state = False
         
         if timestamp < self.current_timestamp:
@@ -83,9 +83,10 @@ class DynamicGraph(SeastarGraph):
             self.current_timestamp += 1
 
     def get_backward_graph(self, timestamp: int):
+        # print("📝📝📝 Get_backward_graph (backward) called",flush=True)
         if not self._is_backprop_state:
-            self._init_reverse_graph()
             self._is_backprop_state = True
+            self._init_reverse_graph()
         
         if timestamp > self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
