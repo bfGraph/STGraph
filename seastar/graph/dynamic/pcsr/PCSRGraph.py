@@ -4,7 +4,7 @@ from rich import inspect
 import time
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.pcsr.pcsr import PCSR, copy_label_edges, build_reverse_pcsr
+from seastar.graph.dynamic.pcsr.pcsr import PCSR, build_reverse_pcsr
 
 class PCSRGraph(DynamicGraph):
     def __init__(self, edge_list):
@@ -17,7 +17,6 @@ class PCSRGraph(DynamicGraph):
         self._forward_graph = PCSR(self.max_num_nodes)
         self._backward_graph = PCSR(self.max_num_nodes)
         self._forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
-        self._forward_graph.label_edges()
         
         self._update_graph_cache()
         self._get_graph_csr_ptrs(eids=list())
@@ -36,7 +35,7 @@ class PCSRGraph(DynamicGraph):
             edge_list_for_t.sort()
             eid_t = [edge_list_for_t[i][2] for i in range(len(edge_list_for_t))]
             self.bwd_eid_list.append(eid_t)
-        
+                
     def graph_type(self):
         return "pcsr"
         
@@ -60,7 +59,7 @@ class PCSRGraph(DynamicGraph):
             return copy.deepcopy(self.graph_cache['fwd'])
     
     def _get_graph_csr_ptrs(self, eids): 
-        
+
         if self._is_backprop_state:
             backward_csr_ptrs = self._backward_graph.get_csr_ptrs(eids=eids)
             self.bwd_row_offset_ptr = backward_csr_ptrs[0]
@@ -80,6 +79,9 @@ class PCSRGraph(DynamicGraph):
         
         graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
         graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
+        
+        # print(f"(FORWARD) ➕➕➕ Adding a total of {len(graph_additions)} elements", flush=True)
+        # print(f"(FORWARD) ➖➖➖ Removing a total of {len(graph_deletions)} elements", flush=True)
 
         self._forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
         self._forward_graph.edge_update_list(graph_deletions,is_delete=True,is_reverse_edge=True)
@@ -90,11 +92,11 @@ class PCSRGraph(DynamicGraph):
         
         # checking if the reverse base graph exists in the cache
         # we can load it from there instead of building it each time
-        if 'reverse' in self.graph_cache:
+        if 'bwd' in self.graph_cache:
             self._backward_graph = self._get_cached_graph(is_bwd=True)
         else:
             build_reverse_pcsr(self._backward_graph, self._forward_graph)
-            
+
             # storing the reverse base graph in cache after building
             # it for the first time
             self._update_graph_cache(is_bwd=True)
@@ -110,6 +112,9 @@ class PCSRGraph(DynamicGraph):
         
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
+        
+        # print(f"(BACKWARD) ➕➕➕ Adding a total of {len(graph_additions)} elements",flush=True)
+        # print(f"(BACKWARD) ➖➖➖ Removing a total of {len(graph_deletions)} elements",flush=True)
         
         self._backward_graph.edge_update_list(graph_additions)   
         self._backward_graph.edge_update_list(graph_deletions,is_delete=True)

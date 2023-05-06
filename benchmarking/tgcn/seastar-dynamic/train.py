@@ -54,7 +54,7 @@ def main(args):
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
-    eng_covid = SoorahBase(args.dataset, verbose=True, for_seastar=True)
+    eng_covid = SoorahBase(args.dataset, verbose=True, lags=args.lags, for_seastar=True)
     
     print("Loaded dataset into the train.py seastar")
     
@@ -83,7 +83,7 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split):]
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
-    model = to_default_device(SeastarTGCN(8))
+    model = to_default_device(SeastarTGCN(args.lags))
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -101,6 +101,14 @@ def main(args):
     else:
         print("Error: Invalid Type")
         quit()
+    
+    # inspect(G.graph_updates)
+    # num_edges = 0
+    # for key, val in G.graph_updates.items():
+    #     num_edges += len(val["add"])
+    #     num_edges -= len(val["delete"])
+    #     print("For timestamp={} NUM_ADDITIONS={} NUM_DELETIONS={} | TOTAL_EDGE_COUNT={}".format(key,len(val["add"]),len(val["delete"]),num_edges),flush=True)
+    # quit()
 
     # train
     print("Training...\n")
@@ -143,7 +151,6 @@ def main(args):
             gpu_mem_arr.append(used_gpu_mem)
             used_cpu_mem = (psutil.virtual_memory()[3]) - initial_used_cpu_mem
             cpu_mem_arr.append(used_cpu_mem)
-            
             # run_time_this_timestamp = time.time() - t1
             # print(f"⌛⌛⌛ Takes a total of {run_time_this_timestamp}")
             
@@ -154,7 +161,9 @@ def main(args):
         cost = cost / (index+1)
         
         # t1 = time.time()
+        # print("⚠️⚠️⚠️ Starting Backprop")
         cost.backward()
+        # print("⚠️⚠️⚠️ Backprop Completed")
         # print(f"⌛⌛⌛ Time taken for backprop {time.time() - t1}")
         
         # if epoch == 1:
@@ -222,6 +231,8 @@ if __name__ == '__main__':
 
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
+    parser.add_argument("--lags", type=int, default=8,
+            help="lags")
     parser.add_argument("--type", type=str, default="naive",
             help="Seastar Type")
     parser.add_argument("--num_epochs", type=int, default=1,
