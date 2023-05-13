@@ -362,20 +362,23 @@ class Kernel():
                                  self.launch_config[3],
                                  self.launch_config[4],
                                  self.launch_config[5],
-                                 0, None, params, None)
+                                 0, None, params, 0)
             
             if ret:
                 raise Exception('cuLaunchKernel', ret)
         except Exception as e:
             raise e
+        
+        # sync_ret = cudaDeviceSynchronize()
+        # if ret:
+        #     raise Exception('cudaDeviceSynchronize', sync_ret)
 
 class V2Kernel(Kernel):
     def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
+        ret, self.K = cuModuleGetFunction(compiled_module, kernel_name.encode())
         if ret:
             raise Exception('cuModuleGetFunction', ret)
         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
@@ -386,8 +389,7 @@ class FeatureAdaptiveKernel(Kernel):
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
 
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
+        ret, self.K = cuModuleGetFunction( compiled_module, kernel_name.encode())
         if ret:
             raise Exception('cuModuleGetFunction', ret)
         self.launch_config = launch_config[0],1,1,launch_config[1],1,1

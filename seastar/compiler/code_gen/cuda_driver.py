@@ -1,67 +1,37 @@
-# Copy from: https://github.com/PacktPublishing/Hands-On-GPU-Programming-with-Python-and-CUDA/blob/master/Chapter10/cuda_driver.py
+from cuda import cuda, cudart
 from ctypes import *
-import sys
-
-if 'linux' in sys.platform:
-	cuda = CDLL('/usr/lib/wsl/lib/libcuda.so')
- 	# cuda = CDLL('libcuda.so')
-elif 'win' in sys.platform:
-	cuda = CDLL('nvcuda.dll')
-
-CUDA_ERRORS = {0 : 'CUDA_SUCCESS', 1 : 'CUDA_ERROR_INVALID_VALUE', 200 : 'CUDA_ERROR_INVALID_IMAGE', 201 : 'CUDA_ERROR_INVALID_CONTEXT ', 400 : 'CUDA_ERROR_INVALID_HANDLE' }
 
 cuInit = cuda.cuInit
-cuInit.argtypes = [c_uint]
-cuInit.restype = int
-
 cuDeviceGetCount = cuda.cuDeviceGetCount
-cuDeviceGetCount.argtypes = [POINTER(c_int)]
-cuDeviceGetCount.restype = int
-
 cuCtxGetCurrent = cuda.cuCtxGetCurrent
-cuCtxGetCurrent.argtypes = [c_void_p]
-cuCtxGetCurrent.restype = int
-
 cuDeviceGet = cuda.cuDeviceGet
-cuDeviceGet.argtypes = [POINTER(c_int), c_int]
-cuDeviceGet.restype = int
-
+cuDeviceGetName = cuda.cuDeviceGetName
+cuDeviceGetAttribute = cuda.cuDeviceGetAttribute
+cuMemGetInfo = cuda.cuMemGetInfo
 cuCtxCreate = cuda.cuCtxCreate
-cuCtxCreate.argtypes = [c_void_p, c_uint, c_int]
-cuCtxCreate.restype = int
-
 cuModuleLoad = cuda.cuModuleLoad
-cuModuleLoad.argtypes = [c_void_p, c_char_p]
-cuModuleLoad.restype  = int
-
 cuCtxSynchronize = cuda.cuCtxSynchronize
-cuCtxSynchronize.argtypes = []
-cuCtxSynchronize.restype = int
-
+cuModuleLoadData = cuda.cuModuleLoadData
 cuModuleGetFunction = cuda.cuModuleGetFunction
-cuModuleGetFunction.argtypes = [c_void_p, c_void_p, c_char_p ]
-cuModuleGetFunction.restype = int
-
+cuStreamCreate = cuda.cuStreamCreate
 cuMemAlloc = cuda.cuMemAlloc
-cuMemAlloc.argtypes = [c_void_p, c_size_t]
-cuMemAlloc.restype = int
-
-cuMemcpyHtoD = cuda.cuMemcpyHtoD 
-cuMemcpyHtoD.argtypes = [c_void_p, c_void_p, c_size_t]
-cuMemAlloc.restype = int
-
-cuMemcpyDtoH = cuda.cuMemcpyDtoH 
-cuMemcpyDtoH.argtypes = [c_void_p, c_void_p, c_size_t]
-cuMemcpyDtoH.restype = int
-
+cuMemcpyHtoD = cuda.cuMemcpyHtoD
+cuMemcpyDtoH = cuda.cuMemcpyDtoH
+cuMemcpyHtoDAsync = cuda.cuMemcpyHtoDAsync
+cuMemcpyDtoHAsync = cuda.cuMemcpyDtoHAsync
+cuStreamSynchronize = cuda.cuStreamSynchronize
 cuMemFree = cuda.cuMemFree
-cuMemFree.argtypes = [c_void_p] 
-cuMemFree.restype = int
-
 cuLaunchKernel = cuda.cuLaunchKernel
-cuLaunchKernel.argtypes = [c_void_p, c_uint, c_uint, c_uint, c_uint, c_uint, c_uint, c_uint, c_void_p, c_void_p, c_void_p]
-cuLaunchKernel.restype = int
-
 cuCtxDestroy = cuda.cuCtxDestroy
-cuCtxDestroy.argtypes = [c_void_p]
-cuCtxDestroy.restype = int
+cuStreamDestroy = cuda.cuStreamDestroy
+cuCtxGetDevice = cuda.cuCtxGetDevice
+
+cudaSetDevice = cudart.cudaSetDevice
+
+# Macros
+COMPUTE_CAPABILITY_MAJOR = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
+COMPUTE_CAPABILITY_MINOR = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
+MULTIPROCESSOR_COUNT = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT
+MAX_THREAD_PER_MULTIPROCESSOR = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR
+CLOCK_RATE = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_CLOCK_RATE
+MEMORY_CLOCK_RATE = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE
