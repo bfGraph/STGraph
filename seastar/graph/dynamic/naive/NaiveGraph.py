@@ -28,7 +28,7 @@ class NaiveGraph(DynamicGraph):
     def _prepare_edge_lst_bwd(self, edge_list):    
         self.bwd_edge_list = []
         for i in range(len(edge_list)):
-            edge_list_for_t = edge_list[i]
+            edge_list_for_t = copy.deepcopy(edge_list[i])
             edge_list_for_t.sort()
             self.bwd_edge_list.append(edge_list_for_t)
         
