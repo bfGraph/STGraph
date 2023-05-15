@@ -31,9 +31,9 @@ class TestDynamicGraph:
 
     def test_get_num_nodes(self):
         """
-        Assert the number of nodes in the graph, then repeat
-        this assert step after calling DynamicGraph.get_graph()
-        and DynamicGraph.get_backward_graph() in sequential order
+            Assert the number of nodes in the graph, then repeat
+            this assert step after calling DynamicGraph.get_graph()
+            and DynamicGraph.get_backward_graph() in sequential order
         """
 
         # base graph: t = 0
@@ -64,3 +64,39 @@ class TestDynamicGraph:
         # graph: t = 1
         naive_graph.get_backward_graph(0)
         assert naive_graph.get_num_nodes() == 4
+        
+    def test_get_num_edges(self):
+        """
+            Assert the number of edges in the graph, then repeat
+            this assert step after calling DynamicGraph.get_graph()
+            and DynamicGraph.get_backward_graph() in sequential order
+        """
+        
+        # base graph: t = 0
+        naive_graph = NaiveGraph(edge_list=self.edge_index)
+        assert naive_graph.get_num_edges() == 3
+
+        # graph: t = 1
+        naive_graph.get_graph(1)
+        assert naive_graph.get_num_edges() == 3
+
+        # graph: t = 2
+        naive_graph.get_graph(2)
+        assert naive_graph.get_num_edges() == 4
+
+        # graph: t = 3
+        naive_graph.get_graph(3)
+        assert naive_graph.get_num_edges() == 4
+
+        # Now moving the graph in the backward direction
+        # graph: t = 2
+        naive_graph.get_backward_graph(2)
+        assert naive_graph.get_num_edges() == 4
+        
+        # graph: t = 1
+        naive_graph.get_backward_graph(1)
+        assert naive_graph.get_num_edges() == 3
+        
+        # graph: t = 1
+        naive_graph.get_backward_graph(0)
+        assert naive_graph.get_num_edges() == 3
