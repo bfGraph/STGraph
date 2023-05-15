@@ -20,7 +20,6 @@ build
 dist
 *.egg-info
 *.txt
-test_*.*
 *.csv
 *.prof
 .vscode/

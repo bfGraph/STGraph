@@ -106,6 +106,14 @@ Make sure to go back to the root directory and run the following to build and in
  python3 -m build && pip uninstall seastar -y && pip install dist/seastar-1.0.0-py3-none-any.whl
 ```
 
+## Testing
+
+You can run the module tests for Seastar by running the following in the projects root directory
+
+```
+pytest tests/
+```
+
 ## Contributing
 
 Please read CONTRIBUTING.md for details on our code of conduct, and the process for submitting pull requests, issues, etc to us.
@@ -124,16 +132,16 @@ make html
 ```
 ## Authors
 
-| Author | Bio |
-| --- | --- |
-| `Joel Mathew Cherian` | Computer Science Student at National Institute of Technology Calicut |
+| Author                   | Bio                                                                  |
+| ------------------------ | -------------------------------------------------------------------- |
+| `Joel Mathew Cherian`    | Computer Science Student at National Institute of Technology Calicut |
 | `Nithin Puthalath Manoj` | Computer Science Student at National Institute of Technology Calicut |
 
 ## Attributions
 
-| Author(s) | Title | Link(s) |
-| --- | --- | --- |
-| `Wu, Yidi and Ma, Kaihao and Cai, Zhenkun and Jin, Tatiana and Li, Boyang and Zheng, Chenguang and Cheng, James and Yu, Fan` | `Seastar: vertex-centric programming for graph neural networks, 2021` | [paper](https://doi.org/10.1145/3447786.3456247), [code](https://zenodo.org/record/4988602)
-| `Wheatman, Brian and Xu, Helen` | `Packed Compressed Sparse Row: A Dynamic Graph Representation, 2018` | [paper](https://ieeexplore.ieee.org/abstract/document/8547566), [code](https://github.com/wheatman/Packed-Compressed-Sparse-Row)
-| `Sha, Mo and Li, Yuchen and He, Bingsheng and Tan, Kian-Lee` | `Accelerating Dynamic Graph Analytics on GPUs, 2017` | [paper](http://www.vldb.org/pvldb/vol11/p107-sha.pdf), [code](https://github.com/desert0616/gpma_demo)
-| `Benedek Rozemberczki, Paul Scherer, Yixuan He, George Panagopoulos, Alexander Riedel, Maria Astefanoaei, Oliver Kiss, Ferenc Beres, Guzmán López, Nicolas Collignon, Rik Sarkar` | `PyTorch Geometric Temporal: Spatiotemporal Signal Processing with Neural Machine Learning Models, 2021` | [paper](https://arxiv.org/pdf/2104.07788.pdf), [code](https://github.com/benedekrozemberczki/pytorch_geometric_temporal)
+| Author(s)                                                                                                                                                                         | Title                                                                                                    | Link(s)                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Wu, Yidi and Ma, Kaihao and Cai, Zhenkun and Jin, Tatiana and Li, Boyang and Zheng, Chenguang and Cheng, James and Yu, Fan`                                                      | `Seastar: vertex-centric programming for graph neural networks, 2021`                                    | [paper](https://doi.org/10.1145/3447786.3456247), [code](https://zenodo.org/record/4988602)                                      |
+| `Wheatman, Brian and Xu, Helen`                                                                                                                                                   | `Packed Compressed Sparse Row: A Dynamic Graph Representation, 2018`                                     | [paper](https://ieeexplore.ieee.org/abstract/document/8547566), [code](https://github.com/wheatman/Packed-Compressed-Sparse-Row) |
+| `Sha, Mo and Li, Yuchen and He, Bingsheng and Tan, Kian-Lee`                                                                                                                      | `Accelerating Dynamic Graph Analytics on GPUs, 2017`                                                     | [paper](http://www.vldb.org/pvldb/vol11/p107-sha.pdf), [code](https://github.com/desert0616/gpma_demo)                           |
+| `Benedek Rozemberczki, Paul Scherer, Yixuan He, George Panagopoulos, Alexander Riedel, Maria Astefanoaei, Oliver Kiss, Ferenc Beres, Guzmán López, Nicolas Collignon, Rik Sarkar` | `PyTorch Geometric Temporal: Spatiotemporal Signal Processing with Neural Machine Learning Models, 2021` | [paper](https://arxiv.org/pdf/2104.07788.pdf), [code](https://github.com/benedekrozemberczki/pytorch_geometric_temporal)         |
