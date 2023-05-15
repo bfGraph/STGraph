@@ -67,6 +67,9 @@ def main(args):
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
     
+    print("📝📝📝 GPU Memory in just storing features/targets is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
+    print("📝📝📝 CPU Memory in just storing features/targets is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
+    print("\n")
     # Hyperparameters
     train_test_split = 0.8
     
@@ -85,6 +88,9 @@ def main(args):
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
     model = to_default_device(PyGT_TGCN(8))
+    print("📝📝📝 GPU Memory after storing model is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
+    print("📝📝📝 CPU Memory after storing model is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
+    print("\n")
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -95,6 +101,11 @@ def main(args):
     
     edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
     train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
+    
+    print("📝📝📝 GPU Memory after storing edge list/weights: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
+    print("📝📝📝 CPU Memory after storing edge list/weights: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
+    print("\n")
+    
     # train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index).T)) for edge_index in train_edges_lst]
 
     # G = GPMAGraph(train_edges_lst)
@@ -139,6 +150,13 @@ def main(args):
             # if index == 1:
             #     quit()
             
+        # print("📝📝📝 GPU Memory after training is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem)*1.0))/(1024**2))
+        print("📝📝📝 GPU Memory after training is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
+        print("📝📝📝 CPU Memory after training is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
+        print("\n")
+            
+        if index == 3:
+            quit()
     
         cost = cost / (index+1)
         
