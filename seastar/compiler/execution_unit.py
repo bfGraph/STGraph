@@ -3,6 +3,7 @@ import snoop
 from .code_gen.cuda_driver import *
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
+from .code_gen.cuda_error import ASSERT_DRV
 
 # TODO: remove
 import numpy as np
@@ -364,8 +365,7 @@ class Kernel():
                                  self.launch_config[5],
                                  0, None, params, 0)
             
-            if ret:
-                raise Exception('cuLaunchKernel', ret)
+            ASSERT_DRV(ret)
         except Exception as e:
             raise e
         
@@ -379,8 +379,7 @@ class V2Kernel(Kernel):
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
         ret, self.K = cuModuleGetFunction(compiled_module, kernel_name.encode())
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
+        ASSERT_DRV(ret)
         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
 
 class FeatureAdaptiveKernel(Kernel):
@@ -390,6 +389,5 @@ class FeatureAdaptiveKernel(Kernel):
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
 
         ret, self.K = cuModuleGetFunction( compiled_module, kernel_name.encode())
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
+        ASSERT_DRV(ret)
         self.launch_config = launch_config[0],1,1,launch_config[1],1,1

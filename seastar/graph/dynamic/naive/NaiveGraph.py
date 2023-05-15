@@ -3,7 +3,7 @@ import numpy as np
 from rich import inspect
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.static.csr import CSR
+from seastar.graph.static.csr import CSR, print_dev_array
 from collections import deque
 import time
 
@@ -15,6 +15,9 @@ class NaiveGraph(DynamicGraph):
         self._prepare_edge_lst_bwd(self.fwd_edge_list)  
         self._forward_graph = [CSR(self.fwd_edge_list[i], self.graph_updates[str(i)]["num_nodes"], is_edge_reverse=True) for i in range(len(self.fwd_edge_list))]
         self._backward_graph = [CSR(self.bwd_edge_list[i], self.graph_updates[str(i)]["num_nodes"]) for i in range(len(self.bwd_edge_list))]
+        # self._forward_graph = [CSR(self.fwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"], is_edge_reverse=True)]
+        # self._backward_graph = [CSR(self.bwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"])]
+
         self._get_graph_csr_ptrs(0)
         
     def _prepare_edge_lst_fwd(self, edge_list):   
@@ -63,6 +66,11 @@ class NaiveGraph(DynamicGraph):
             self.fwd_row_offset_ptr = fwd_csr_ptrs.row_offset_ptr
             self.fwd_column_indices_ptr = fwd_csr_ptrs.column_indices_ptr
             self.fwd_eids_ptr = fwd_csr_ptrs.eids_ptr
+
+            # print(f"(PYTHON) RECEIVED ROW OFFSET PTR: {fwd_csr_ptrs.row_offset_ptr}")
+            # print_dev_array(fwd_csr_ptrs.row_offset_ptr,129)
+            # print("QUITTING")
+            # quit()
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp

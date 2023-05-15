@@ -5,6 +5,7 @@ import subprocess
 import ctypes
 import snoop
 from ctypes import c_void_p, c_char_p, byref
+from .cuda_error import ASSERT_DRV
 
 PTX_PATH='./egl_kernel.ptx'
 CU_PATH='./egl_kernel.cu'
@@ -39,8 +40,7 @@ def compile_cuda(cuda_text):
         compile_with_nvcc(cuda_text)
         char_p = (PTX_PATH).encode()
         ret, cu_module = cuModuleLoad(char_p)
-        if ret:
-            raise Exception('cuModuleLoad fails with ret ' + str(ret))
+        ASSERT_DRV(ret)
         return cu_module
     except Exception as e:
         raise e

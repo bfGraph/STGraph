@@ -161,7 +161,7 @@ def main(args):
         cost = cost / (index+1)
         
         # t1 = time.time()
-        # print("⚠️⚠️⚠️ Starting Backprop")
+        print("⚠️⚠️⚠️ Starting Backprop")
         cost.backward()
         # print("⚠️⚠️⚠️ Backprop Completed")
         # print(f"⌛⌛⌛ Time taken for backprop {time.time() - t1}")
