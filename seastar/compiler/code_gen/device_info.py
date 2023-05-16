@@ -30,7 +30,7 @@ class DeviceInfo:
 
         # Make sure to call cuInit(), otherwise we won't be
         # able to make any CUDA Driver API calls
-        cuInit(0)
+        # cuInit(0)
 
         # Getting the number of compatible GPU devices
         err, self.nGpus = cuDeviceGetCount()    
@@ -39,7 +39,7 @@ class DeviceInfo:
         # i.e ordinal = 0 for cuDeviceGet
         ordinal = 0
         err, self.device = cuDeviceGet(ordinal)
-        err, self.context = cuCtxCreate(0, self.device)
+        # err, self.context = cuCtxCreate(0, self.device)
 
         err, device_name = cuDeviceGetName(25, self.device)
         self.name = device_name.decode("utf-8")
