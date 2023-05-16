@@ -128,6 +128,7 @@ make html
 | --- | --- |
 | `Joel Mathew Cherian` | Computer Science Student at National Institute of Technology Calicut |
 | `Nithin Puthalath Manoj` | Computer Science Student at National Institute of Technology Calicut |
+| `Dr. Unnikrishnan Cheramangalath` | Assistant Professor in CSED at Indian Institue of Technology Palakkad |
 
 ## Attributions
 
