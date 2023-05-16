@@ -2,6 +2,7 @@
 #include <vector>
 #include <tuple>
 #include <chrono>
+#include <cstdint>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -25,19 +26,24 @@ public:
     thrust::host_vector<int> column_indices;
     thrust::host_vector<int> eids;
 
+    DEV_VEC row_offset_device;
+    DEV_VEC column_indices_device;
+    DEV_VEC eids_device;
+
     std::vector<int> in_degrees;
     std::vector<int> out_degrees;
 
-    std::size_t row_offset_ptr;
-    std::size_t column_indices_ptr;
-    std::size_t eids_ptr;
+    std::uintptr_t row_offset_ptr;
+    std::uintptr_t column_indices_ptr;
+    std::uintptr_t eids_ptr;
 
     CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool is_edge_reverse);
-    // std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
+    // std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
     void get_csr_ptrs();
     // void label_edges();
     // int find_edge_id(int src, int dst);
     // void copy_label_edges(CSR new_csr);
+    void print_row_offset();
     void print_csr_arrays();
     void print_graph();
 };
@@ -117,13 +123,28 @@ CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool i
 
 void CSR::get_csr_ptrs()
 {
-    DEV_VEC row_offset_device = row_offset;
-    DEV_VEC column_indices_device = column_indices;
-    DEV_VEC eids_device = eids;
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device = eids;
 
-    row_offset_ptr = (std::size_t)RAW_PTR(row_offset_device);
-    column_indices_ptr = (std::size_t)RAW_PTR(column_indices_device);
-    eids_ptr = (std::size_t)RAW_PTR(eids_device);
+    row_offset_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(row_offset_device));
+    column_indices_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(column_indices_device));
+    eids_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(eids_device));
+}
+
+void CSR::print_row_offset()
+{
+    int *dev_ptr = reinterpret_cast<int *>(row_offset_ptr);
+    int *host_ptr = (int *)malloc(row_offset.size() * sizeof(int));
+    cudaMemcpy(host_ptr, dev_ptr, row_offset.size() * sizeof(int), cudaMemcpyDeviceToHost);
+
+    std::cout << "PRINTING DEV AFTER RECAST AS SEP FUNC\n";
+    for (int i = 0; i < row_offset.size(); ++i)
+    {
+        std::cout << host_ptr[i] << " ";
+    }
+
+    std::cout << "\n=============================\n";
 }
 
 void CSR::print_csr_arrays()
@@ -199,9 +220,25 @@ void CSR::print_graph()
     }
 }
 
+void print_dev_array(std::uintptr_t ptr, int size)
+{
+    std::cout << "RECEIVED ROW OFFSET PTR: " << ptr << "\n";
+    int *dev_ptr = reinterpret_cast<int *>(ptr);
+    int *host_ptr = (int *)malloc(size * sizeof(int));
+    // thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast(raw_ptr);
+    cudaMemcpy(host_ptr, dev_ptr, size * sizeof(int), cudaMemcpyDeviceToHost);
+    std::cout << "\nPRINTING ARRAY\n";
+    for (int i = 0; i < size; ++i)
+    {
+        std::cout << host_ptr[i] << " ";
+    }
+    std::cout << "\n";
+}
+
 PYBIND11_MODULE(csr, m)
 {
     m.doc() = "CPython module for CSR"; // optional module docstring
+    m.def("print_dev_array", &print_dev_array, "Print arrays on the device");
 
     py::class_<CSR>(m, "CSR")
         // .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
@@ -211,6 +248,7 @@ PYBIND11_MODULE(csr, m)
         .def("get_csr_ptrs", &CSR::get_csr_ptrs)
         .def("print_csr_arrays", &CSR::print_csr_arrays)
         .def("print_graph", &CSR::print_graph)
+        .def("print_row_offset", &CSR::print_row_offset)
         .def_readwrite("row_offset", &CSR::row_offset)
         .def_readwrite("column_indices", &CSR::column_indices)
         .def_readwrite("eids", &CSR::eids)

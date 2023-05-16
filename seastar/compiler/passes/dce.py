@@ -7,4 +7,3 @@ def DCE(prog, output_vars):
     for s in reversed(prog): 
         if len(s.ret.users) == 0 and s.ret not in output_vars:
             s.remove_cur()
-    print('After DCE programs becomes:', prog)

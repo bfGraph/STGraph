@@ -456,7 +456,6 @@ class Program(object):
 
     def insert_stmts_before(self, stmt, stmts_list):
         for s in reversed(stmts_list):
-            print('current s', s, 'current stmt', stmt)
             stmt.insert_before(s)
             stmt = s
 

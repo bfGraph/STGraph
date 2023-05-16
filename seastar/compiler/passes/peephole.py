@@ -8,6 +8,8 @@ from .dce import DCE
 from ..program import Stmt, Var
 from ..schema import Schema
 
+from seastar.compiler.debugging.seastar_logger import print_log
+
 def execute_sym_program(prog, sym_table, rmv_list):
     for s in prog:
         if 'mul' in s.op_name.lower():
@@ -27,11 +29,10 @@ def execute_sym_program(prog, sym_table, rmv_list):
             l = sym_table[s.args[0].id] if not is_const_scalar(s.args[0]) else s.args[0] 
             sym_table[s.ret.id] = l
         else:
-            print('early stopping due to encounter', s)
+            print_log(f'[red bold]Peephole[/red bold]: Early stopping due to enouncter {str(s)}')
             break
 
 def generate_stmts_from_expr(expr, var_table):
-    print('var_table', var_table)
 
     preceding_neg = False
     if expr[0] == '-':
@@ -44,7 +45,6 @@ def generate_stmts_from_expr(expr, var_table):
         arg0 = var_table[tok_q.popleft()]
         op = tok_q.popleft()
         arg1 = var_table[tok_q.popleft()]
-        print('to create stmt for', arg0, op, arg1)
         if op == '*':
             op_name = 'Mul'
         elif op == '/':
@@ -52,7 +52,6 @@ def generate_stmts_from_expr(expr, var_table):
         else:
             raise NotImplementedError('op', op, 'is not supprted for PH optimization')
         stmt_list.append(Stmt.create_binary_bcast_stmt(Schema(op_name), args=[arg0, arg1]))
-        print('after create binary_bcast stmt', arg1)
         ret = stmt_list[-1].ret
         var_table[ret.id] = ret
         tok_q.appendleft(ret.id)
@@ -77,9 +76,7 @@ def sum_propogation(sum_stmt):
             old_arg = stmt.args[i]
             if old_arg == ret:
                 # Replace sum ret with sum arg
-                print(old_arg, 'is replaced with', arg, 'in stmt', stmt)
                 stmt.args[i] = arg
-                print('after replacement', stmt)
                 shape_propogation(stmt)
 
 def PH(BProg, known_vars, output_vars):
@@ -89,7 +86,6 @@ def PH(BProg, known_vars, output_vars):
         by applying various mathmatically equivelent tansformations.
     '''
     # Find candidate chain breaker;
-    print('Before PH', BProg)
     candidate_vars = set()
     var_table = {}
     for s in BProg:
@@ -112,7 +108,6 @@ def PH(BProg, known_vars, output_vars):
         dep_prog = dep_program(var, known_vars)
         sum_map[var.id] = []
         execute_sym_program(dep_prog, sym_table, sum_map[var.id])
-    print('candidate_vars', candidate_vars)
 
     simplifiable_expression = []
     for cv in candidate_vars: 
@@ -122,24 +117,18 @@ def PH(BProg, known_vars, output_vars):
                 var2 = sym_table[kv.id]
                 var3 = var1/var2
                 if 'mul' in str(type(var3)).lower() and str(var3).count(var_prefix) < str(var1).count(var_prefix) - 1:
-                    print(var1, '/', var2, '=', var3)
                     simplifiable_expression.append((cv.id, str(var3) +'*'+kv.id, sum_map[cv.id]))
-    print('simplifiable expr:', simplifiable_expression)
     for tu in simplifiable_expression:
         target_var = var_table[tu[0]]
         stmts = generate_stmts_from_expr(tu[1], var_table)
         BProg.insert_stmts_before(target_var.stmt, stmts)
         # Replace last op
         target_var.replace_all_uses_with(stmts[-1].ret, propogate_shape=False)
-        print('new prog after inserting generated stmts', BProg)
         DCE(BProg, output_vars)
         for s in tu[2]:
             for st in BProg:
                 if st == s:
-                    print('trying to remove', st)
                     # Omit the last stmt as it's already be removed
-                    print('s.ret.users', st.ret.users)
                     sum_propogation(st)
                     st.remove_cur()
         BProg.resort_vars()
-        print('Final bprog:', BProg)

@@ -3,6 +3,9 @@ import snoop
 from .code_gen.cuda_driver import *
 from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
+from .code_gen.cuda_error import ASSERT_DRV
+
+from seastar.compiler.debugging.seastar_logger import print_log
 
 # TODO: remove
 import numpy as np
@@ -165,7 +168,6 @@ class ExecutionUnit(object):
             x1, x2 = self.nearest_pow2(math.sqrt(cof*n/N_bw))
             t1 = N_Ar * n/x1 + N_bw * x1
             t2 = N_Ar * n/x2 + N_bw * x2
-            print('option1:',x1, 'sectors:',t1, 'option2:',x2, 'sectors:', t2)
             tile_sizex = x1 if t1 <= t2 else t2
         else:
             tile_sizex = WARP_SIZE if WARP_SIZE < blockDimx else blockDimx
@@ -174,7 +176,6 @@ class ExecutionUnit(object):
         while tile_sizey > blockDimy:
             tile_sizey = tile_sizey / 2
             tile_sizex = tile_sizex * 2
-        print('In compute tiling', N_Ar, N_Aw, N_br, N_bw, self.kernel_args(), 'tx:', tile_sizex, 'ty', tile_sizey)
         return [int(tile_sizex), int(tile_sizey)]
         
     def nearest_pow2(self, targ):
@@ -256,11 +257,11 @@ class ExecutionUnit(object):
         num_nodes = graph.get_num_nodes()
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
-            print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config)
+            print_log(f'[yellow bold]Execution Unit[/yellow bold]:  Generating FA Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}')
             self._K = FeatureAdaptiveKernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config)
         else:
             launch_config, tile_sizes = self.calculate_kernel_params(num_nodes)
-            print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config, 'tile_sizes', tile_sizes, 'max_dims', self.max_dims())
+            print_log(f'[yellow bold]Execution Unit[/yellow bold]:  Generating V2 Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}, tile_size: {str(tile_sizes)}, max_dims: {str(max_dims)}')
             self._K = V2Kernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
 
     def reset_graph_info(self, graph):
@@ -362,22 +363,23 @@ class Kernel():
                                  self.launch_config[3],
                                  self.launch_config[4],
                                  self.launch_config[5],
-                                 0, None, params, None)
+                                 0, None, params, 0)
             
-            if ret:
-                raise Exception('cuLaunchKernel', ret)
+            ASSERT_DRV(ret)
         except Exception as e:
             raise e
+        
+        # sync_ret = cudaDeviceSynchronize()
+        # if ret:
+        #     raise Exception('cudaDeviceSynchronize', sync_ret)
 
 class V2Kernel(Kernel):
     def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
+        ret, self.K = cuModuleGetFunction(compiled_module, kernel_name.encode())
+        ASSERT_DRV(ret)
         self.launch_config = launch_config[0],launch_config[1], 1, launch_config[2], launch_config[3],1
 
 class FeatureAdaptiveKernel(Kernel):
@@ -386,8 +388,6 @@ class FeatureAdaptiveKernel(Kernel):
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args
         self.const_kernel_ptrs = [c_void_p(addressof(v)) for v in self.const_kernel_args]
 
-        self.K = c_void_p(0)
-        ret = cuModuleGetFunction(byref(self.K), compiled_module, c_char_p(kernel_name.encode()))
-        if ret:
-            raise Exception('cuModuleGetFunction', ret)
+        ret, self.K = cuModuleGetFunction( compiled_module, kernel_name.encode())
+        ASSERT_DRV(ret)
         self.launch_config = launch_config[0],1,1,launch_config[1],1,1

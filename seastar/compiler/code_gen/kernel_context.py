@@ -40,7 +40,6 @@ class KernelContext():
                     else:
                         self.param_offset_init += init_stmt
                     self.offset_cache[offset_key] = '[' + offset_id + ']'
-        print('offset_cache:', self.offset_cache)
 
     def get_offset_key(self, var):
         return (tuple(var.var_shape), var.val_type)

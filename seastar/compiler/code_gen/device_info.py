@@ -1,82 +1,91 @@
-import sys
-import ctypes
 import os
 
-# Some constants taken from cuda.h
-CUDA_SUCCESS = 0
-CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16
-CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR = 39
-CU_DEVICE_ATTRIBUTE_CLOCK_RATE = 13
-CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
+from cuda import cuda
+from prettytable import PrettyTable, HEADER, NONE, SINGLE_BORDER
+from termcolor import colored
 
+from .cuda_driver import *
+from ctypes import *
 
+global_gpu_device = None
 
+class DeviceInfo:
+    def __init__(self, print_log=False):
+        # breakpoint()
+        self.nGpus = 0
+        self.name = ""
+        self.cc_major = 0
+        self.cc_minor = 0
+        self.cores = 0
+        self.thread_per_core = 0
+        self.gpu_clockrate = 0
+        self.memory_clockrate = 0
+        self.freeMem = 0
+        self.totalMem = 0
 
-class deviceinfo():
-
-    def __init__(self):
-        # /usr/lib/wsl/lib/libcuda.so
-        libnames = ('/usr/lib/wsl/lib/libcuda.so', 'libcuda.dylib', 'cuda.dll')
-        for libname in libnames:
-            try:
-                cuda = ctypes.CDLL(libname)
-            except OSError:
-                continue
-            else:
-                break
-        else:
-            raise OSError("could not load any of: " + ' '.join(libnames))
-
-        self.nGpus = ctypes.c_int()
-        self.name = b' ' * 100
-        self.cc_major = ctypes.c_int()
-        self.cc_minor = ctypes.c_int()
-        self.cores = ctypes.c_int()
-        self.threads_per_core = ctypes.c_int()
-        self.clockrate = ctypes.c_int()
-        self.freeMem = ctypes.c_size_t()
-        self.totalMem = ctypes.c_size_t()
-        print(0)
-
-        #nvcc path
+        # Retrieving the path of nvcc
         self.nvcc_path = os.popen('which nvcc').read()[:-1]
         if not len(self.nvcc_path):
             self.nvcc_path = '/usr/local/cuda/bin/nvcc'
 
+        # Make sure to call cuInit(), otherwise we won't be
+        # able to make any CUDA Driver API calls
+        # cuInit(0)
 
-        device = ctypes.c_int()
+        # Getting the number of compatible GPU devices
+        err, self.nGpus = cuDeviceGetCount()    
 
-        cuda.cuInit(0)
-        print(1)
+        # Going to get certain parameters for only the first GPU
+        # i.e ordinal = 0 for cuDeviceGet
+        ordinal = 0
+        err, self.device = cuDeviceGet(ordinal)
+        # err, self.context = cuCtxCreate(0, self.device)
 
-        cuda.cuDeviceGetCount(ctypes.byref(self.nGpus))
-        print("Found %d device(s)." % self.nGpus.value)
-        #only count first GPU
-        for i in range(1):
-            cuda.cuDeviceGet(ctypes.byref(device), i)
+        err, device_name = cuDeviceGetName(25, self.device)
+        self.name = device_name.decode("utf-8")
 
-            cuda.cuDeviceGetName(ctypes.c_char_p(self.name), len(self.name), device)
-            cuda.cuDeviceComputeCapability(ctypes.byref(self.cc_major), ctypes.byref(self.cc_minor), device)
-            cuda.cuDeviceGetAttribute(ctypes.byref(self.cores), CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device)
-            cuda.cuDeviceGetAttribute(ctypes.byref(self.threads_per_core), CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, device)
-            cuda.cuDeviceGetAttribute(ctypes.byref(self.clockrate), CU_DEVICE_ATTRIBUTE_CLOCK_RATE, device)
-            cuda.cuDeviceGetAttribute(ctypes.byref(self.clockrate), CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, device)
-            cuda.cuMemGetInfo(ctypes.byref(self.freeMem), ctypes.byref(self.totalMem))
-        print(2)
+        err, self.cc_major = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MAJOR, self.device)
+        err, self.cc_minor = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MINOR, self.device)
+        err, self.cores = cuDeviceGetAttribute(MULTIPROCESSOR_COUNT, self.device)
+        err, self.thread_per_core = cuDeviceGetAttribute(MAX_THREAD_PER_MULTIPROCESSOR, self.device)
+        err, self.gpu_clockrate = cuDeviceGetAttribute(CLOCK_RATE, self.device)
+        err, self.memory_clockrate = cuDeviceGetAttribute(MEMORY_CLOCK_RATE, self.device)
+        err, self.freeMem, self.totalMem = cuMemGetInfo()
+
+        if print_log:
+            self.log()
 
     def log(self):
-        print("Number of device : %d" % (self.nGpus.value))
-        print("Name: %s" % (self.name.split(b'\0', 1)[0].decode()))
-        print("Compute Capability %d.%d" % (self.cc_major.value, self.cc_minor.value))
-        print("Multiprocessor : %d" %(self.cores.value)) 
-        print("Concurrent threads: %d" % (self.cores.value * self.threads_per_core.value))
-        print("GPU clock: %g MHz" % (self.clockrate.value / 1000.))
-        print("Memory clock: %g MHz" % (self.clockrate.value / 1000.))
-        print("Total Memory: %ld MiB" % (self.totalMem.value / 1024**2))
-        print("Free Memory: %ld MiB" % (self.freeMem.value / 1024**2))
 
+        log_table = PrettyTable()
+        log_table.field_names = ["Device Property", "Value"]
+        log_table.align["Device Property"] = "r"
+        log_table.align["Value"] = "l"
+        log_table.set_style(SINGLE_BORDER)
 
+        log_table.border = True
+        log_table.hrules = HEADER
+        log_table.vrules = NONE
 
-if __name__=="__main__":
-    device = deviceinfo()
-    device.log()
+        log_table.add_row(["Number of Devices", self.nGpus])
+        log_table.add_row(["Name", self.name])
+        log_table.add_row(["Compute Capability", str(self.cc_major) + "." + str(self.cc_minor)])
+        log_table.add_row(["Multiprocessor Count", self.cores])
+        log_table.add_row(["Concurrent Threads", self.cores*self.thread_per_core])
+        log_table.add_row(["GPU Clock", str(self.gpu_clockrate/1000) + colored(" MHz", "dark_grey")])
+        log_table.add_row(["Memory Clock", str(self.memory_clockrate/1000) + colored(" MHz", "dark_grey")])
+        log_table.add_row(["Total Memory", str(self.totalMem/1024**2) + colored(" MiB", "dark_grey")])
+        log_table.add_row(["Free Memory", str(self.freeMem/1024**2) + colored(" MiB", "dark_grey")])
+
+        print("\n")
+        print(log_table)
+        print(colored("\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device", "dark_grey"))
+        print("\n")
+
+# def get_global_gpu_device():
+#     if global_gpu_device == None:
+#         return DeviceInfo(print_log=False)
+#     return global_gpu_device
+
+# if __name__ == "__main__":
+#     device = DeviceInfo(print_log=True)

@@ -261,7 +261,11 @@ public:
     // data members
     std::vector<node_t> nodes;
     edge_list_t edges;
-    uint32_t edge_count = 0;
+    uint32_t edge_count;
+
+    DEV_VEC row_offset_device;
+    DEV_VEC column_indices_device;
+    DEV_VEC eids_device;
 
     // member functions
     PCSR(uint32_t init_n);
@@ -273,13 +277,13 @@ public:
     void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
     void delete_edge(uint32_t src, uint32_t dest);
     uint64_t get_n();
-    vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
+    // vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void print_graph();
     void print_array();
-    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs();
-    void label_edges();
-    uint32_t find_edge_id(uint32_t src, uint32_t dest);
-    std::tuple<uint32_t, uint32_t> get_graph_attr();
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(std::vector<int> eids);
+    // void label_edges();
+    // uint32_t find_edge_id(uint32_t src, uint32_t dest);
+    // std::tuple<uint32_t, uint32_t> get_graph_attr();
 
     uint32_t insert(uint32_t index, edge_t elem, uint32_t src);
     void double_list();
@@ -300,10 +304,13 @@ PCSR::PCSR(uint32_t init_n)
         edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
         edges.H = bsr_word(edges.N / edges.logN);
 
+        edges.items.resize(edges.N);
+        edge_count = 0;
+
         for (int i = 0; i < edges.N; i++)
         {
             edge_t new_edge(0, 0);
-            edges.items.push_back(new_edge);
+            edges.items[i] = new_edge;
         }
 
         for (int i = 0; i < init_n; i++)
@@ -332,11 +339,13 @@ void PCSR::init_graph(std::string graph_file_path)
     edges.N = 2 << bsr_word(node_size);
     edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
     edges.H = bsr_word(edges.N / edges.logN);
+    edge_count = 0;
 
+    edges.items.resize(edges.N);
     for (int i = 0; i < edges.N; i++)
     {
         edge_t new_edge(0, 0);
-        edges.items.push_back(new_edge);
+        edges.items[i] = new_edge;
     }
 
     for (int i = 0; i < node_size; i++)
@@ -472,10 +481,11 @@ void PCSR::double_list()
     edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
     edges.H = bsr_word(edges.N / edges.logN);
 
+    edges.items.resize(edges.N);
     for (int i = edges.N / 2; i < edges.N; i++)
     {
         edge_t new_edge(0, 0);
-        edges.items.push_back(new_edge);
+        edges.items[i] = new_edge;
     }
 
     redistribute(0, edges.N);
@@ -634,6 +644,7 @@ void PCSR::redistribute(int index, int len)
 
 void PCSR::add_edge(uint32_t src, uint32_t dest, uint32_t value)
 {
+    // cout << "Adding edge (" << src << "," << dest << ")\n";
     if (value != 0)
     {
         node_t node = nodes[src];
@@ -677,6 +688,7 @@ void PCSR::add_edge_update(uint32_t src, uint32_t dest, uint32_t value)
 
 void PCSR::delete_edge(uint32_t src, uint32_t dest)
 {
+    // cout << "Deleting edge (" << src << "," << dest << ")\n";
     edge_t e;
     e.value = 0;
     e.dest = dest;
@@ -687,8 +699,8 @@ void PCSR::delete_edge(uint32_t src, uint32_t dest)
         edges.items[loc].value = 0;
         nodes[src].num_neighbors -= 1;
         nodes[dest].in_degree -= 1;
+        --edge_count;
     }
-    --edge_count;
 }
 
 uint64_t PCSR::get_n()
@@ -696,26 +708,29 @@ uint64_t PCSR::get_n()
     return nodes.size();
 }
 
-vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
-{
-    uint64_t n = get_n();
-    vector<tuple<uint32_t, uint32_t, uint32_t>> output;
+// vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
+// {
+//     uint64_t n = get_n();
+//     vector<tuple<uint32_t, uint32_t, uint32_t>> output;
 
-    for (int i = 0; i < n; i++)
-    {
-        uint32_t start = nodes[i].beginning;
-        uint32_t end = nodes[i].end;
-        for (int j = start + 1; j < end; j++)
-        {
-            if (!is_null(edges.items[j]))
-            {
-                output.push_back(
-                    make_tuple(i, edges.items[j].dest, edges.items[j].value));
-            }
-        }
-    }
-    return output;
-}
+//     output.resize(edge_count);
+//     int iter = 0;
+//     for (int i = 0; i < n; i++)
+//     {
+//         uint32_t start = nodes[i].beginning;
+//         uint32_t end = nodes[i].end;
+//         for (int j = start + 1; j < end; j++)
+//         {
+//             if (!is_null(edges.items[j]))
+//             {
+//                 output[iter] =
+//                     make_tuple(i, edges.items[j].dest, edges.items[j].value);
+//                 iter += 1;
+//             }
+//         }
+//     }
+//     return output;
+// }
 
 void PCSR::print_graph()
 {
@@ -783,102 +798,116 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs()
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(std::vector<int> eids)
 {
+
+    // if (edge_count != eids.size())
+    // {
+    //     cout << "🍎🍎🍎 The eids(" << eids.size() << ") and edge_count(" << edge_count << ") [col_indices.size() = " << edges.items.size() << "] DONT match\n"
+    //          << flush;
+    // }
 
     // we are building a compressed CSR arrays without
     // the -1 values which indicates an empty edge
-
     thrust::host_vector<int> row_offset;
     thrust::host_vector<int> column_indices;
-    thrust::host_vector<int> eids;
 
     int row_offset_size = nodes.size() + 1;
     int column_indices_size = edges.items.size();
 
     // first element of row offset is always zero
-    row_offset.push_back(0);
+    row_offset.resize(row_offset_size);
+    column_indices.resize(edge_count);
+    row_offset[0] = 0;
 
     for (int i = 0; i < row_offset_size - 1; ++i)
     {
-        row_offset.push_back(nodes[i].num_neighbors + row_offset[i]);
+        row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
     }
 
+    int iter = 0;
     for (int i = 0; i < column_indices_size; ++i)
     {
         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
         {
-            column_indices.push_back(edges.items[i].dest);
-            eids.push_back(edges.items[i].value);
+            column_indices[iter] = edges.items[i].dest;
+            iter += 1;
         }
     }
 
-    DEV_VEC row_offset_device = row_offset;
-    DEV_VEC column_indices_device = column_indices;
-    DEV_VEC eids_device = eids;
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device.resize(edge_count);
 
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
-    std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
-    std::get<1>(t) = (std::size_t)RAW_PTR(column_indices_device);
-    std::get<2>(t) = (std::size_t)RAW_PTR(eids_device);
+    if (eids.size() == 0)
+        thrust::sequence(eids_device.begin(), eids_device.end());
+    else
+        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
+
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
     return t;
 }
 
-void PCSR::label_edges()
-{
+// void PCSR::label_edges()
+// {
 
-    uint32_t column_indices_size = edges.items.size();
-    uint32_t counter = 1;
-    for (int i = 0; i < column_indices_size; ++i)
-    {
-        if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
-        {
-            edges.items[i].value = counter;
-            ++counter;
-        }
-    }
-}
+//     uint32_t column_indices_size = edges.items.size();
+//     uint32_t counter = 1;
+//     for (int i = 0; i < column_indices_size; ++i)
+//     {
+//         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
+//         {
+//             edges.items[i].value = counter;
+//             ++counter;
+//         }
+//     }
+// }
 
-uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
-{
-    edge_t e;
-    e.dest = dest;
-    // setting a random number
-    e.value = 0;
+// uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
+// {
+//     edge_t e;
+//     e.dest = dest;
+//     // setting a random number
+//     e.value = 0;
 
-    uint32_t loc = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end);
-    return edges.items[loc].value;
-}
+//     uint32_t loc = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end);
+//     return edges.items[loc].value;
+// }
 
-std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
-{
-    std::tuple<uint32_t, uint32_t> t;
-    std::get<0>(t) = nodes.size();
-    std::get<1>(t) = edge_count;
-    return t;
-}
+// std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
+// {
+//     std::tuple<uint32_t, uint32_t> t;
+//     std::get<0>(t) = nodes.size();
+//     std::get<1>(t) = edge_count;
+//     return t;
+// }
 
-void copy_label_edges(PCSR &pcsr, PCSR &ref_pcsr)
-{
-    uint64_t n = pcsr.get_n();
+// void copy_label_edges(PCSR &pcsr, PCSR &ref_pcsr)
+// {
+//     uint64_t n = pcsr.get_n();
 
-    for (int i = 0; i < n; i++)
-    {
-        uint32_t start = pcsr.nodes[i].beginning;
-        uint32_t end = pcsr.nodes[i].end;
-        for (int j = start + 1; j < end; j++)
-        {
-            if (!is_null(pcsr.edges.items[j]))
-            {
-                // Searching for the edge_id of reverse edge from reference_pcsr
-                pcsr.edges.items[j].value = ref_pcsr.find_edge_id(pcsr.edges.items[j].dest, i);
-            }
-        }
-    }
-}
+//     for (int i = 0; i < n; i++)
+//     {
+//         uint32_t start = pcsr.nodes[i].beginning;
+//         uint32_t end = pcsr.nodes[i].end;
+//         for (int j = start + 1; j < end; j++)
+//         {
+//             if (!is_null(pcsr.edges.items[j]))
+//             {
+//                 // Searching for the edge_id of reverse edge from reference_pcsr
+//                 pcsr.edges.items[j].value = ref_pcsr.find_edge_id(pcsr.edges.items[j].dest, i);
+//             }
+//         }
+//     }
+// }
 
 void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
 {
+    // cout << "📦📦📦 Edge Update list" << endl
+    //      << flush;
     for (auto &edge : edge_list)
     {
         uint32_t src = (is_reverse_edge == true) ? std::get<1>(edge) : std::get<0>(edge);
@@ -893,14 +922,20 @@ void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_lis
 
 void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
 {
-    vector<tuple<uint32_t, uint32_t, uint32_t>> edge_list = ref_pcsr.get_edges();
-    for (auto &edge : edge_list)
+    // cout << "💄💄💄 Building Reverse PCSR" << endl
+    //      << flush;
+    uint64_t n = ref_pcsr.get_n();
+    for (int i = 0; i < n; i++)
     {
-        // since reverse graph the src and dst are swapped
-        uint32_t src = std::get<1>(edge);
-        uint32_t dst = std::get<0>(edge);
-        uint32_t val = std::get<2>(edge);
-        pcsr.add_edge(src, dst, val);
+        uint32_t start = ref_pcsr.nodes[i].beginning;
+        uint32_t end = ref_pcsr.nodes[i].end;
+        for (int j = start + 1; j < end; j++)
+        {
+            if (!is_sentinel(ref_pcsr.edges.items[j]) && !is_null(ref_pcsr.edges.items[j]))
+            {
+                pcsr.add_edge(ref_pcsr.edges.items[j].dest, i, ref_pcsr.edges.items[j].value);
+            }
+        }
     }
 }
 
@@ -911,7 +946,7 @@ void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
 PYBIND11_MODULE(pcsr, m)
 {
     m.doc() = "PCSR Dynamic Graph Representation";
-    m.def("copy_label_edges", &copy_label_edges, "Label edges of a PCSR based on another PCSR");
+    // m.def("copy_label_edges", &copy_label_edges, "Label edges of a PCSR based on another PCSR");
     m.def("build_reverse_pcsr", &build_reverse_pcsr, "Builds the reverse PCSR based on another PCSR");
 
     py::class_<node_t>(m, "Node")
@@ -957,16 +992,17 @@ PYBIND11_MODULE(pcsr, m)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
         .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
-        .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
+        // .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
         .def("delete_edge", &PCSR::delete_edge)
         .def("get_n", &PCSR::get_n)
-        .def("get_edges", &PCSR::get_edges)
+        // .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
-        .def("get_csr_ptrs", &PCSR::get_csr_ptrs)
-        .def("get_graph_attr", &PCSR::get_graph_attr)
-        .def("find_edge_id", &PCSR::find_edge_id)
+        .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
+        // .def("get_graph_attr", &PCSR::get_graph_attr)
+        // .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)
         .def_readwrite("edges", &PCSR::edges)
+        .def_readwrite("edge_count", &PCSR::edge_count)
         .def("__copy__", [](const PCSR &self)
              { return PCSR(self); })
         .def(

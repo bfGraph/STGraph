@@ -3,7 +3,6 @@ from ..program import Program, Stmt, Var
 from ..utils import is_const_scalar
 
 def dep_program(target_var, stopping_vars):
-    print('dep_program', stopping_vars)
     '''
         Step1: Analyze the part of the program that computes a "target_var".
         Recursively 1. find the stmt that creates the current var 2. find the
@@ -33,6 +32,5 @@ def dep_program(target_var, stopping_vars):
     for stmt in prog:
         for var in stmt.args:
             if var in stopping_vars:
-                print('setting ', var, 'stmt to be None')
                 var.stmt = None # Stopping further propogation
     return prog

@@ -8,6 +8,8 @@ from ..execution_unit import ExecutionUnit
 from .dependency_analysis import dep_program
 from datetime import datetime
 
+from seastar.compiler.debugging.seastar_logger import print_log
+
 class FusionStateMachine():
     state_trans = {
         0 :  { 'a2d' : 1, 'a2s' : 1, 'd' : 3, 's' : 5 , 'e' : 1},
@@ -24,7 +26,6 @@ class FusionStateMachine():
     
     def accept(self, stmt):
         trans = FusionStateMachine.stmt_to_trans(stmt)
-        print('cur', self.cur, 'trans', trans, stmt, 'transitionable?', trans in FusionStateMachine.state_trans[self.cur])
         return trans in FusionStateMachine.state_trans[self.cur]
 
     def advance(self, stmt):
@@ -71,7 +72,6 @@ def merge_program(prog_list):
             if mergable(prog_list[i], prog_list[j]):
                 share_input_map[i].add(j)
 
-    print('merge_program', share_input_map)
     merged_set = set()
     ret_list = []    
     for i, shared_set in share_input_map.items():
@@ -121,12 +121,10 @@ def merge_stmt(cur_stmt, p_stmt, stmt2fused_prog, stmt2state_machine, stmt_stack
         stmt_stack.append(p_stmt)
         return
     if fusable(cur_stmt, p_stmt, stmt2state_machine, new_fsm):
-        print('fusable', cur_stmt, 'current state:', stmt2state_machine[cur_stmt].cur, 'with p_stmt:', p_stmt, 'new_fsm', new_fsm)
         if p_stmt in stmt2fused_prog:
             if cur_stmt in stmt2fused_prog:
                 cur_prog = stmt2fused_prog[cur_stmt]
                 if stmt2fused_prog[p_stmt] == cur_prog:
-                    print('cur_stmt is already in prog')
                     return
                 stmt2fused_prog[p_stmt].copy_append_prog(cur_prog)
                 for stmt in cur_prog:
@@ -147,7 +145,6 @@ def merge_stmt(cur_stmt, p_stmt, stmt2fused_prog, stmt2state_machine, stmt_stack
                 prog_list.append(var_prog)
             stmt_stack.append(p_stmt)
     else:
-        print('not fusable', cur_stmt, 'current state:', stmt2state_machine[cur_stmt].cur, 'with p_stmt:', p_stmt, 'new_fsm', new_fsm)
         if cur_stmt not in stmt2fused_prog:
             var_prog = Program()
             var_prog.copy_append_stmt(cur_stmt)
@@ -172,14 +169,12 @@ def merge_independent(exec_units):
     # Merge candidates
     merged_units = []
     merged_set = set()
-    print('merge independent', candidates)
     for tar_id, src_id_list in candidates.items():
         if tar_id in merged_set:
             continue
         tar_unit = exec_units[tar_id]
         for sid in src_id_list:
             src_unit = exec_units[sid]
-            print('src-dst program:', src_unit, tar_unit)
             tar_unit.merge_with_independent_unit(src_unit)
             merged_set.add(sid)
         merged_units.append(tar_unit)
@@ -194,10 +189,11 @@ def fuse(progs, outputs):
         return progs
     
     if len(progs) > 1:
-        print('-----Program Fusion------')
+        print_log("[orange1 bold]Fusion[/orange1 bold]: Program fusion started")
         progs = merge_program(progs)
+        print_log("[orange1 bold]Fusion[/orange1 bold]: Program fusion completed")
 
-    print('-----Operator Fusion------')
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Operator fusion started")
     # Starting from each output var, fuse as many operators as possible according to dependenies.
     # Use DFS-manner to allow maximal locality of statements
     stmt2fused_prog = {}
@@ -210,7 +206,7 @@ def fuse(progs, outputs):
             var_list.append(ret)
     var_list.sort(key=lambda var: var.int_id)
     var_stack = deque(var_list)
-    print('sorted var_list', var_list, 'var_stack', var_stack)
+    
     while var_stack:
         var = var_stack.pop()
         stmt_stack = deque([var.stmt])
@@ -229,7 +225,6 @@ def fuse(progs, outputs):
                 continue
             if cur_stmt not in stmt2state_machine:
                 stmt2state_machine[cur_stmt] = FusionStateMachine(cur_stmt)
-            print('cur_stmt', cur_stmt, 'current state', stmt2state_machine[cur_stmt].cur, 'dep_sttms', dep_stmts)
             if len(dep_stmts) == 1:
                 p_stmt = dep_stmts[0]
                 merge_stmt(cur_stmt, p_stmt, stmt2fused_prog, stmt2state_machine, stmt_stack, var_stack, prog_list, new_fsm=False)
@@ -245,16 +240,19 @@ def fuse(progs, outputs):
                     merge_stmt(cur_stmt, l_stmt, stmt2fused_prog, stmt2state_machine, stmt_stack, var_stack, prog_list, new_fsm=True)
             else:
                 raise NotImplementedError('Currenty we assume num of oprands of all operators is no larger than 2')
+            
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Operator fusion completed")
+
     prog_l = []
     for p in prog_list:
         prog = Program()
         prog.copy_append_stmts(sorted(p, key=lambda x : x.ret.int_id))
         prog_l.append(prog)
-        print(prog)
-
+    
     prog_blks = [prog for prog in reversed(prog_l) if len(prog) > 0] 
 
-    print('------Construct Execution Unit------')
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Constructing execution unit")
+
     exe_units = []
     for prog in prog_blks:
         args = set()
@@ -302,4 +300,7 @@ def fuse(progs, outputs):
     # Correctness remains quesationable
     exe_units.sort(key=lambda x:x.max_ret_id())
     exe_units = merge_independent(exe_units)
+    
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Constructing execution unit completed")
+    
     return exe_units

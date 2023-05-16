@@ -9,6 +9,8 @@ from .passes.cf import CF
 from .passes.mem_planning import mem_planning
 from .passes import optimize, fuse, visualize
 
+from seastar.compiler.debugging.seastar_logger import print_log
+
 def diff(vars, grads, forward_units, fprog):
     '''
     For each var we find the statment that computes it, then we use itself as well as its grad
@@ -56,7 +58,9 @@ def diff(vars, grads, forward_units, fprog):
                     if not is_const_scalar(var):
                         processed_count[var] += sum([1 if unit.program.has_stmt(stmt) else 0 for stmt in var.users])
             stopping_var = stopping_var.union(set([ret.id for ret in unit.all_rets()]))
-    print('\n------------Autodiff: Retrive BackwardProg-----------\n')
+    
+    print_log("[cyan bold]AutoDiff[/cyan bold]: Retrieving backward program")
+    
     while q:
         y = q.pop()
         cur_stmt = y.stmt
@@ -65,14 +69,12 @@ def diff(vars, grads, forward_units, fprog):
             if cur_stmt:
                 for arg in cur_stmt.args:
                     if not is_const_scalar(arg) and arg.requires_grad:
-                        print('Handled by DL backend. Skipping to next var:', arg)
                         q.append(arg)
             continue
         if 'gtypecast' in cur_stmt.op_name.lower():
             # Skip gtypecast
             x = cur_stmt.args[0]
             grad_map[y.id]._val_type = x.val_type
-            print('differentiating gtypecast:', cur_stmt, ' using y:', y, 'grad_y:', grad_map[y.id])
             q.append(cur_stmt.args[0])
             continue
         #if y not in grad_map:
@@ -81,7 +83,6 @@ def diff(vars, grads, forward_units, fprog):
         #    print('Create grad', grad_map[y], 'for', y, ',who is produced by', y.stmt)
         grad_y = grad_map[y.id]
         x2stmts = cur_stmt.grad(y, grad_y)
-        print('\ndifferentiating:', cur_stmt, ' using y:', y, 'grad_y:', grad_y)
         x2stmt_list = list(x2stmts.items())
         for x, stmts in x2stmt_list:
             # Compute gradient
@@ -114,17 +115,23 @@ def diff(vars, grads, forward_units, fprog):
                     arg._grad = fprog.find_var_by_id(arg.id)._grad
             for ret in unit.unit_rets():
                 output_var.add(ret)
-    print('\n------------Autodiff: Optimizing BackwardProg-----------\n')
+    
+    print_log("[cyan bold]Autodiff[/cyan bold]: Optimizing backward program")
     optimize(BProg)
     #visualize.plot_exec_units(forward_units)
     #visualize.plot_programs([unit._prog for unit in forward_units] + [BProg])
-    print('\n------------Autodiff: Gradient Driven MemPlanning-----------\n')
+    
+    print_log("[cyan bold]Autodiff[/cyan bold]: Gradient Driven MemPlanning")
     output_grad_map = {k:k._grad for k in need_grad_var}
     bp_prog_list = mem_planning(forward_units, BProg, output_grad_map, grads)
-    print('\n------------Autodiff: Optimizing Programs of Each Gradient-----------\n')
+    
+    print_log("[cyan bold]Autodiff[/cyan bold]: Optimizing programs of each gradient")
     for prog in bp_prog_list:
         optimize(prog)
-    print('\n------------Autodiff: Fusing Programs of Each Gradient-----------\n')
+        
+    print_log("[cyan bold]Autodiff[/cyan bold]: Fusing programs of each gradient")
     backward_exe_units = fuse(bp_prog_list, [v for _, v in output_grad_map.items()])
-    print('\n------------Autodiff: Done-----------\n')
+    
+    print_log("[cyan bold]Autodiff[/cyan bold]: Completed")
+    
     return backward_exe_units
