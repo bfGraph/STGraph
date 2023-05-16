@@ -263,6 +263,10 @@ public:
     edge_list_t edges;
     uint32_t edge_count;
 
+    DEV_VEC row_offset_device;
+    DEV_VEC column_indices_device;
+    DEV_VEC eids_device;
+
     // member functions
     PCSR(uint32_t init_n);
     void init_graph(std::string graph_file_path);
@@ -276,7 +280,7 @@ public:
     // vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void print_graph();
     void print_array();
-    std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(std::vector<int> eids);
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(std::vector<int> eids);
     // void label_edges();
     // uint32_t find_edge_id(uint32_t src, uint32_t dest);
     // std::tuple<uint32_t, uint32_t> get_graph_attr();
@@ -794,7 +798,7 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector<int> eids)
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(std::vector<int> eids)
 {
 
     // if (edge_count != eids.size())
@@ -831,19 +835,19 @@ std::tuple<std::size_t, std::size_t, std::size_t> PCSR::get_csr_ptrs(std::vector
         }
     }
 
-    DEV_VEC row_offset_device = row_offset;
-    DEV_VEC column_indices_device = column_indices;
-    DEV_VEC eids_device(edge_count);
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device.resize(edge_count);
 
     if (eids.size() == 0)
         thrust::sequence(eids_device.begin(), eids_device.end());
     else
         thrust::copy(eids.begin(), eids.end(), eids_device.begin());
 
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
-    std::get<0>(t) = (std::size_t)RAW_PTR(row_offset_device);
-    std::get<1>(t) = (std::size_t)RAW_PTR(column_indices_device);
-    std::get<2>(t) = (std::size_t)RAW_PTR(eids_device);
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
     return t;
 }
 

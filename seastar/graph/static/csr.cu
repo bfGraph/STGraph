@@ -118,15 +118,7 @@ CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool i
             row_offset[i] = curr_val;
     }
 
-    // for (int i = 0; i < row_offset.size(); ++i)
-    // {
-    //     std::cout << row_offset[i] << " ";
-    // }
-
-    // std::cout << "\n=============================\n";
-
     get_csr_ptrs();
-    // print_row_offset();
 }
 
 void CSR::get_csr_ptrs()
@@ -135,31 +127,9 @@ void CSR::get_csr_ptrs()
     column_indices_device = column_indices;
     eids_device = eids;
 
-    // std::cout << "PRINTING DEV DIRECTLY\n";
-    // for (int i = 0; i < row_offset_device.size(); ++i)
-    // {
-    //     std::cout << row_offset_device[i] << " ";
-    // }
-
-    // std::cout << "\n=============================\n";
-
     row_offset_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(row_offset_device));
     column_indices_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(column_indices_device));
     eids_ptr = reinterpret_cast<std::uintptr_t>(RAW_PTR(eids_device));
-
-    // std::cout << "THE ROW OFFSET PTR: " << row_offset_ptr << "\n";
-
-    // int *dev_ptr = reinterpret_cast<int *>(row_offset_ptr);
-    // int *host_ptr = (int *)malloc(row_offset.size() * sizeof(int));
-    // cudaMemcpy(host_ptr, dev_ptr, row_offset.size() * sizeof(int), cudaMemcpyDeviceToHost);
-
-    // std::cout << "PRINTING DEV AFTER RECAST\n";
-    // for (int i = 0; i < row_offset.size(); ++i)
-    // {
-    //     std::cout << host_ptr[i] << " ";
-    // }
-
-    // std::cout << "\n=============================\n";
 }
 
 void CSR::print_row_offset()
