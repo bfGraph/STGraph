@@ -5,6 +5,8 @@ from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 from .code_gen.cuda_error import ASSERT_DRV
 
+from seastar.compiler.debugging.pretty_printers import print_log
+
 # TODO: remove
 import numpy as np
 
@@ -166,7 +168,6 @@ class ExecutionUnit(object):
             x1, x2 = self.nearest_pow2(math.sqrt(cof*n/N_bw))
             t1 = N_Ar * n/x1 + N_bw * x1
             t2 = N_Ar * n/x2 + N_bw * x2
-            print('option1:',x1, 'sectors:',t1, 'option2:',x2, 'sectors:', t2)
             tile_sizex = x1 if t1 <= t2 else t2
         else:
             tile_sizex = WARP_SIZE if WARP_SIZE < blockDimx else blockDimx
@@ -175,7 +176,6 @@ class ExecutionUnit(object):
         while tile_sizey > blockDimy:
             tile_sizey = tile_sizey / 2
             tile_sizex = tile_sizex * 2
-        print('In compute tiling', N_Ar, N_Aw, N_br, N_bw, self.kernel_args(), 'tx:', tile_sizex, 'ty', tile_sizey)
         return [int(tile_sizex), int(tile_sizey)]
         
     def nearest_pow2(self, targ):
@@ -257,11 +257,11 @@ class ExecutionUnit(object):
         num_nodes = graph.get_num_nodes()
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
-            print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config)
+            print_log(f'Execution Unit: Generating FA Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}')
             self._K = FeatureAdaptiveKernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config)
         else:
             launch_config, tile_sizes = self.calculate_kernel_params(num_nodes)
-            print('template name:', self._template_name, 'number of nodes:', num_nodes, 'launch_config', launch_config, 'tile_sizes', tile_sizes, 'max_dims', self.max_dims())
+            print_log(f'Execution Unit: Generating V2 Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}, tile_size: {str(tile_sizes)}, max_dims: {str(max_dims)}')
             self._K = V2Kernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
 
     def reset_graph_info(self, graph):

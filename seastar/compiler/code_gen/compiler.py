@@ -23,9 +23,7 @@ def compile_with_nvcc(cuda_text):
     # Trying to set max register count
     # cmd = nvcc_path + ' ' + CU_PATH + ' -arch=compute_' + cp + ' -ptx ' + ' -maxrregcount=32 ' + extra_flags
 
-    print('cmd', cmd)
     ret = subprocess.check_output(cmd, shell=True)
-    print('Output of nvcc call', ret)
 
 def compile_with_nvrtc(cuda_text):
     c = Program(cuda_text)

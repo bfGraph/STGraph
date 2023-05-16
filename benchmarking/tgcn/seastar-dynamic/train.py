@@ -26,6 +26,8 @@ from seastar.dataset.EnglandCOVID import EnglandCOVID
 from seastar.dataset.SoorahBase import SoorahBase
 from seastar.dataset.wikimaths import WikiMaths
 
+import seastar.compiler.debugging.print_variables as print_var
+
 # GPU | CPU
 def get_default_device():
     
@@ -42,6 +44,8 @@ def to_default_device(data):
     return data.to(get_default_device(),non_blocking = True)
 
 def main(args):
+
+    print_var.is_print_verbose_log = args.verbose
 
     if torch.cuda.is_available():
         print("🎉 CUDA is available")
@@ -240,6 +244,7 @@ if __name__ == '__main__':
             help="number of training epochs")
     parser.add_argument("--dataset", type=str, default="soorah_base",
             help="Name of the Soorah Dataset", metavar="dataset")
+    parser.add_argument("--verbose", type=bool, default=False, help="If set to true, will print out logs while Seastar compiles your model", metavar="verbose")
     args = parser.parse_args()
     print(args)
 
