@@ -4,7 +4,7 @@ from collections import namedtuple
 from .utils import ValType,is_const_scalar, WriteType, WriteLocation, infer_val_type
 from .schema import Schema
 
-from seastar.compiler.debugging.pretty_printers import print_log
+from seastar.compiler.debugging.seastar_logger import print_log
 
 GradInfo = namedtuple('GradInfo', ['targ', 'args', 'grad_x', 'op_schema'])
 
@@ -30,7 +30,7 @@ def look_up_registry(stmt):
         # We don't necessarily generate ops for Node-wise op as they can be 
         # supported by backends
         if stmt.is_edgewise() and op_name not in cb_registry:
-            print_log(f'Registry: EdgeType op {op_name} is not registered in any registry!')
+            print_log(f'[magenta bold]Registry[/magenta bold]: EdgeType op {op_name} is not registered in any registry!')
     else:
         op_impl = impl_registry[op_name]
     return op_impl
@@ -409,7 +409,7 @@ def register_ops():
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and name.endswith('Op'):
             key = name.split('Op')[0].lower()
-            print_log(f'Registry: Registering {name} with key {key}')
+            print_log(f'[magenta bold]Registry[/magenta bold]: Registering {name} with key {key}')
             impl_registry[key] = obj
 
 register_ops()

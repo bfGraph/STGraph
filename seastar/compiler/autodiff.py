@@ -9,7 +9,7 @@ from .passes.cf import CF
 from .passes.mem_planning import mem_planning
 from .passes import optimize, fuse, visualize
 
-from seastar.compiler.debugging.pretty_printers import print_log
+from seastar.compiler.debugging.seastar_logger import print_log
 
 def diff(vars, grads, forward_units, fprog):
     '''
@@ -59,7 +59,7 @@ def diff(vars, grads, forward_units, fprog):
                         processed_count[var] += sum([1 if unit.program.has_stmt(stmt) else 0 for stmt in var.users])
             stopping_var = stopping_var.union(set([ret.id for ret in unit.all_rets()]))
     
-    print_log("AutoDiff: Retrieving backward program")
+    print_log("[cyan bold]AutoDiff[/cyan bold]: Retrieving backward program")
     
     while q:
         y = q.pop()
@@ -116,22 +116,22 @@ def diff(vars, grads, forward_units, fprog):
             for ret in unit.unit_rets():
                 output_var.add(ret)
     
-    print_log("Autodiff: Optimizing backward program")
+    print_log("[cyan bold]Autodiff[/cyan bold]: Optimizing backward program")
     optimize(BProg)
     #visualize.plot_exec_units(forward_units)
     #visualize.plot_programs([unit._prog for unit in forward_units] + [BProg])
     
-    print_log("Autodiff: Gradient Driven MemPlanning")
+    print_log("[cyan bold]Autodiff[/cyan bold]: Gradient Driven MemPlanning")
     output_grad_map = {k:k._grad for k in need_grad_var}
     bp_prog_list = mem_planning(forward_units, BProg, output_grad_map, grads)
     
-    print_log("Autodiff: Optimizing programs of each gradient")
+    print_log("[cyan bold]Autodiff[/cyan bold]: Optimizing programs of each gradient")
     for prog in bp_prog_list:
         optimize(prog)
         
-    print_log("Autodiff: Fusing programs of each gradient")
+    print_log("[cyan bold]Autodiff[/cyan bold]: Fusing programs of each gradient")
     backward_exe_units = fuse(bp_prog_list, [v for _, v in output_grad_map.items()])
     
-    print_log("Autodiff: Completed")
+    print_log("[cyan bold]Autodiff[/cyan bold]: Completed")
     
     return backward_exe_units

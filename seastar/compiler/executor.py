@@ -2,7 +2,7 @@ from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque
 from ..graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.compiler.debugging.pretty_printers import print_log
+from seastar.compiler.debugging.seastar_logger import print_log
 
 class Stack:
     def __init__(self, val=None):
@@ -190,7 +190,7 @@ class Executor(object):
         return ret
     
     def merge_units(self, exec_units):
-        print_log("Executor: Start merging units")
+        print_log("[green bold]Executor[/green bold]: Start merging units")
         
         assert len(exec_units) > 0, 'Error: empty exec units'
         grouped_unit = [MergedUnit([exec_units[0]])]
@@ -200,7 +200,7 @@ class Executor(object):
             else:
                 grouped_unit.append(MergedUnit([exec_units[i]]))
         
-        print_log("Executor: Units merging completed")
+        print_log("[green bold]Executor[/green bold]: Units merging completed")
         return grouped_unit
   
     def restart(self, input_map, graph=None):

@@ -8,7 +8,7 @@ from ..execution_unit import ExecutionUnit
 from .dependency_analysis import dep_program
 from datetime import datetime
 
-from seastar.compiler.debugging.pretty_printers import print_log
+from seastar.compiler.debugging.seastar_logger import print_log
 
 class FusionStateMachine():
     state_trans = {
@@ -189,11 +189,11 @@ def fuse(progs, outputs):
         return progs
     
     if len(progs) > 1:
-        print_log("Fusion: Program fusion started")
+        print_log("[orange1 bold]Fusion[/orange1 bold]: Program fusion started")
         progs = merge_program(progs)
-        print_log("Fusion: Program fusion completed")
+        print_log("[orange1 bold]Fusion[/orange1 bold]: Program fusion completed")
 
-    print_log("Fusion: Operator fusion started")
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Operator fusion started")
     # Starting from each output var, fuse as many operators as possible according to dependenies.
     # Use DFS-manner to allow maximal locality of statements
     stmt2fused_prog = {}
@@ -241,7 +241,7 @@ def fuse(progs, outputs):
             else:
                 raise NotImplementedError('Currenty we assume num of oprands of all operators is no larger than 2')
             
-    print_log("Fusion: Operator fusion completed")
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Operator fusion completed")
 
     prog_l = []
     for p in prog_list:
@@ -251,7 +251,7 @@ def fuse(progs, outputs):
     
     prog_blks = [prog for prog in reversed(prog_l) if len(prog) > 0] 
 
-    print_log("Fusion: Constructing execution unit")
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Constructing execution unit")
 
     exe_units = []
     for prog in prog_blks:
@@ -301,6 +301,6 @@ def fuse(progs, outputs):
     exe_units.sort(key=lambda x:x.max_ret_id())
     exe_units = merge_independent(exe_units)
     
-    print_log("Fusion: Constructing execution unit completed")
+    print_log("[orange1 bold]Fusion[/orange1 bold]: Constructing execution unit completed")
     
     return exe_units

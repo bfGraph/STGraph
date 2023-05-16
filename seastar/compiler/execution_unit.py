@@ -5,7 +5,7 @@ from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 from .code_gen.cuda_error import ASSERT_DRV
 
-from seastar.compiler.debugging.pretty_printers import print_log
+from seastar.compiler.debugging.seastar_logger import print_log
 
 # TODO: remove
 import numpy as np
@@ -257,11 +257,11 @@ class ExecutionUnit(object):
         num_nodes = graph.get_num_nodes()
         if self.use_fa_tmpl():
             launch_config = self.calculate_kernel_params_fa(num_nodes)
-            print_log(f'Execution Unit: Generating FA Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}')
+            print_log(f'[yellow bold]Execution Unit[/yellow bold]:  Generating FA Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}')
             self._K = FeatureAdaptiveKernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config)
         else:
             launch_config, tile_sizes = self.calculate_kernel_params(num_nodes)
-            print_log(f'Execution Unit: Generating V2 Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}, tile_size: {str(tile_sizes)}, max_dims: {str(max_dims)}')
+            print_log(f'[yellow bold]Execution Unit[/yellow bold]:  Generating V2 Kernel with num_nodes: {str(num_nodes)}, launch_config: {str(launch_config)}, tile_size: {str(tile_sizes)}, max_dims: {str(max_dims)}')
             self._K = V2Kernel(num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, self._kernel_name, compiled_module, launch_config, tile_sizes)
 
     def reset_graph_info(self, graph):
