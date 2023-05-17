@@ -58,6 +58,7 @@ Once the build process completes successfully, you can proceed with the remainin
 To complete the installation of the Seastar package, execute the following commands:
 
 ```
+cd ../..
 python3 -m build && pip uninstall seastar -y && pip install dist/seastar-1.0.0-py3-none-any.whl
 ```
 
@@ -122,6 +123,7 @@ With this, you have now completed the installation of Seastar and verified the p
 To ensure the successful installation of Seastar, let's proceed with running Seastar by training a T-GCN model on the EnglandCOVID dataset.
 
 ```
+cd ../../..
 cd benchmarking/tgcn/seastar-dynamic/
 python3 train.py --type naive --num_epochs 10
 ```
