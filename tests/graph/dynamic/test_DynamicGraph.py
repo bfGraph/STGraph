@@ -18,6 +18,14 @@ class TestDynamicGraph:
         [[2, 3], [3, 1], [3, 0], [0, 1]],
     ]
 
+    # sorted based on second-element, then first-element
+    sorted_edge_index = [
+        [[0, 1], [1, 2], [2, 3]],
+        [[3, 1], [1, 2], [2, 3]],
+        [[3, 0], [3, 1], [1, 2], [2, 3]],
+        [[3, 0], [0, 1], [3, 1], [2, 3]],
+    ]
+
     # stores the edge-weights for each timestamp
     # edge_weight[t] has the edge weight for timestamp = t
     # corresponding to the edge in edge_index
@@ -28,6 +36,23 @@ class TestDynamicGraph:
 
     # node features for each timestamp
     y = [[2, 11, 15, 8], [9, 5, 7, 10], [1, 3, 17, 19], [4, 6, 12, 13]]
+
+    def test_get_graph_attr(self):
+        naive_graph = NaiveGraph(edge_list=self.sorted_edge_index)
+        graph_attr = naive_graph._get_graph_attr(edge_list=self.sorted_edge_index)
+        
+        # checking if the size of graph_attr = 4, which is the
+        # total number of timestamps present
+        assert len(graph_attr) == 4
+        
+        # checking the (num_nodes, num_edges) pair for each timestamp
+        assert graph_attr['0'] == (4, 3)
+        assert graph_attr['1'] == (3, 3)
+        assert graph_attr['2'] == (4, 4)
+        assert graph_attr['3'] == (4, 4)
+
+    def test_preprocess_graph_structure(self):
+        pass
 
     def test_get_num_nodes(self):
         """

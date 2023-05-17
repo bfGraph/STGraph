@@ -8,20 +8,34 @@ from rich import inspect
 
 from abc import ABC, abstractmethod
 
+
 class DynamicGraph(SeastarGraph):
     def __init__(self, edge_list):
         super().__init__()
         self.graph_updates = {}
         self.max_num_nodes = 0
         self.graph_cache = {}
-        
+
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
         self.current_timestamp = 0
-        
+
         self._preprocess_graph_structure(edge_list)
-        
-    def _get_graph_attr(self, edge_list):
+
+    def _get_graph_attr(self, edge_list: list) -> dict:
+        r"""Creates a dictionary, `graph_attr`, which stores information about the number 
+            of nodes and edges for each timestamp. The keys in the dictionary are integers 
+            representing the timestamps, and the corresponding values are tuples `(num_nodes, num_edges)`.
+
+            Parameters:
+            - **edge_list** (*list*):   A list containing the edge lists of a graph for each timestamp. 
+                                        Each edge list consists of tuple pairs `(src_node, dst_node)`. Note
+                                        that the edge list pairs are ordered by dst_node first and 
+                                        then src_node.
+
+            Returns:
+            - The dictionary `graph_attr` containing the information about the graph's attributes for each timestamp.
+        """
         graph_attr = {}
         for time in range(len(edge_list)):
             node_set = set()
@@ -34,19 +48,20 @@ class DynamicGraph(SeastarGraph):
                 node_set.add(dst)
             node_count = len(node_set)
             graph_attr[str(time)] = (node_count, edge_count)
-        
+
         return graph_attr
-        
+
     def _preprocess_graph_structure(self, edge_list):
-        
         graph_attr = self._get_graph_attr(edge_list)
-        
+
         max_num_nodes = 0
         for i in range(len(edge_list)):
             for j in range(len(edge_list[i])):
-                max_num_nodes = max(max_num_nodes,edge_list[i][j][0],edge_list[i][j][1])
+                max_num_nodes = max(
+                    max_num_nodes, edge_list[i][j][0], edge_list[i][j][1]
+                )
         self.max_num_nodes = max_num_nodes + 1
-        
+
         # SINCE THE CONCEPT OF NODE IDS HASNT BEEN IMPLEMENTED
         # WE CANT USE THIS (AS in consider the case where nodes are labelled 1,2,3)
         # What hapens to 0, Our system right now cant map each node to an ID
@@ -78,13 +93,17 @@ class DynamicGraph(SeastarGraph):
                 "num_nodes": graph_attr[str(i)][0],
                 "num_edges": graph_attr[str(i)][1],
             }
-        
+            
+        inspect(self.graph_updates)
+
     def get_graph(self, timestamp: int):
         # print("💄💄💄 Get_graph (forward) called",flush=True)
         self._is_backprop_state = False
-        
+
         if timestamp < self.current_timestamp:
-            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
+            raise Exception(
+                "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
+            )
 
         while self.current_timestamp < timestamp:
             self._update_graph_forward()
@@ -96,46 +115,45 @@ class DynamicGraph(SeastarGraph):
             # print("💄💄💄 Calling backward init")
             self._is_backprop_state = True
             self._init_reverse_graph()
-        
+
         if timestamp > self.current_timestamp:
-            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
-        
+            raise Exception(
+                "⏰ Invalid timestamp during SeastarGraph.update_graph_backward()"
+            )
+
         while self.current_timestamp > timestamp:
             # print("🎒🎒🎒 Calling update backward")
             self._update_graph_backward()
             self.current_timestamp -= 1
-    
+
     def get_num_nodes(self) -> int:
-        r"""Returns an integer representing the total number of nodes 
-            in a dynamic graph at the current timestamp.
+        r"""Returns an integer representing the total number of nodes
+        in a dynamic graph at the current timestamp.
         """
         return self.graph_updates[str(self.current_timestamp)]["num_nodes"]
-    
+
     def get_num_edges(self):
-        r"""Returns an integer representing the total number of edges 
-            in a dynamic graph at the current timestamp.
+        r"""Returns an integer representing the total number of edges
+        in a dynamic graph at the current timestamp.
         """
         return self.graph_updates[str(self.current_timestamp)]["num_edges"]
-    
+
     @abstractmethod
     def in_degrees(self):
         pass
-    
+
     @abstractmethod
     def out_degrees(self):
         pass
-    
-    
+
     @abstractmethod
     def _update_graph_forward(self):
         pass
-    
+
     @abstractmethod
     def _init_reverse_graph(self):
         pass
-    
+
     @abstractmethod
     def _update_graph_backward(self):
         pass
-    
-    
