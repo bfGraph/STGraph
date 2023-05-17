@@ -12,7 +12,6 @@ snoop==0.4.2
 sphinx_rtd_theme==1.2.0
 sympy==1.11.1
 termcolor==2.3.0
-torch==2.0.0+cu118
-torch_geometric_temporal==0.54.0
 tqdm==4.64.1
 pybind11==2.10.4
+build==0.10.0 

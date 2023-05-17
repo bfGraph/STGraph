@@ -4,7 +4,7 @@ This comprehensive guide will walk you through the installation process for Seas
 
 ## Seastar Installation
 
-To install Seastar on your local machine, execute the following command:
+To download Seastar on your local machine, execute the following command:
 
 ```
 git clone https://github.com/bfGraph/Seastar.git
@@ -29,6 +29,39 @@ To install the necessary Python packages for Seastar, run the following command.
 ```
 pip install -r requirements.txt
 ```
+
+You may encounter some errors or warnings, which you can ignore for now. 
+
+**Installing PyTorch and PyG-T**
+
+It is recommeneded to install PyTorch and PyTorch Geometric Temporal separately. Execute the following commands
+
+```
+pip install torch torchvision torchaudio
+pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.0+cu117.html
+pip install torch-geometric-temporal
+```
+
+### Seastar Graph Packages Installation
+
+Before proceeding with the remaining installation steps, it is crucial to build the shared object (.so) file for the CUDA/C++ extension that implements certain dynamic and static graph representations in Seastar. 
+
+```
+cd seastar/graph/
+./build_static.sh
+./build_dynamic.sh gpma pcsr
+```
+Once the build process completes successfully, you can proceed with the remaining installation steps.
+
+### Seastar Package Installation
+
+To complete the installation of the Seastar package, execute the following commands:
+
+```
+python3 -m build && pip uninstall seastar -y && pip install dist/seastar-1.0.0-py3-none-any.whl
+```
+
+After running the above commands, you can verify whether Seastar is installed correctly by executing `pip show seastar`.
 
 By executing the above instructions, you will have successfully installed Seastar along with all the required packages.
 
