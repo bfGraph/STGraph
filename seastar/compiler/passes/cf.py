@@ -26,7 +26,5 @@ def CF(prog):
                 if arg == 1:
                     has_one = i
             if has_one != -1:
-                print('CF: remove', cur_stmt)
                 cur_stmt.ret.replace_all_uses_with(cur_stmt.args[1-i], propogate_shape=False)
                 cur_stmt.remove_cur()
-    print('after cf program becomes:', prog)

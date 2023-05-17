@@ -41,13 +41,21 @@ class DynamicGraph(SeastarGraph):
         
         graph_attr = self._get_graph_attr(edge_list)
         
-        tmp_set = set()
+        max_num_nodes = 0
         for i in range(len(edge_list)):
-            tmp_set = set()
             for j in range(len(edge_list[i])):
-                tmp_set.add(edge_list[i][j][0])
-                tmp_set.add(edge_list[i][j][1])
-        self.max_num_nodes = len(tmp_set)
+                max_num_nodes = max(max_num_nodes,edge_list[i][j][0],edge_list[i][j][1])
+        self.max_num_nodes = max_num_nodes + 1
+        
+        # SINCE THE CONCEPT OF NODE IDS HASNT BEEN IMPLEMENTED
+        # WE CANT USE THIS (AS in consider the case where nodes are labelled 1,2,3)
+        # What hapens to 0, Our system right now cant map each node to an ID
+        # tmp_set = set()
+        # for i in range(len(edge_list)):
+        #     for j in range(len(edge_list[i])):
+        #         tmp_set.add(edge_list[i][j][0])
+        #         tmp_set.add(edge_list[i][j][1])
+        # self.max_num_nodes = len(tmp_set)
 
         edge_dict = {}
         for i in range(len(edge_list)):
@@ -72,7 +80,7 @@ class DynamicGraph(SeastarGraph):
             }
         
     def get_graph(self, timestamp: int):
-
+        # print("💄💄💄 Get_graph (forward) called",flush=True)
         self._is_backprop_state = False
         
         if timestamp < self.current_timestamp:
@@ -83,14 +91,17 @@ class DynamicGraph(SeastarGraph):
             self.current_timestamp += 1
 
     def get_backward_graph(self, timestamp: int):
+        # print("📝📝📝 Get_backward_graph (backward) called",flush=True)
         if not self._is_backprop_state:
-            self._init_reverse_graph()
+            # print("💄💄💄 Calling backward init")
             self._is_backprop_state = True
+            self._init_reverse_graph()
         
         if timestamp > self.current_timestamp:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
         while self.current_timestamp > timestamp:
+            # print("🎒🎒🎒 Calling update backward")
             self._update_graph_backward()
             self.current_timestamp -= 1
     

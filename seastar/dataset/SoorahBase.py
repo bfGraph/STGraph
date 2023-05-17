@@ -12,8 +12,8 @@ from rich.console import Console
 
 console = Console()
 
-from rich.traceback import install
-install(show_locals=True)
+# from rich.traceback import install
+# install(show_locals=True)
 
 class SoorahBase:
     def __init__(self, dataset_name ,verbose: bool = False, lags: int = 8, split=0.75, for_seastar= False) -> None:
@@ -26,7 +26,7 @@ class SoorahBase:
         self._max_num_nodes = 0
 
         self._local_path = f'../../dataset/{dataset_name}/{dataset_name}.json'
-        self._url_path = None
+        self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
         self._verbose = verbose
 
         self._load_dataset()
@@ -44,15 +44,23 @@ class SoorahBase:
 
     def _load_dataset(self) -> None:
         # loading the dataset by downloading them online
-        if self._verbose:
-            console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
+        # if self._verbose:
+        #     console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
         
         # for online download
-        # self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        if os.path.exists(self._local_path):
+            dataset_file = open(self._local_path)
+            self._dataset = json.load(dataset_file)
+            if self._verbose:
+                console.log(f"Loading [cyan]{self.name}[/cyan] dataset from dataset/")
+        else:
+            if self._verbose:
+                console.log("Downloading [cyan]England Covid[/cyan] dataset")
+            self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
         
         # for local
-        dataset_file = open(self._local_path)
-        self._dataset = json.load(dataset_file)
+        # dataset_file = open(self._local_path)
+        # self._dataset = json.load(dataset_file)
 
     def _get_edge_info_seastar(self):
         # getting the edge_list and edge_weights
@@ -136,6 +144,9 @@ class SoorahBase:
 
         self._edge_list = final_edges_lst
         self._edge_weights = final_edge_weights_lst
+        
+        print("🍎🍎🍎 Edge Weights")
+        # print(self._edge_weights)
 
     def get_edges(self):
         return self._edge_list

@@ -29,7 +29,10 @@ extern "C" __global__ void {{kernel_name}}
 
                 // PCSR indexes edges starting from 1
                 // Seastar requires edgs to be indexed from 0
-                {{index_type}} eid = __ldg(eids + e) - 1;
+                // {{index_type}} eid = __ldg(eids + e) - 1;
+
+                // New PCSR
+                {{index_type}} eid = __ldg(eids + e);
                 
                 {{init_inner_offset}}
                 

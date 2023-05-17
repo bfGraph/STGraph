@@ -26,7 +26,6 @@ class Op(abc.ABC):
         try:
             ret = self._op(*tuple(arg.v for arg in args), **kargs)
         except Exception as e:
-            print("Exception:", str(self), 'e', e, 'args:', args, 'kargs', kargs)
             raise e
         if isinstance(ret, tuple) or isinstance(ret, list):
             raise NotImplementedError("Ops that return multiple tensors are not supported op:", str(self), 'ret:', ret)
@@ -57,7 +56,6 @@ class Op(abc.ABC):
 class TorchOp(Op):
     def to_schema(self):
         if 'module' in str(type(self._op)):
-            print('here', type(self._op).__name__)
             return Schema(type(self._op).__name__.split('.')[-1], **{key: val for key, val in self._op.__dict__.items() if not key.startswith('_')})
         elif 'builtin_function_or_method' in str(type(self._op)):
             return Schema(str(self._op).split()[2])

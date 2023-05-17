@@ -12,7 +12,7 @@ from .autodiff import diff
 from .code_gen import code_gen 
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
-from .debugging.pretty_printers import pretty_print_GIR, pretty_print_Central_Node
+
 import snoop
 
 
@@ -195,7 +195,6 @@ class Seastar():
         def wrapper(func):
             if not func.__name__ in self._ctx_map:
                 if not hetero_graph:
-                    print('create context:', self._ctx_map)
                     self._ctx_map[func.__name__] = Context(func, nspace, self._run_cb)
                 else:
                     raise NotImplementedError('Heterogeneous graph is not supported yet')

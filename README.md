@@ -1,6 +1,22 @@
 ![Seastar Banner](https://github.com/bfGraph/Seastar/blob/main/assets/Seastar%20Banner.png?raw=true)
 [![Documentation Status](https://readthedocs.org/projects/seastar/badge/?version=latest)](https://seastar.readthedocs.io/en/latest/?badge=latest)
 
+<div align="center">
+  <h3 align="center">Seamlessly write and train GNN models</h3>
+
+  <p align="center">
+    <a href="https://seastar.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/bfGraph/Seastar/blob/main/INSTALLATION.md">Installation guide</a>
+    ·
+    <a href="https://github.com/bfGraph/Seastar/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/bfGraph/Seastar/discussions">View Discussions</a>
+  </p>
+</div>
+
+
 # 🌟 Seastar
 
 Seastar is a cutting-edge system designed to enhance the performance of graph neural network (GNN) and Temporal-GNN training on GPUs. Utilize the vertex-centric approach to programming a GNN to produce highly efficient fused GPU kernels for forward and backward passes. It achieves better usability, faster computation time and consumes less memory than state-of-the-art GNN systems like DGL and PyG.
@@ -136,6 +152,7 @@ make html
 | ------------------------ | -------------------------------------------------------------------- |
 | `Joel Mathew Cherian`    | Computer Science Student at National Institute of Technology Calicut |
 | `Nithin Puthalath Manoj` | Computer Science Student at National Institute of Technology Calicut |
+| `Dr. Unnikrishnan Cheramangalath` | Assistant Professor in CSED at Indian Institue of Technology Palakkad |
 
 ## Attributions
 
