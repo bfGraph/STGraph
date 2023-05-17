@@ -1,5 +1,3 @@
-import os
-
 from cuda import cuda
 from prettytable import PrettyTable, HEADER, NONE, SINGLE_BORDER
 from termcolor import colored
@@ -9,7 +7,7 @@ from ctypes import *
 
 global_gpu_device = None
 
-class DeviceInfo:
+class GPUDevice:
     def __init__(self, print_log=False):
         # breakpoint()
         self.nGpus = 0
@@ -23,14 +21,9 @@ class DeviceInfo:
         self.freeMem = 0
         self.totalMem = 0
 
-        # Retrieving the path of nvcc
-        self.nvcc_path = os.popen('which nvcc').read()[:-1]
-        if not len(self.nvcc_path):
-            self.nvcc_path = '/usr/local/cuda/bin/nvcc'
-
         # Make sure to call cuInit(), otherwise we won't be
         # able to make any CUDA Driver API calls
-        # cuInit(0)
+        cuInit(0)
 
         # Getting the number of compatible GPU devices
         err, self.nGpus = cuDeviceGetCount()    
@@ -39,7 +32,7 @@ class DeviceInfo:
         # i.e ordinal = 0 for cuDeviceGet
         ordinal = 0
         err, self.device = cuDeviceGet(ordinal)
-        # err, self.context = cuCtxCreate(0, self.device)
+        err, self.context = cuCtxCreate(0, self.device)
 
         err, device_name = cuDeviceGetName(25, self.device)
         self.name = device_name.decode("utf-8")
@@ -82,10 +75,5 @@ class DeviceInfo:
         print(colored("\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device", "dark_grey"))
         print("\n")
 
-# def get_global_gpu_device():
-#     if global_gpu_device == None:
-#         return DeviceInfo(print_log=False)
-#     return global_gpu_device
-
 if __name__ == "__main__":
-    device = DeviceInfo(print_log=True)
+    device = GPUDevice(print_log=True)

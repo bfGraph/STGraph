@@ -1,3 +1,4 @@
+cuda_python==12.1.0
 Jinja2==3.1.2
 networkx==3.1
 numpy==1.23.4
@@ -10,6 +11,7 @@ rich==13.3.5
 snoop==0.4.2
 sphinx_rtd_theme==1.2.0
 sympy==1.11.1
+termcolor==2.3.0
 torch==2.0.0+cu118
 torch_geometric_temporal==0.54.0
 tqdm==4.64.1
