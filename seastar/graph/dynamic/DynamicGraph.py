@@ -94,10 +94,16 @@ class DynamicGraph(SeastarGraph):
             self._update_graph_backward()
             self.current_timestamp -= 1
     
-    def get_num_nodes(self):
+    def get_num_nodes(self) -> int:
+        r"""Returns an integer representing the total number of nodes 
+            in a dynamic graph at the current timestamp.
+        """
         return self.graph_updates[str(self.current_timestamp)]["num_nodes"]
     
     def get_num_edges(self):
+        r"""Returns an integer representing the total number of edges 
+            in a dynamic graph at the current timestamp.
+        """
         return self.graph_updates[str(self.current_timestamp)]["num_edges"]
     
     @abstractmethod
