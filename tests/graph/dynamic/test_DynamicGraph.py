@@ -52,7 +52,60 @@ class TestDynamicGraph:
         assert graph_attr['3'] == (4, 4)
 
     def test_preprocess_graph_structure(self):
-        pass
+        naive_graph = NaiveGraph(edge_list=self.sorted_edge_index)
+        
+        # checking graph_updates for t = 0
+        graph_updates_0 = naive_graph.graph_updates['0']
+        assert len(graph_updates_0['add']) == 3
+        for edge in [(0,1), (1,2), (2,3)]:
+            assert edge in graph_updates_0['add']
+            
+        assert len(graph_updates_0['delete']) == 0
+        
+        assert graph_updates_0['num_nodes'] == 4
+        assert graph_updates_0['num_edges'] == 3
+        
+        # checking graph_updates for t = 1
+        graph_updates_1 = naive_graph.graph_updates['1']
+        assert len(graph_updates_1['add']) == 1
+        assert (3,1) in graph_updates_1['add']
+        
+        assert len(graph_updates_1['delete']) == 1
+        assert (0,1) in graph_updates_1['delete']
+        
+        assert graph_updates_1['num_nodes'] == 3
+        assert graph_updates_1['num_edges'] == 3
+        
+        # checking graph_updates for t = 2
+        graph_updates_2 = naive_graph.graph_updates['2']
+        
+        assert len(graph_updates_2['add']) == 1
+        assert (3,0) in graph_updates_2['add']
+        
+        assert len(graph_updates_2['delete']) == 0
+        
+        assert graph_updates_2['num_nodes'] == 4
+        assert graph_updates_2['num_edges'] == 4
+        
+        # checking graph_updates for t = 3
+        graph_updates_3 = naive_graph.graph_updates['3']
+        
+        assert len(graph_updates_3['add']) == 1
+        assert (0,1) in graph_updates_3['add']
+        
+        assert len(graph_updates_3['delete']) == 1
+        assert (1,2) in graph_updates_3['delete']
+        
+        assert graph_updates_3['num_nodes'] == 4
+        assert graph_updates_3['num_edges'] == 4
+        
+    def test_get_graph(self):
+        naive_graph = NaiveGraph(edge_list=self.sorted_edge_index)
+        inspect(naive_graph)
+        naive_graph.get_graph(1)
+        inspect(naive_graph)
+        quit()
+
 
     def test_get_num_nodes(self):
         """
