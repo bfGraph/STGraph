@@ -1,8 +1,9 @@
 import json
 from rich import inspect
+
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
-
+from seastar.graph.static.csr import print_dev_array
 
 def get_edge_list(gra):
     pass
@@ -101,9 +102,13 @@ class TestDynamicGraph:
         
     def test_get_graph(self):
         naive_graph = NaiveGraph(edge_list=self.sorted_edge_index)
+        
+        inspect(naive_graph._forward_graph[naive_graph.current_timestamp].get_csr_arrays())
+        
+        print_dev_array(naive_graph.fwd_row_offset_ptr, 5)
+        print_dev_array(naive_graph.fwd_column_indices_ptr, 3)
         inspect(naive_graph)
-        naive_graph.get_graph(1)
-        inspect(naive_graph)
+        
         quit()
 
 

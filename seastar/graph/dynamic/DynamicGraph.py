@@ -93,8 +93,6 @@ class DynamicGraph(SeastarGraph):
                 "num_nodes": graph_attr[str(i)][0],
                 "num_edges": graph_attr[str(i)][1],
             }
-            
-        inspect(self.graph_updates)
 
     def get_graph(self, timestamp: int):
         # print("💄💄💄 Get_graph (forward) called",flush=True)

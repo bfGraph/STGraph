@@ -46,6 +46,7 @@ public:
     void print_row_offset();
     void print_csr_arrays();
     void print_graph();
+    py::dict get_csr_arrays();
 };
 
 bool sort_by_sec(const std::tuple<int, int> &a,
@@ -235,6 +236,54 @@ void print_dev_array(std::uintptr_t ptr, int size)
     std::cout << "\n";
 }
 
+py::dict CSR::get_csr_arrays()
+{
+    /*
+        Returns a dictionary containing the CSR arrays which are
+        stored in device. The keys are ['row_offset', 'col_indices', 'eids'].
+        The values for the respective keys are python lists.
+
+        Please note that this function should only be used for testing
+        and debugging purposes. It shouldn't be used anywhere near Seastars
+        graph logic due to the high time overhead of this function.
+    */
+
+    int row_offset_size = row_offset.size();
+    int col_indices_size = column_indices.size();
+    int eids_size = eids.size();
+
+    std::vector<int> row_offset_host(row_offset_size, 0);
+    std::vector<int> col_indices_host(col_indices_size, 0);
+    std::vector<int> eids_host(eids_size, 0);
+
+    // copying row_offset from device to host
+    int *dev_row_offset_ptr = reinterpret_cast<int *>(row_offset_ptr);
+    int *host_row_offset_ptr = (int *)malloc(row_offset_size * sizeof(int));
+    cudaMemcpy(host_row_offset_ptr, dev_row_offset_ptr, row_offset_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < row_offset_size; ++i)
+        row_offset_host[i] = host_row_offset_ptr[i];
+
+    // copying column_indices from device to host
+    int *dev_col_indices_ptr = reinterpret_cast<int *>(column_indices_ptr);
+    int *host_col_indices_ptr = (int *)malloc(col_indices_size * sizeof(int));
+    cudaMemcpy(host_col_indices_ptr, dev_col_indices_ptr, col_indices_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < col_indices_size; ++i)
+        col_indices_host[i] = host_col_indices_ptr[i];
+
+    // copying eids from device to host
+    int *dev_eids_ptr = reinterpret_cast<int *>(eids_ptr);
+    int *host_eids_ptr = (int *)malloc(eids_size * sizeof(int));
+    cudaMemcpy(host_eids_ptr, dev_eids_ptr, eids_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < eids_size; ++i)
+        eids_host[i] = host_eids_ptr[i];
+
+    py::dict csr_array_dict("row_offset"_a = row_offset_host, "col_indices"_a = col_indices_host, "eids"_a = eids_host);
+    return csr_array_dict;
+}
+
 PYBIND11_MODULE(csr, m)
 {
     m.doc() = "CPython module for CSR"; // optional module docstring
@@ -249,6 +298,7 @@ PYBIND11_MODULE(csr, m)
         .def("print_csr_arrays", &CSR::print_csr_arrays)
         .def("print_graph", &CSR::print_graph)
         .def("print_row_offset", &CSR::print_row_offset)
+        .def("get_csr_arrays", &CSR::get_csr_arrays)
         .def_readwrite("row_offset", &CSR::row_offset)
         .def_readwrite("column_indices", &CSR::column_indices)
         .def_readwrite("eids", &CSR::eids)
