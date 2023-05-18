@@ -13,6 +13,7 @@ class NaiveGraph(DynamicGraph):
         # inspect(edge_list)
         self._prepare_edge_lst_fwd(edge_list)
         self._prepare_edge_lst_bwd(self.fwd_edge_list)  
+        
         self._forward_graph = [CSR(self.fwd_edge_list[i], self.graph_updates[str(i)]["num_nodes"], is_edge_reverse=True) for i in range(len(self.fwd_edge_list))]
         self._backward_graph = [CSR(self.bwd_edge_list[i], self.graph_updates[str(i)]["num_nodes"]) for i in range(len(self.bwd_edge_list))]
         # self._forward_graph = [CSR(self.fwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"], is_edge_reverse=True)]
