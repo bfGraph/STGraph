@@ -839,10 +839,10 @@ std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(st
     column_indices_device = column_indices;
     eids_device.resize(edge_count);
 
-    if (eids.size() == 0)
-        thrust::sequence(eids_device.begin(), eids_device.end());
-    else
-        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
+    // if (eids.size() == 0)
+    thrust::sequence(eids_device.begin(), eids_device.end());
+    // else
+    //     thrust::copy(eids.begin(), eids.end(), eids_device.begin());
 
     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
     std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
