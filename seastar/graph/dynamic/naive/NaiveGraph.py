@@ -18,6 +18,14 @@ class NaiveGraph(DynamicGraph):
         # self._forward_graph = [CSR(self.fwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"], is_edge_reverse=True)]
         # self._backward_graph = [CSR(self.bwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"])]
 
+        # Using cache to possibly make pcsr faster
+        self._in_degrees_cache = {}
+        self._out_degrees_cache = {}
+
+        # for benchmarking purposes
+        self._update_count = 0
+        self._total_update_time = 0
+
         self._get_graph_csr_ptrs(0)
         
     def _prepare_edge_lst_fwd(self, edge_list):   
@@ -35,20 +43,14 @@ class NaiveGraph(DynamicGraph):
             edge_list_for_t.sort()
             self.bwd_edge_list.append(edge_list_for_t)
         
-    # def _graph_stack_push(self, elem):
-    #     self.graph_stack.append(elem)
-    
-    # def _graph_stack_pop(self):
-    #     self.graph_stack.pop()
-        
-    # def _graph_stack_top(self):
-    #     return self.graph_stack[-1]
-        
     def graph_type(self):
         return "csr"
         
     def in_degrees(self):
-        return np.array(self._forward_graph[self.current_timestamp].out_degrees, dtype='int32')
+        if self.current_timestamp not in self._in_degrees_cache:
+            self._in_degrees_cache[self.current_timestamp] = np.array(self._forward_graph[self.current_timestamp].out_degrees, dtype='int32')
+        
+        return self._in_degrees_cache[self.current_timestamp]
     
     def out_degrees(self):
         return np.array(self._forward_graph[self.current_timestamp].in_degrees, dtype='int32')

@@ -50,9 +50,9 @@ class FoorahBase:
             dataset_file = open(self._local_path)
             self._dataset = json.load(dataset_file)
             if self._verbose:
-                console.log(f"Loading [cyan]{self.name}[/cyan] dataset from dataset/")
+                console.log(f'Loading [cyan]{self.name}[/cyan] dataset from dataset/')
         else:
-            console.log("Failed to find [cyan]{self.name}[/cyan] dataset from dataset/")
+            console.log(f'Failed to find [cyan]{self.name}[/cyan] dataset from dataset')
             quit()
         
         # for local

@@ -22,6 +22,10 @@ class PCSRGraph(DynamicGraph):
         self._in_degrees_cache = {}
         self._out_degrees_cache = {}
         
+        # for benchmarking purposes
+        self._update_count = 0
+        self._total_update_time = 0
+        
         self._update_graph_cache()
         self._get_graph_csr_ptrs(eids=list())
     
@@ -90,11 +94,17 @@ class PCSRGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
         graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
         
-        # print(f"(FORWARD) ➕➕➕ Adding a total of {len(graph_additions)} elements", flush=True)
-        # print(f"(FORWARD) ➖➖➖ Removing a total of {len(graph_deletions)} elements", flush=True)
+        self._update_count += len(graph_additions)
+        self._update_count += len(graph_deletions)
+
+        update_time_0 = time.time()
 
         self._forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
         self._forward_graph.edge_update_list(graph_deletions,is_delete=True,is_reverse_edge=True)
+        
+        update_time_1 = time.time()
+        self._total_update_time += (update_time_1 - update_time_0)
+        
         self._get_graph_csr_ptrs(eids=list())
         
     def _init_reverse_graph(self):
@@ -123,9 +133,15 @@ class PCSRGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
         
-        # print(f"(BACKWARD) ➕➕➕ Adding a total of {len(graph_additions)} elements",flush=True)
-        # print(f"(BACKWARD) ➖➖➖ Removing a total of {len(graph_deletions)} elements",flush=True)
+        self._update_count += len(graph_additions)
+        self._update_count += len(graph_deletions)
+
+        update_time_0 = time.time()
         
         self._backward_graph.edge_update_list(graph_additions)   
         self._backward_graph.edge_update_list(graph_deletions,is_delete=True)
+        
+        update_time_1 = time.time()
+        self._total_update_time += (update_time_1 - update_time_0)
+        
         self._get_graph_csr_ptrs(eids=self.bwd_eid_list[self.current_timestamp - 1])

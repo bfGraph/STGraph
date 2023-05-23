@@ -159,7 +159,12 @@ def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_ep
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-    return np.mean(dur)
+    if G._update_count == 0:
+        time_per_update = 0
+    else:
+        time_per_update = G._total_update_time / G._update_count
+
+    return np.mean(dur), time_per_update
 
 
 def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
@@ -265,7 +270,9 @@ def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-    return np.mean(dur)
+    time_per_update = 0
+
+    return np.mean(dur), time_per_update
 
 
 def main(args):
@@ -279,6 +286,17 @@ def main(args):
     table.add_column("PCSR", justify="left")
     table.add_column("GPMA", justify="left")
     table.add_column("PyG-T", justify="left")
+
+    update_time_table = Table(
+        title=f"\nTime Taken per Update [black bold](µs)[/black bold]\n", show_edge=False, style="black bold"
+    )
+
+    update_time_table.add_column("Dataset Name", justify="right")
+    update_time_table.add_column("Feat. Size", justify="left")
+    update_time_table.add_column("Naive", justify="left")
+    update_time_table.add_column("PCSR", justify="left")
+    update_time_table.add_column("GPMA", justify="left")
+    update_time_table.add_column("PyG-T", justify="left")
 
     dataset_dir = args.dataset_dir
 
@@ -300,13 +318,14 @@ def main(args):
 
     for dataset, param in dataset_name.items():
         results = {}
+        update_time_results = {}
 
         # running seastar t-gcn
         for graph_type in seastar_graph_types:
             console.log(
                 f"Running [bold yellow]{graph_type}[/bold yellow] on [bold cyan]{dataset}[/bold cyan]"
             )
-            avg_time = run_seastar(
+            avg_time, update_time = run_seastar(
                 dataset_dir,
                 dataset,
                 param["feat_size"],
@@ -316,22 +335,23 @@ def main(args):
                 num_epochs,
             )
             results[graph_type] = round(avg_time, 4)
+            update_time_results[graph_type] = round(update_time * (10**6), 4)
 
         # running pygt t-gcn
         console.log(
             f"Running [bold yellow]PyG-T[/bold yellow] on [bold cyan]{dataset}[/bold cyan]"
         )
 
-        results["pygt"] = round(
-            run_pygt(
+        avg_time, update_time = run_pygt(
             dataset_dir,
-                dataset,
-                param["feat_size"],
-                learning_rate,
-                num_epochs,
-            ),
-            4,
+            dataset,
+            param["feat_size"],
+            learning_rate,
+            num_epochs,
         )
+
+        results["pygt"] = round(avg_time, 4)
+        update_time_results["pygt"] = update_time
 
         # getting the implementation with the fastest time
         fast_impl = min(results, key=results.get)
@@ -346,7 +366,17 @@ def main(args):
             str(results["pygt"]),
         )
 
+        update_time_table.add_row(
+            str(dataset),
+            str(param["feat_size"]),
+            str(update_time_results["naive"]),
+            str(update_time_results["pcsr"]),
+            str(update_time_results["gpma"]),
+            str(update_time_results["pygt"]),
+        )
+
     console.print(table)
+    console.print(update_time_table)
 
 
 if __name__ == "__main__":
@@ -356,7 +386,9 @@ if __name__ == "__main__":
     snoop.install(enabled=False)
 
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
-    parser.add_argument("--dataset_dir", type=str, default="foorah_large", help="dataset directory")
+    parser.add_argument(
+        "--dataset_dir", type=str, default="foorah_large", help="dataset directory"
+    )
     parser.add_argument("--max_feat_size", type=int, default=8, help="max_feature_size")
     parser.add_argument("--max_num_nodes", type=int, default=1000, help="max_num_nodes")
     parser.add_argument(

@@ -1,4 +1,6 @@
 import copy
+import time
+
 import numpy as np
 from rich import inspect
 
@@ -13,6 +15,10 @@ class GPMAGraph(DynamicGraph):
         # forward and backward graphs for GPMA
         self._forward_graph = GPMA()
         self._backward_graph = GPMA()
+        
+        # for benchmarking purposes
+        self._update_count = 0
+        self._total_update_time = 0
         
         init_gpma(self._forward_graph, self.max_num_nodes)
         init_gpma(self._backward_graph, self.max_num_nodes)
@@ -75,8 +81,16 @@ class GPMAGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
         graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
 
+        self._update_count += len(graph_additions)
+        self._update_count += len(graph_deletions)
+
+        update_time_0 = time.time()
+
         edge_update_list(self._forward_graph, graph_additions, is_reverse_edge=True)
         edge_update_list(self._forward_graph, graph_deletions, is_delete=True, is_reverse_edge=True)
+
+        update_time_1 = time.time()
+        self._total_update_time += (update_time_1 - update_time_0)
 
         # TODO: UNCOMMENT LATER
         label_edges(self._forward_graph)
@@ -107,11 +121,19 @@ class GPMAGraph(DynamicGraph):
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
 
+        self._update_count += len(graph_additions)
+        self._update_count += len(graph_deletions)
+
+        update_time_0 = time.time()
+
         edge_update_list(self._backward_graph, graph_additions)
         edge_update_list(self._backward_graph, graph_deletions, is_delete=True)
 
         edge_update_list(self._forward_graph, graph_additions, is_reverse_edge=True)
         edge_update_list(self._forward_graph, graph_deletions, is_delete=True, is_reverse_edge=True)
+
+        update_time_1 = time.time()
+        self._total_update_time += (update_time_1 - update_time_0)
 
         # TODO: UNCOMMENT LATER
         label_edges(self._forward_graph)
