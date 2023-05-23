@@ -8,6 +8,7 @@ from random import randint, shuffle, getrandbits
 from argparse import ArgumentParser
 import time
 from tqdm import tqdm
+import copy
 
 from rich import inspect
 
@@ -79,9 +80,17 @@ parser.add_argument(
 
 parser.add_argument(
     '-F',
-    help="Feature size for each node of the graph",
+    help="Max Feature size for each node of the graph",
     default=8,
-    metavar="feat_size",
+    metavar="max_feat_size",
+    type=int
+)
+
+parser.add_argument(
+    '-I',
+    help="Increment feature size",
+    default=8,
+    metavar="inc_feat_size",
     type=int
 )
 
@@ -93,9 +102,6 @@ def create_graph(
     add_coeff=0.1,
     del_coeff=0.05,
     total_time=100,
-    low_limit=0.9,
-    upp_limit=1.1,
-    feat_size = 8,
 ):
     graph_json = {
         "edge_mapping": {"edge_index": {}, "edge_weight": {}},
@@ -129,17 +135,17 @@ def create_graph(
     edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
             
     # getting the node features for each node of the base graph
-    a0 = time.time()
-    feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(num_nodes)]
-    a1 = time.time()
+    # a0 = time.time()
+    # feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(num_nodes)]
+    # a1 = time.time()
 
-    print(f'Time to get all features: {a1-a0}')
+    # print(f'Time to get all features: {a1-a0}')
     
     edge_list = list(edge_list)
     
     graph_json["edge_mapping"]["edge_index"]["0"] = edge_list
     graph_json["edge_mapping"]["edge_weight"]["0"] = edge_weight_list
-    graph_json["y"].append(feature_list)
+    # graph_json["y"].append(feature_list)
 
     # creating the next time stamp info from previous
     # time stamps information
@@ -163,12 +169,12 @@ def create_graph(
         #     curr_edge_list.add((i,i))
 
         curr_edge_weight_list = [randint(1, 1000) for i in range(len(curr_edge_list))]
-        curr_feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(num_nodes)]
+        # curr_feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(num_nodes)]
         curr_edge_list = list(curr_edge_list)
 
         graph_json["edge_mapping"]["edge_index"][str(time_stamp)] = curr_edge_list
         graph_json["edge_mapping"]["edge_weight"][str(time_stamp)] = curr_edge_weight_list
-        graph_json["y"].append(curr_feature_list)
+        # graph_json["y"].append(curr_feature_list)
 
         prev_edge_list = curr_edge_list
 
@@ -179,15 +185,24 @@ dataset_path = "../dataset/"
 
 t0 = time.time()
 
-graph_json = create_graph(args.N, args.M, args.A, args.D, args.T, args.L, args.U, args.F)
+graph_json = create_graph(args.N, args.M, args.A, args.D, args.T)
 
 folder_path = os.path.join(dataset_path, graph_name)
 
 if not os.path.exists(dataset_path + graph_name):
     os.mkdir(folder_path)
 
-with open(f"{folder_path}/{graph_name}.json", "w") as fp:
-    json.dump(graph_json, fp)
+feat_size = args.I
+while feat_size <= args.F:
+    curr_graph_json = copy.deepcopy(graph_json)
+    for _ in range(args.T):
+        curr_feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(args.N)]
+        curr_graph_json["y"].append(curr_feature_list)
+
+    with open(f"{folder_path}/{graph_name}_{feat_size}.json", "w") as fp:
+        json.dump(curr_graph_json, fp)
+    
+    feat_size = feat_size + args.I
 
 t1 = time.time()
 
