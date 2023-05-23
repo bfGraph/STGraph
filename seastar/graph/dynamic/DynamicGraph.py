@@ -32,7 +32,10 @@ class DynamicGraph(SeastarGraph):
                 edge_count += 1
                 node_set.add(src)
                 node_set.add(dst)
-            node_count = len(node_set)
+            
+            # NOTE: Might alter this alter
+            node_count = self.max_num_nodes
+            # node_count = len(node_set)
             graph_attr[str(time)] = (node_count, edge_count)
         
         return graph_attr
