@@ -16,7 +16,7 @@ console = Console()
 # install(show_locals=True)
 
 class FoorahBase:
-    def __init__(self, dataset_name ,verbose: bool = False, split=0.75, for_seastar= False) -> None:
+    def __init__(self, folder_name, dataset_name,verbose: bool = False, split=0.75, for_seastar= False) -> None:
         self.name = dataset_name
         self.split = split
 
@@ -24,7 +24,7 @@ class FoorahBase:
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = f'../../dataset/{dataset_name}/{dataset_name}.json'
+        self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
 
         self._load_dataset()

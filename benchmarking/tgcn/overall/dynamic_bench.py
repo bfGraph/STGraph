@@ -43,7 +43,7 @@ def to_default_device(data):
     return data.to(get_default_device(), non_blocking=True)
 
 
-def run_seastar(dataset, feat_size, lr, type, max_num_nodes, num_epochs):
+def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_epochs):
     print_var.is_print_verbose_log = False
 
     nvidia_smi.nvmlInit()
@@ -52,7 +52,7 @@ def run_seastar(dataset, feat_size, lr, type, max_num_nodes, num_epochs):
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = psutil.virtual_memory()[3]
 
-    eng_covid = FoorahBase(dataset, verbose=False, for_seastar=True)
+    eng_covid = FoorahBase(dataset_dir, dataset, verbose=False, for_seastar=True)
 
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -162,14 +162,14 @@ def run_seastar(dataset, feat_size, lr, type, max_num_nodes, num_epochs):
     return np.mean(dur)
 
 
-def run_pygt(dataset, feat_size, lr, num_epochs):
+def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
     nvidia_smi.nvmlInit()
     handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
 
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = psutil.virtual_memory()[3]
 
-    eng_covid = FoorahBase(dataset, verbose=False)
+    eng_covid = FoorahBase(dataset_dir, dataset, verbose=False)
 
     edge_list = eng_covid.get_edges()
     edge_weight_list = eng_covid.get_edge_weights()
@@ -277,23 +277,26 @@ def main(args):
     table.add_column("Feat. Size", justify="left")
     table.add_column("Naive", justify="left")
     table.add_column("PCSR", justify="left")
+    table.add_column("GPMA", justify="left")
     table.add_column("PyG-T", justify="left")
+
+    dataset_dir = args.dataset_dir
 
     # creating the dataset list
     dataset_name = {}
 
     dataset_feat_size = 8
     while dataset_feat_size <= args.max_feat_size:
-        dataset_name[f"foorah_large_feat_{dataset_feat_size}"] = {
+        dataset_name[f"{dataset_dir}_{dataset_feat_size}"] = {
             "feat_size": dataset_feat_size,
             "max_num_nodes": 55000,
         }
         dataset_feat_size += 8
 
-    seastar_graph_types = ["naive", "pcsr"]
+    seastar_graph_types = ["naive", "pcsr", "gpma"]
 
-    learning_rate = 0.01
-    num_epochs = 5
+    learning_rate = args.lr
+    num_epochs = args.num_epochs
 
     for dataset, param in dataset_name.items():
         results = {}
@@ -304,6 +307,7 @@ def main(args):
                 f"Running [bold yellow]{graph_type}[/bold yellow] on [bold cyan]{dataset}[/bold cyan]"
             )
             avg_time = run_seastar(
+                dataset_dir,
                 dataset,
                 param["feat_size"],
                 learning_rate,
@@ -320,6 +324,7 @@ def main(args):
 
         results["pygt"] = round(
             run_pygt(
+            dataset_dir,
                 dataset,
                 param["feat_size"],
                 learning_rate,
@@ -337,6 +342,7 @@ def main(args):
             str(param["feat_size"]),
             str(results["naive"]),
             str(results["pcsr"]),
+            str(results["gpma"]),
             str(results["pygt"]),
         )
 
@@ -350,25 +356,11 @@ if __name__ == "__main__":
     snoop.install(enabled=False)
 
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
+    parser.add_argument("--dataset_dir", type=str, default="foorah_large", help="dataset directory")
     parser.add_argument("--max_feat_size", type=int, default=8, help="max_feature_size")
     parser.add_argument("--max_num_nodes", type=int, default=1000, help="max_num_nodes")
-    parser.add_argument("--type", type=str, default="naive", help="Seastar Type")
     parser.add_argument(
         "--num_epochs", type=int, default=1, help="number of training epochs"
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default="soorah_base",
-        help="Name of the Soorah Dataset",
-        metavar="dataset",
-    )
-    parser.add_argument(
-        "--verbose",
-        type=bool,
-        default=False,
-        help="If set to true, will print out logs while Seastar compiles your model",
-        metavar="verbose",
     )
     args = parser.parse_args()
 
