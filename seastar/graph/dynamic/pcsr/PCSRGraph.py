@@ -18,6 +18,10 @@ class PCSRGraph(DynamicGraph):
         self._backward_graph = PCSR(self.max_num_nodes)
         self._forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
         
+        # Using cache to possibly make pcsr faster
+        self._in_degrees_cache = {}
+        self._out_degrees_cache = {}
+        
         self._update_graph_cache()
         self._get_graph_csr_ptrs(eids=list())
     
@@ -40,10 +44,16 @@ class PCSRGraph(DynamicGraph):
         return "pcsr"
         
     def in_degrees(self):
-        return np.array([node.num_neighbors for node in self._forward_graph.nodes], dtype='int32')
+        if self.current_timestamp not in self._in_degrees_cache:
+            self._in_degrees_cache[self.current_timestamp] = np.array([node.num_neighbors for node in self._forward_graph.nodes], dtype='int32')
+        
+        return self._in_degrees_cache[self.current_timestamp]
     
     def out_degrees(self):
-        return np.array([node.in_degree for node in self._forward_graph.nodes], dtype='int32')
+        if self.current_timestamp not in self._out_degrees_cache:
+            self._out_degrees_cache[self.current_timestamp] = np.array([node.in_degree for node in self._forward_graph.nodes], dtype='int32')
+        
+        return self._out_degrees_cache[self.current_timestamp]
     
     def _update_graph_cache(self, is_bwd=False):
         if is_bwd:
