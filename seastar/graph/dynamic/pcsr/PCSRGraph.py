@@ -7,8 +7,8 @@ from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.graph.dynamic.pcsr.pcsr import PCSR, build_reverse_pcsr
 
 class PCSRGraph(DynamicGraph):
-    def __init__(self, edge_list):
-        super().__init__(edge_list)
+    def __init__(self, edge_list, max_num_nodes):
+        super().__init__(edge_list, max_num_nodes)
         
         # preprocessing the edge ids for forward and backward pass
         # so that it doesn't have to be calculated each time

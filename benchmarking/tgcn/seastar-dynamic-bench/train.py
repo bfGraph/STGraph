@@ -111,11 +111,11 @@ def main(args):
     cuda = True
 
     if args.type == "naive":
-        G = NaiveGraph(train_edges_lst)
+        G = NaiveGraph(train_edges_lst,args.max_num_nodes)
     elif args.type == "pcsr":
-        G = PCSRGraph(train_edges_lst)
+        G = PCSRGraph(train_edges_lst,args.max_num_nodes)
     elif args.type == "gpma":
-        G = GPMAGraph(train_edges_lst)
+        G = GPMAGraph(train_edges_lst,args.max_num_nodes)
     else:
         print("Error: Invalid Type")
         quit()
@@ -272,6 +272,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
     parser.add_argument("--feat_size", type=int, default=8, help="feature_size")
+    parser.add_argument("--max_num_nodes", type=int, default=1000, help="max_num_nodes")
     parser.add_argument("--type", type=str, default="naive", help="Seastar Type")
     parser.add_argument(
         "--num_epochs", type=int, default=1, help="number of training epochs"

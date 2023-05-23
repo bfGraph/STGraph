@@ -9,10 +9,10 @@ from rich import inspect
 from abc import ABC, abstractmethod
 
 class DynamicGraph(SeastarGraph):
-    def __init__(self, edge_list):
+    def __init__(self, edge_list, max_num_nodes):
         super().__init__()
         self.graph_updates = {}
-        self.max_num_nodes = 0
+        self.max_num_nodes = max_num_nodes
         self.graph_cache = {}
         
         # Indicates whether the graph is currently undergoing backprop
@@ -41,11 +41,11 @@ class DynamicGraph(SeastarGraph):
         
         graph_attr = self._get_graph_attr(edge_list)
         
-        max_num_nodes = 0
-        for i in range(len(edge_list)):
-            for j in range(len(edge_list[i])):
-                max_num_nodes = max(max_num_nodes,edge_list[i][j][0],edge_list[i][j][1])
-        self.max_num_nodes = max_num_nodes + 1
+        # max_num_nodes = 0
+        # for i in range(len(edge_list)):
+        #     for j in range(len(edge_list[i])):
+        #         max_num_nodes = max(max_num_nodes,edge_list[i][j][0],edge_list[i][j][1])
+        # self.max_num_nodes = max_num_nodes + 1
         
         # SINCE THE CONCEPT OF NODE IDS HASNT BEEN IMPLEMENTED
         # WE CANT USE THIS (AS in consider the case where nodes are labelled 1,2,3)

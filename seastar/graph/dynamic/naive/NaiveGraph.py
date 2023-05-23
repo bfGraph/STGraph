@@ -8,8 +8,8 @@ from collections import deque
 import time
 
 class NaiveGraph(DynamicGraph):
-    def __init__(self, edge_list):
-        super().__init__(edge_list)
+    def __init__(self, edge_list, max_num_nodes):
+        super().__init__(edge_list, max_num_nodes)
         # inspect(edge_list)
         self._prepare_edge_lst_fwd(edge_list)
         self._prepare_edge_lst_bwd(self.fwd_edge_list)  

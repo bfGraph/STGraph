@@ -7,8 +7,8 @@ from seastar.graph.dynamic.gpma.gpma import GPMA, init_gpma, print_gpma_info, ed
 
 
 class GPMAGraph(DynamicGraph):
-    def __init__(self, edge_list):
-        super().__init__(edge_list)
+    def __init__(self, edge_list, max_num_nodes):
+        super().__init__(edge_list, max_num_nodes)
         
         # forward and backward graphs for GPMA
         self._forward_graph = GPMA()

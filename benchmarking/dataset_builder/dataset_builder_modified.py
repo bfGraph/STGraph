@@ -109,8 +109,8 @@ def create_graph(
     edge_count = num_nodes * edge_multiplier
 
 
-    num_edges_low_limit = low_limit * edge_count
-    num_edges_upp_limit = upp_limit * edge_count
+    # num_edges_low_limit = low_limit * edge_count
+    # num_edges_upp_limit = upp_limit * edge_count
 
     # creating the base graph
     edge_list = set()
@@ -119,15 +119,12 @@ def create_graph(
 
     # this will have the number of edges in the graph
     # for the current time stamp
-    curr_time_edge_count = randint(int(num_edges_low_limit), int(num_edges_upp_limit))
+    # curr_time_edge_count = randint(int(num_edges_low_limit), int(num_edges_upp_limit))
+    curr_time_edge_count = edge_count
 
     while len(edge_list) != curr_time_edge_count:
         edge = (randint(0, num_nodes - 1), randint(0, num_nodes - 1))
         edge_list.add(edge)
-
-    # adding self loops
-    for i in range(num_nodes):
-        edge_list.add((i,i))
 
     edge_weight_list = [randint(1, 1000) for i in range(len(edge_list))]
             
@@ -162,8 +159,8 @@ def create_graph(
             curr_edge_list.add(edge)
 
         # adding self loops
-        for i in range(num_nodes):
-            curr_edge_list.add((i,i))
+        # for i in range(num_nodes):
+        #     curr_edge_list.add((i,i))
 
         curr_edge_weight_list = [randint(1, 1000) for i in range(len(curr_edge_list))]
         curr_feature_list = [[randint(0, 100) for _ in range(feat_size)] for _ in range(num_nodes)]
@@ -180,17 +177,14 @@ def create_graph(
 graph_name = args.dataset_name
 dataset_path = "../dataset/"
 
-if os.path.exists(dataset_path + graph_name):
-    print("Dataset already exists")
-    quit()
-
-
 t0 = time.time()
 
 graph_json = create_graph(args.N, args.M, args.A, args.D, args.T, args.L, args.U, args.F)
 
 folder_path = os.path.join(dataset_path, graph_name)
-os.mkdir(folder_path)
+
+if not os.path.exists(dataset_path + graph_name):
+    os.mkdir(folder_path)
 
 with open(f"{folder_path}/{graph_name}.json", "w") as fp:
     json.dump(graph_json, fp)
