@@ -144,7 +144,7 @@ class FoorahBase:
         self._edge_list = final_edges_lst
         self._edge_weights = final_edge_weights_lst
         
-        print("🍎🍎🍎 Edge Weights")
+        # print("🍎🍎🍎 Edge Weights")
         # print(self._edge_weights)
 
     def get_edges(self):
