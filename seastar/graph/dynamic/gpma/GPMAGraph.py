@@ -19,6 +19,7 @@ class GPMAGraph(DynamicGraph):
         # for benchmarking purposes
         self._update_count = 0
         self._total_update_time = 0
+        self._gpu_move_time = 0
         
         init_gpma(self._forward_graph, self.max_num_nodes)
         init_gpma(self._backward_graph, self.max_num_nodes)

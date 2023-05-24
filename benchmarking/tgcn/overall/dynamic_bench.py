@@ -27,7 +27,6 @@ from seastar.dataset.FoorahBase import FoorahBase
 
 import seastar.compiler.debugging.print_variables as print_var
 
-
 # GPU | CPU
 def get_default_device():
     if torch.cuda.is_available():
@@ -90,6 +89,11 @@ def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_ep
 
     # metrics
     dur = []
+    gpu_move_time_dur = []
+    
+    temp_array = []
+    prop_time_dur = []
+    
     cuda = True
 
     if type == "naive":
@@ -109,12 +113,15 @@ def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_ep
             torch.cuda.synchronize()
         t0 = time.time()
 
+        G._gpu_move_time = 0
         cost = 0
         hidden_state = None
         optimizer.zero_grad()
 
         gpu_mem_arr = []
         cpu_mem_arr = []
+
+        update_time_start = G._total_update_time
 
         # dyn_graph_index is dynamic graph index
         for index in range(0, len(train_features)):
@@ -156,15 +163,21 @@ def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_ep
 
         run_time_this_epoch = time.time() - t0
 
+        update_time_end = G._total_update_time
+
         if epoch >= 3:
             dur.append(run_time_this_epoch)
+            gpu_move_time_dur.append(G._gpu_move_time)
+            prop_time_dur.append(update_time_end-update_time_start)  
+                  
+        # temp_array.append(G._total_update_time)
 
     if G._update_count == 0:
         time_per_update = 0
     else:
         time_per_update = G._total_update_time / G._update_count
 
-    return np.mean(dur), time_per_update
+    return np.mean(dur), time_per_update, np.mean(gpu_move_time_dur), np.mean(prop_time_dur)
 
 
 def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
@@ -212,16 +225,21 @@ def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
 
     # metrics
     dur = []
+    pygt_gpu_move_dur = []
     cuda = True
 
     edge_weight_lst = [
         to_default_device(torch.FloatTensor(edge_weight))
         for edge_weight in train_edge_weights_lst
     ]
+    
+    # NOTE: Previously done like this
+    move_t0 = time.time()
     train_edges_lst = [
         to_default_device(torch.from_numpy(np.array(edge_index)))
         for edge_index in train_edges_lst
     ]
+    move_t1 = time.time()
 
     # train
     for epoch in range(num_epochs):
@@ -236,6 +254,7 @@ def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
 
         gpu_mem_arr = []
         cpu_mem_arr = []
+        move_time_total = 0
 
         # dyn_graph_index is dynamic graph index
         for index in range(0, len(train_features)):
@@ -243,6 +262,13 @@ def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
 
             edge_weight = edge_weight_lst[index]
             train_edges = train_edges_lst[index]
+
+            # NOTE: New method for PyG-T
+            # move_t0 = time.time()
+            # train_edges = to_default_device(torch.from_numpy(np.array(train_edges_lst[index])))
+            # move_t1 = time.time()
+            
+            # move_time_total += (move_t1 - move_t0)
 
             # forward propagation
             y_hat, hidden_state = model(
@@ -269,10 +295,12 @@ def run_pygt(dataset_dir, dataset, feat_size, lr, num_epochs):
 
         if epoch >= 3:
             dur.append(run_time_this_epoch)
+            # pygt_gpu_move_dur.append(move_time_total)
 
     time_per_update = 0
+    update_time_epoch = 0
 
-    return np.mean(dur), time_per_update
+    return np.mean(dur), time_per_update, move_t1-move_t0, 0
 
 
 def main(args):
@@ -297,6 +325,28 @@ def main(args):
     update_time_table.add_column("PCSR", justify="left")
     update_time_table.add_column("GPMA", justify="left")
     update_time_table.add_column("PyG-T", justify="left")
+    
+    gpu_move_time_table = Table(
+        title=f"\nGPU Move Time [black bold](per epoch)[/black bold]\n", show_edge=False, style="black bold"
+    )
+
+    gpu_move_time_table.add_column("Dataset Name", justify="right")
+    gpu_move_time_table.add_column("Feat. Size", justify="left")
+    gpu_move_time_table.add_column("Naive", justify="left")
+    gpu_move_time_table.add_column("PCSR", justify="left")
+    gpu_move_time_table.add_column("GPMA", justify="left")
+    gpu_move_time_table.add_column("PyG-T", justify="left")
+    
+    time_prop_update_table = Table(
+        title=f"\nTotal time taken for update [black bold](per epoch)[/black bold]\n", show_edge=False, style="black bold"
+    )
+
+    time_prop_update_table.add_column("Dataset Name", justify="right")
+    time_prop_update_table.add_column("Feat. Size", justify="left")
+    time_prop_update_table.add_column("Naive", justify="left")
+    time_prop_update_table.add_column("PCSR", justify="left")
+    time_prop_update_table.add_column("GPMA", justify="left")
+    time_prop_update_table.add_column("PyG-T", justify="left")
 
     dataset_dir = args.dataset_dir
 
@@ -319,13 +369,15 @@ def main(args):
     for dataset, param in dataset_name.items():
         results = {}
         update_time_results = {}
+        gpu_move_time_results = {}
+        total_update_time_results = {}
 
         # running seastar t-gcn
         for graph_type in seastar_graph_types:
             console.log(
                 f"Running [bold yellow]{graph_type}[/bold yellow] on [bold cyan]{dataset}[/bold cyan]"
             )
-            avg_time, update_time = run_seastar(
+            avg_time, update_time, gpu_move_time, total_update_time = run_seastar(
                 dataset_dir,
                 dataset,
                 param["feat_size"],
@@ -336,13 +388,15 @@ def main(args):
             )
             results[graph_type] = round(avg_time, 4)
             update_time_results[graph_type] = round(update_time * (10**6), 4)
+            gpu_move_time_results[graph_type] = round(gpu_move_time, 4)
+            total_update_time_results[graph_type] = round(total_update_time, 4)
 
         # running pygt t-gcn
         console.log(
             f"Running [bold yellow]PyG-T[/bold yellow] on [bold cyan]{dataset}[/bold cyan]"
         )
 
-        avg_time, update_time = run_pygt(
+        avg_time, update_time, gpu_move_time, total_update_time = run_pygt(
             dataset_dir,
             dataset,
             param["feat_size"],
@@ -352,10 +406,15 @@ def main(args):
 
         results["pygt"] = round(avg_time, 4)
         update_time_results["pygt"] = update_time
+        gpu_move_time_results["pygt"] = round(gpu_move_time, 4)
+        total_update_time_results["pygt"] = round(total_update_time, 4)
 
         # getting the implementation with the fastest time
         fast_impl = min(results, key=results.get)
         results[fast_impl] = f"[bold green]{results[fast_impl]}[/bold green]"
+        
+        fast_gpu_move_time = min(gpu_move_time_results, key=gpu_move_time_results.get)
+        gpu_move_time_results[fast_gpu_move_time] = f"[bold green]{gpu_move_time_results[fast_gpu_move_time]}[/bold green]"
 
         table.add_row(
             str(dataset),
@@ -374,9 +433,29 @@ def main(args):
             str(update_time_results["gpma"]),
             str(update_time_results["pygt"]),
         )
+        
+        gpu_move_time_table.add_row(
+            str(dataset),
+            str(param["feat_size"]),
+            str(gpu_move_time_results["naive"]),
+            str(gpu_move_time_results["pcsr"]),
+            str(gpu_move_time_results["gpma"]),
+            str(gpu_move_time_results["pygt"]),
+        )
+        
+        time_prop_update_table.add_row(
+            str(dataset),
+            str(param["feat_size"]),
+            str(total_update_time_results["naive"]),
+            str(total_update_time_results["pcsr"]),
+            str(total_update_time_results["gpma"]),
+            str(total_update_time_results["pygt"]),
+        )
 
     console.print(table)
     console.print(update_time_table)
+    console.print(gpu_move_time_table)
+    console.print(time_prop_update_table)
 
 
 if __name__ == "__main__":

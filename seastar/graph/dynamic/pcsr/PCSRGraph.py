@@ -26,6 +26,7 @@ class PCSRGraph(DynamicGraph):
         # for benchmarking purposes
         self._update_count = 0
         self._total_update_time = 0
+        self._gpu_move_time = 0
         
         self._update_graph_cache()
         self._get_graph_csr_ptrs(eids=list())
@@ -75,6 +76,8 @@ class PCSRGraph(DynamicGraph):
     
     def _get_graph_csr_ptrs(self, eids): 
 
+        move_time_start = time.time()
+
         if self._is_backprop_state:
             backward_csr_ptrs = self._backward_graph.get_csr_ptrs(eids=eids)
             self.bwd_row_offset_ptr = backward_csr_ptrs[0]
@@ -85,6 +88,10 @@ class PCSRGraph(DynamicGraph):
             self.fwd_row_offset_ptr = forward_csr_ptrs[0]
             self.fwd_column_indices_ptr = forward_csr_ptrs[1]
             self.fwd_eids_ptr = forward_csr_ptrs[2]
+            
+        move_time_end = time.time()
+        
+        self._gpu_move_time += (move_time_end - move_time_start)
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp

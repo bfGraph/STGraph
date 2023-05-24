@@ -12,6 +12,8 @@
 #include <cstring>
 #include <iostream>
 
+#include <chrono>
+
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/remove.h>
@@ -21,6 +23,8 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 using namespace std;
+
+using namespace std::chrono;
 
 typedef thrust::device_vector<int> DEV_VEC;
 #define RAW_PTR(x) thrust::raw_pointer_cast((x).data())
@@ -131,6 +135,7 @@ bool is_sentinel(edge_t e)
     return e.dest == UINT32_MAX || e.value == UINT32_MAX;
 }
 
+// Possibly make this faster
 uint32_t binary_search(edge_list_t *list, edge_t *elem, uint32_t start,
                        uint32_t end)
 {
@@ -282,6 +287,7 @@ public:
     void print_graph();
     void print_array();
     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(std::vector<int> eids);
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs_bench(std::vector<int> eids);
     // void label_edges();
     // uint32_t find_edge_id(uint32_t src, uint32_t dest);
     // std::tuple<uint32_t, uint32_t> get_graph_attr();
@@ -852,6 +858,83 @@ std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(st
     return t;
 }
 
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs_bench(std::vector<int> eids)
+{
+    /*
+        This function is being used only for benchmarking purposes.
+        The logic is exactly the same as PCSR::get_csr_ptrs_bench() but it
+        has timers logging the time taken to execute each part of the function
+    */
+
+    // we are building a compressed CSR arrays without
+    // the -1 values which indicates an empty edge
+
+    auto total_time_start = high_resolution_clock::now();
+
+    ////////////////////////////////////////////////////////////////////////
+    auto init_host_vectors_start = high_resolution_clock::now();
+
+    thrust::host_vector<int> row_offset;
+    thrust::host_vector<int> column_indices;
+
+    int row_offset_size = nodes.size() + 1;
+    int column_indices_size = edges.items.size();
+
+    // first element of row offset is always zero
+    row_offset.resize(row_offset_size);
+    column_indices.resize(edge_count);
+    row_offset[0] = 0;
+
+    auto init_host_vectors_end = high_resolution_clock::now();
+    ////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////
+    auto calc_rowoff_start = high_resolution_clock::now();
+    for (int i = 0; i < row_offset_size - 1; ++i)
+    {
+        row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
+    }
+    auto calc_rowoff_end = high_resolution_clock::now();
+    ////////////////////////////////////////////////////////////////////////
+
+    int iter = 0;
+    for (int i = 0; i < column_indices_size; ++i)
+    {
+        if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
+        {
+            column_indices[iter] = edges.items[i].dest;
+            iter += 1;
+        }
+    }
+
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device.resize(edge_count);
+
+    if (eids.size() == 0)
+        thrust::sequence(eids_device.begin(), eids_device.end());
+    else
+        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
+
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
+
+    auto total_time_end = high_resolution_clock::now();
+
+    auto total_time_duration = duration_cast<microseconds>(total_time_end - total_time_start);
+    auto init_host_vectors_duration = duration_cast<microseconds>(init_host_vectors_end - init_host_vectors_start);
+    auto calc_rowoff_duration = duration_cast<microseconds>(calc_rowoff_end - calc_rowoff_start);
+
+    std::cout << "Total: " << total_time_duration.count() << " "
+              << "InitHostVectors: " << init_host_vectors_duration.count()
+              << "CalcRowOffset: " << calc_rowoff_duration.count()
+              << std::endl;
+
+    return t;
+}
+
 // void PCSR::label_edges()
 // {
 
@@ -907,9 +990,6 @@ std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(st
 
 void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
 {
-    // cout << "📦📦📦 Edge Update list" << endl
-    //      << flush;
-
     bool is_reverse_edge_local = is_reverse_edge;
     bool is_delete_local = is_delete;
 
@@ -1058,6 +1138,7 @@ PYBIND11_MODULE(pcsr, m)
         // .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
         .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
+        .def("get_csr_ptrs_bench", &PCSR::get_csr_ptrs_bench, py::arg("eids"))
         // .def("get_graph_attr", &PCSR::get_graph_attr)
         // .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)
