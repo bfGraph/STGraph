@@ -275,6 +275,7 @@ public:
     void add_edge(uint32_t src, uint32_t dest, uint32_t value);
     void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
     void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
+    void edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
     void delete_edge(uint32_t src, uint32_t dest);
     uint64_t get_n();
     // vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
@@ -908,15 +909,73 @@ void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_lis
 {
     // cout << "📦📦📦 Edge Update list" << endl
     //      << flush;
+
+    bool is_reverse_edge_local = is_reverse_edge;
+    bool is_delete_local = is_delete;
+
     for (auto &edge : edge_list)
     {
-        uint32_t src = (is_reverse_edge == true) ? std::get<1>(edge) : std::get<0>(edge);
-        uint32_t dst = (is_reverse_edge == true) ? std::get<0>(edge) : std::get<1>(edge);
+        uint32_t src = (is_reverse_edge_local == true) ? std::get<1>(edge) : std::get<0>(edge);
+        uint32_t dst = (is_reverse_edge_local == true) ? std::get<0>(edge) : std::get<1>(edge);
 
-        if (is_delete)
+        if (is_delete_local)
             delete_edge(src, dst);
         else
             add_edge(src, dst, 1);
+    }
+}
+
+// ignore for now, tried it out and no significant speedup observed
+void PCSR::edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
+{
+    // using loop unswitching ---> for-loop optimization
+    // conditions: (is_delete, is_reverse_edge)
+    if (is_delete == false && is_reverse_edge == false)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<0>(edge);
+            uint32_t dst = std::get<1>(edge);
+
+            add_edge(src, dst, 1);
+        }
+        return;
+    }
+
+    if (is_delete == false && is_reverse_edge == true)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<1>(edge);
+            uint32_t dst = std::get<0>(edge);
+
+            add_edge(src, dst, 1);
+        }
+        return;
+    }
+
+    if (is_delete == true && is_reverse_edge == false)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<0>(edge);
+            uint32_t dst = std::get<1>(edge);
+
+            delete_edge(src, dst);
+        }
+        return;
+    }
+
+    if (is_delete == true && is_reverse_edge == true)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<1>(edge);
+            uint32_t dst = std::get<0>(edge);
+
+            delete_edge(src, dst);
+        }
+        return;
     }
 }
 
@@ -992,6 +1051,7 @@ PYBIND11_MODULE(pcsr, m)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
         .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
+        .def("edge_update_list_optm", &PCSR::edge_update_list_optm, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
         // .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
         .def("delete_edge", &PCSR::delete_edge)
         .def("get_n", &PCSR::get_n)

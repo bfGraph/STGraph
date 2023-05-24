@@ -68,7 +68,7 @@ def main(args):
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = psutil.virtual_memory()[3]
 
-    eng_covid = FoorahBase(args.dataset, verbose=True, for_seastar=True)
+    eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True, for_seastar=True)
 
     print("Loaded dataset into the train.py seastar")
 
@@ -228,6 +228,9 @@ def main(args):
 
     print("\nAverage Time taken (s): {:4f}".format(np.mean(dur)))
 
+    updates_per_sec = round((G._update_count / G._total_update_time), 0)
+    print(f'Updates per second: {updates_per_sec}')
+
     # evaluate
     # print("Evaluating...\n")
     # model.eval()
@@ -277,10 +280,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_epochs", type=int, default=1, help="number of training epochs"
     )
+    
+    parser.add_argument(
+        "--dataset_dir", type=str, default="foorah_large", help="dataset directory"
+    )
+    
     parser.add_argument(
         "--dataset",
         type=str,
-        default="soorah_base",
+        default="foorah_large_8",
         help="Name of the Soorah Dataset",
         metavar="dataset",
     )

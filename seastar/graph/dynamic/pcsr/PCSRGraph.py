@@ -19,6 +19,7 @@ class PCSRGraph(DynamicGraph):
         self._forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
         
         # Using cache to possibly make pcsr faster
+        self.graph_cache = {}
         self._in_degrees_cache = {}
         self._out_degrees_cache = {}
         
