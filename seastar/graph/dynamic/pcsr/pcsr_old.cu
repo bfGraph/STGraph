@@ -269,10 +269,9 @@ public:
     edge_list_t edges;
     uint32_t edge_count;
 
-    // replacing device vectors
-    int *row_offset_device;
-    int *column_indices_device;
-    int *eids_device;
+    DEV_VEC row_offset_device;
+    DEV_VEC column_indices_device;
+    DEV_VEC eids_device;
 
     // member functions
     PCSR(uint32_t init_n);
@@ -282,14 +281,14 @@ public:
     void add_edge(uint32_t src, uint32_t dest, uint32_t value);
     void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
     void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
-    // void edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
+    void edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
     void delete_edge(uint32_t src, uint32_t dest);
     uint64_t get_n();
     // vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void print_graph();
     void print_array();
     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(std::vector<int> eids);
-    // std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs_bench(std::vector<int> eids);
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs_bench(std::vector<int> eids);
     // void label_edges();
     // uint32_t find_edge_id(uint32_t src, uint32_t dest);
     // std::tuple<uint32_t, uint32_t> get_graph_attr();
@@ -807,164 +806,135 @@ void PCSR::print_array()
     printf("\n\n");
 }
 
-// modifying get_csr_ptrs to accomodate the removal of thrust vectors
 std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(std::vector<int> eids)
 {
 
-    // getting the size of row_offset and column_indices
+    // if (edge_count != eids.size())
+    // {
+    //     cout << "🍎🍎🍎 The eids(" << eids.size() << ") and edge_count(" << edge_count << ") [col_indices.size() = " << edges.items.size() << "] DONT match\n"
+    //          << flush;
+    // }
+
+    // we are building a compressed CSR arrays without
+    // the -1 values which indicates an empty edge
+    thrust::host_vector<int> row_offset;
+    thrust::host_vector<int> column_indices;
+
     int row_offset_size = nodes.size() + 1;
     int column_indices_size = edges.items.size();
 
-    int *host_row_offset, *host_column_indices, *host_eids;
-    int *dev_row_offset, *dev_column_indices, *dev_eids;
+    // first element of row offset is always zero
+    row_offset.resize(row_offset_size);
+    column_indices.resize(edge_count);
+    row_offset[0] = 0;
 
-    // intializing spaces for row_offset and column_indices
-    // in the CPU with their respective sizes
-    host_row_offset = (int *)malloc(row_offset_size * sizeof(int));
-    host_column_indices = (int *)malloc(edge_count * sizeof(int));
-    host_eids = (int *)malloc(edge_count * sizeof(int));
-
-    host_row_offset[0] = 0;
-
-    // calculating the row_offset in CPU
     for (int i = 0; i < row_offset_size - 1; ++i)
-        host_row_offset[i + 1] = nodes[i].num_neighbors + host_row_offset[i];
+    {
+        row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
+    }
 
-    // calculating the column_indices in CPU
     int iter = 0;
     for (int i = 0; i < column_indices_size; ++i)
     {
         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
         {
-            host_column_indices[iter] = edges.items[i].dest;
+            column_indices[iter] = edges.items[i].dest;
             iter += 1;
         }
     }
 
-    // moving the row_offset and column_indices array from CPU to GPU
-    // firstly initializing the memory in GPU after freeing the
-    // already inistialized space in GPU for previous row_offset and
-    // column_indices values
-
-    cudaFree(row_offset_device);
-    cudaFree(column_indices_device);
-    cudaFree(eids_device);
-
-    cudaMalloc((void **)&dev_row_offset, row_offset_size * sizeof(int));
-    cudaMalloc((void **)&dev_column_indices, edge_count * sizeof(int));
-    cudaMalloc((void **)&dev_eids, edge_count * sizeof(int));
-
-    cudaMemcpy(dev_row_offset, host_row_offset, row_offset_size * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_column_indices, host_column_indices, edge_count * sizeof(int), cudaMemcpyHostToDevice);
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device.resize(edge_count);
 
     if (eids.size() == 0)
-    {
-        // fill the values of host_eids with 0, 1, 2 ...
-        for (int i = 0; i < edge_count; ++i)
-            host_eids[i] = i;
-    }
+        thrust::sequence(eids_device.begin(), eids_device.end());
     else
-    {
-        // copy the values from eids to host_eids
-        for (int i = 0; i < edge_count; ++i)
-            host_eids[i] = eids[i];
-    }
-
-    // move the host_eids value to dev_eids
-    cudaMemcpy(dev_eids, host_eids, edge_count * sizeof(int), cudaMemcpyHostToDevice);
-
-    // setting the PCSR arrays device pointers
-    row_offset_device = dev_row_offset;
-    column_indices_device = dev_column_indices;
-    eids_device = dev_eids;
-
-    free(host_row_offset);
-    free(host_column_indices);
-    free(host_eids);
+        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
 
     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
-    std::get<0>(t) = (std::uintptr_t)row_offset_device;
-    std::get<1>(t) = (std::uintptr_t)column_indices_device;
-    std::get<2>(t) = (std::uintptr_t)eids_device;
+    std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
     return t;
 }
 
-// std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs_bench(std::vector<int> eids)
-// {
-//     /*
-//         This function is being used only for benchmarking purposes.
-//         The logic is exactly the same as PCSR::get_csr_ptrs_bench() but it
-//         has timers logging the time taken to execute each part of the function
-//     */
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs_bench(std::vector<int> eids)
+{
+    /*
+        This function is being used only for benchmarking purposes.
+        The logic is exactly the same as PCSR::get_csr_ptrs_bench() but it
+        has timers logging the time taken to execute each part of the function
+    */
 
-//     // we are building a compressed CSR arrays without
-//     // the -1 values which indicates an empty edge
+    // we are building a compressed CSR arrays without
+    // the -1 values which indicates an empty edge
 
-//     auto total_time_start = high_resolution_clock::now();
+    auto total_time_start = high_resolution_clock::now();
 
-//     ////////////////////////////////////////////////////////////////////////
-//     auto init_host_vectors_start = high_resolution_clock::now();
+    ////////////////////////////////////////////////////////////////////////
+    auto init_host_vectors_start = high_resolution_clock::now();
 
-//     thrust::host_vector<int> row_offset;
-//     thrust::host_vector<int> column_indices;
+    thrust::host_vector<int> row_offset;
+    thrust::host_vector<int> column_indices;
 
-//     int row_offset_size = nodes.size() + 1;
-//     int column_indices_size = edges.items.size();
+    int row_offset_size = nodes.size() + 1;
+    int column_indices_size = edges.items.size();
 
-//     // first element of row offset is always zero
-//     row_offset.resize(row_offset_size);
-//     column_indices.resize(edge_count);
-//     row_offset[0] = 0;
+    // first element of row offset is always zero
+    row_offset.resize(row_offset_size);
+    column_indices.resize(edge_count);
+    row_offset[0] = 0;
 
-//     auto init_host_vectors_end = high_resolution_clock::now();
-//     ////////////////////////////////////////////////////////////////////////
+    auto init_host_vectors_end = high_resolution_clock::now();
+    ////////////////////////////////////////////////////////////////////////
 
-//     ////////////////////////////////////////////////////////////////////////
-//     auto calc_rowoff_start = high_resolution_clock::now();
-//     for (int i = 0; i < row_offset_size - 1; ++i)
-//     {
-//         row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
-//     }
-//     auto calc_rowoff_end = high_resolution_clock::now();
-//     ////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    auto calc_rowoff_start = high_resolution_clock::now();
+    for (int i = 0; i < row_offset_size - 1; ++i)
+    {
+        row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
+    }
+    auto calc_rowoff_end = high_resolution_clock::now();
+    ////////////////////////////////////////////////////////////////////////
 
-//     int iter = 0;
-//     for (int i = 0; i < column_indices_size; ++i)
-//     {
-//         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
-//         {
-//             column_indices[iter] = edges.items[i].dest;
-//             iter += 1;
-//         }
-//     }
+    int iter = 0;
+    for (int i = 0; i < column_indices_size; ++i)
+    {
+        if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
+        {
+            column_indices[iter] = edges.items[i].dest;
+            iter += 1;
+        }
+    }
 
-//     row_offset_device = row_offset;
-//     column_indices_device = column_indices;
-//     eids_device.resize(edge_count);
+    row_offset_device = row_offset;
+    column_indices_device = column_indices;
+    eids_device.resize(edge_count);
 
-//     if (eids.size() == 0)
-//         thrust::sequence(eids_device.begin(), eids_device.end());
-//     else
-//         thrust::copy(eids.begin(), eids.end(), eids_device.begin());
+    if (eids.size() == 0)
+        thrust::sequence(eids_device.begin(), eids_device.end());
+    else
+        thrust::copy(eids.begin(), eids.end(), eids_device.begin());
 
-//     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
-//     std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
-//     std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
-//     std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
+    std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
+    std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
 
-//     auto total_time_end = high_resolution_clock::now();
+    auto total_time_end = high_resolution_clock::now();
 
-//     auto total_time_duration = duration_cast<microseconds>(total_time_end - total_time_start);
-//     auto init_host_vectors_duration = duration_cast<microseconds>(init_host_vectors_end - init_host_vectors_start);
-//     auto calc_rowoff_duration = duration_cast<microseconds>(calc_rowoff_end - calc_rowoff_start);
+    auto total_time_duration = duration_cast<microseconds>(total_time_end - total_time_start);
+    auto init_host_vectors_duration = duration_cast<microseconds>(init_host_vectors_end - init_host_vectors_start);
+    auto calc_rowoff_duration = duration_cast<microseconds>(calc_rowoff_end - calc_rowoff_start);
 
-//     std::cout << "Total: " << total_time_duration.count() << " "
-//               << "InitHostVectors: " << init_host_vectors_duration.count()
-//               << "CalcRowOffset: " << calc_rowoff_duration.count()
-//               << std::endl;
+    std::cout << "Total: " << total_time_duration.count() << " "
+              << "InitHostVectors: " << init_host_vectors_duration.count()
+              << "CalcRowOffset: " << calc_rowoff_duration.count()
+              << std::endl;
 
-//     return t;
-// }
+    return t;
+}
 
 // void PCSR::label_edges()
 // {
@@ -1037,58 +1007,58 @@ void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_lis
 }
 
 // ignore for now, tried it out and no significant speedup observed
-// void PCSR::edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
-// {
-//     // using loop unswitching ---> for-loop optimization
-//     // conditions: (is_delete, is_reverse_edge)
-//     if (is_delete == false && is_reverse_edge == false)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<0>(edge);
-//             uint32_t dst = std::get<1>(edge);
+void PCSR::edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
+{
+    // using loop unswitching ---> for-loop optimization
+    // conditions: (is_delete, is_reverse_edge)
+    if (is_delete == false && is_reverse_edge == false)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<0>(edge);
+            uint32_t dst = std::get<1>(edge);
 
-//             add_edge(src, dst, 1);
-//         }
-//         return;
-//     }
+            add_edge(src, dst, 1);
+        }
+        return;
+    }
 
-//     if (is_delete == false && is_reverse_edge == true)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<1>(edge);
-//             uint32_t dst = std::get<0>(edge);
+    if (is_delete == false && is_reverse_edge == true)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<1>(edge);
+            uint32_t dst = std::get<0>(edge);
 
-//             add_edge(src, dst, 1);
-//         }
-//         return;
-//     }
+            add_edge(src, dst, 1);
+        }
+        return;
+    }
 
-//     if (is_delete == true && is_reverse_edge == false)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<0>(edge);
-//             uint32_t dst = std::get<1>(edge);
+    if (is_delete == true && is_reverse_edge == false)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<0>(edge);
+            uint32_t dst = std::get<1>(edge);
 
-//             delete_edge(src, dst);
-//         }
-//         return;
-//     }
+            delete_edge(src, dst);
+        }
+        return;
+    }
 
-//     if (is_delete == true && is_reverse_edge == true)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<1>(edge);
-//             uint32_t dst = std::get<0>(edge);
+    if (is_delete == true && is_reverse_edge == true)
+    {
+        for (auto &edge : edge_list)
+        {
+            uint32_t src = std::get<1>(edge);
+            uint32_t dst = std::get<0>(edge);
 
-//             delete_edge(src, dst);
-//         }
-//         return;
-//     }
-// }
+            delete_edge(src, dst);
+        }
+        return;
+    }
+}
 
 void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
 {
@@ -1162,14 +1132,14 @@ PYBIND11_MODULE(pcsr, m)
         .def("add_edge", &PCSR::add_edge)
         .def("add_edge_update", &PCSR::add_edge_update)
         .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
-        // .def("edge_update_list_optm", &PCSR::edge_update_list_optm, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
+        .def("edge_update_list_optm", &PCSR::edge_update_list_optm, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
         // .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
         .def("delete_edge", &PCSR::delete_edge)
         .def("get_n", &PCSR::get_n)
         // .def("get_edges", &PCSR::get_edges)
         .def("print_array", &PCSR::print_array)
         .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
-        // .def("get_csr_ptrs_bench", &PCSR::get_csr_ptrs_bench, py::arg("eids"))
+        .def("get_csr_ptrs_bench", &PCSR::get_csr_ptrs_bench, py::arg("eids"))
         // .def("get_graph_attr", &PCSR::get_graph_attr)
         // .def("find_edge_id", &PCSR::find_edge_id)
         .def_readwrite("nodes", &PCSR::nodes)
