@@ -1,11 +1,16 @@
 from cuda import cuda
-from prettytable import PrettyTable, HEADER, NONE, SINGLE_BORDER
+from prettytable import PrettyTable
 from termcolor import colored
 
 from seastar.compiler.code_gen.cuda_driver import *
 from ctypes import *
 
+NONE = 2
+HEADER = 3
+SINGLE_BORDER = 16
+
 global_gpu_device = None
+
 
 class GPUDevice:
     def __init__(self, print_log=False):
@@ -26,7 +31,7 @@ class GPUDevice:
         cuInit(0)
 
         # Getting the number of compatible GPU devices
-        err, self.nGpus = cuDeviceGetCount()    
+        err, self.nGpus = cuDeviceGetCount()
 
         # Going to get certain parameters for only the first GPU
         # i.e ordinal = 0 for cuDeviceGet
@@ -40,16 +45,19 @@ class GPUDevice:
         err, self.cc_major = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MAJOR, self.device)
         err, self.cc_minor = cuDeviceGetAttribute(COMPUTE_CAPABILITY_MINOR, self.device)
         err, self.cores = cuDeviceGetAttribute(MULTIPROCESSOR_COUNT, self.device)
-        err, self.thread_per_core = cuDeviceGetAttribute(MAX_THREAD_PER_MULTIPROCESSOR, self.device)
+        err, self.thread_per_core = cuDeviceGetAttribute(
+            MAX_THREAD_PER_MULTIPROCESSOR, self.device
+        )
         err, self.gpu_clockrate = cuDeviceGetAttribute(CLOCK_RATE, self.device)
-        err, self.memory_clockrate = cuDeviceGetAttribute(MEMORY_CLOCK_RATE, self.device)
+        err, self.memory_clockrate = cuDeviceGetAttribute(
+            MEMORY_CLOCK_RATE, self.device
+        )
         err, self.freeMem, self.totalMem = cuMemGetInfo()
 
         if print_log:
             self.log()
 
     def log(self):
-
         log_table = PrettyTable()
         log_table.field_names = ["Device Property", "Value"]
         log_table.align["Device Property"] = "r"
@@ -62,18 +70,43 @@ class GPUDevice:
 
         log_table.add_row(["Number of Devices", self.nGpus])
         log_table.add_row(["Name", self.name])
-        log_table.add_row(["Compute Capability", str(self.cc_major) + "." + str(self.cc_minor)])
+        log_table.add_row(
+            ["Compute Capability", str(self.cc_major) + "." + str(self.cc_minor)]
+        )
         log_table.add_row(["Multiprocessor Count", self.cores])
-        log_table.add_row(["Concurrent Threads", self.cores*self.thread_per_core])
-        log_table.add_row(["GPU Clock", str(self.gpu_clockrate/1000) + colored(" MHz", "dark_grey")])
-        log_table.add_row(["Memory Clock", str(self.memory_clockrate/1000) + colored(" MHz", "dark_grey")])
-        log_table.add_row(["Total Memory", str(self.totalMem/1024**2) + colored(" MiB", "dark_grey")])
-        log_table.add_row(["Free Memory", str(self.freeMem/1024**2) + colored(" MiB", "dark_grey")])
+        log_table.add_row(["Concurrent Threads", self.cores * self.thread_per_core])
+        log_table.add_row(
+            ["GPU Clock", str(self.gpu_clockrate / 1000) + colored(" MHz", "dark_grey")]
+        )
+        log_table.add_row(
+            [
+                "Memory Clock",
+                str(self.memory_clockrate / 1000) + colored(" MHz", "dark_grey"),
+            ]
+        )
+        log_table.add_row(
+            [
+                "Total Memory",
+                str(self.totalMem / 1024**2) + colored(" MiB", "dark_grey"),
+            ]
+        )
+        log_table.add_row(
+            [
+                "Free Memory",
+                str(self.freeMem / 1024**2) + colored(" MiB", "dark_grey"),
+            ]
+        )
 
         print("\n")
         print(log_table)
-        print(colored("\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device", "dark_grey"))
+        print(
+            colored(
+                "\nNote: In case either Total Memory or Free Memory is showing 0\n      it is because no context has been loaded into device",
+                "dark_grey",
+            )
+        )
         print("\n")
+
 
 if __name__ == "__main__":
     device = GPUDevice(print_log=True)

@@ -1446,7 +1446,7 @@ std::vector<float> edge_update_to_t(GPMA &gpma, int timestamp)
     return vec;
 }
 
-void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, std::vector<std::tuple<int, int>>>> updates, bool reverse_edges = false)
+void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, std::vector<std::tuple<int, int>>>> updates, bool is_forward_graph = false)
 {
 
     gpma.add_updates.resize(updates.size());
@@ -1462,27 +1462,27 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
 
     for (int t = 0; t < updates.size(); ++t)
     {
-        update_tup = updates[std::to_string(t)]["add"];
+        update_tup = is_forward_graph ? updates[std::to_string(t)]["add"] : updates[std::to_string(t)]["delete"];
         std::vector<KEY_TYPE> add_key(update_tup.size());
         std::vector<VALUE_TYPE> add_value(update_tup.size());
         std::fill(add_value.begin(), add_value.end(), (VALUE_TYPE)1);
 
         for (int i = 0; i < update_tup.size(); ++i)
         {
-            int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
-            int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            int src = is_forward_graph ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            int dst = is_forward_graph ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
             add_key[i] = ((KEY_TYPE)src << 32) + dst;
         }
 
-        update_tup = updates[std::to_string(t)]["delete"];
+        update_tup = is_forward_graph ? updates[std::to_string(t)]["delete"] : updates[std::to_string(t)]["add"];
         std::vector<KEY_TYPE> delete_key(update_tup.size());
         std::vector<VALUE_TYPE> delete_value(update_tup.size());
         std::fill(delete_value.begin(), delete_value.end(), VALUE_NONE);
 
         for (int i = 0; i < update_tup.size(); ++i)
         {
-            int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
-            int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            int src = is_forward_graph ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            int dst = is_forward_graph ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
             delete_key[i] = ((KEY_TYPE)src << 32) + dst;
         }
 
@@ -1525,7 +1525,7 @@ PYBIND11_MODULE(gpma, m)
     // m.def("label_edges_on_device", &label_edges_on_device, "Label edges from device");
     // m.def("move_pinned_to_gpu", &move_pinned_to_gpu, "Move pinned memory to GPU");
     m.def("build_reverse_gpma", &build_reverse_gpma, "Builds the reverse GPMA based on another GPMA", py::arg("gpma"), py::arg("ref_gpma"));
-    m.def("init_graph_updates", &init_graph_updates, "Initialize graph updates", py::arg("gpma"), py::arg("updates"), py::arg("reverse_edges") = false);
+    m.def("init_graph_updates", &init_graph_updates, "Initialize graph updates", py::arg("gpma"), py::arg("updates"), py::arg("is_forward_graph") = false);
     m.def("edge_update_to_t", &edge_update_to_t, "Edge Update to timestamp", py::arg("gpma"), py::arg("timestamp"));
 
     py::class_<GPMA>(m, "GPMA")
