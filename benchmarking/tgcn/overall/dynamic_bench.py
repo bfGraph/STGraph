@@ -362,6 +362,7 @@ def main(args):
         dataset_feat_size += 8
 
     seastar_graph_types = ["naive", "pcsr", "gpma"]
+    # seastar_graph_types = ["pcsr"]
 
     learning_rate = args.lr
     num_epochs = args.num_epochs

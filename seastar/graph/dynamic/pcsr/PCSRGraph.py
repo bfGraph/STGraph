@@ -76,20 +76,23 @@ class PCSRGraph(DynamicGraph):
     
     def _get_graph_csr_ptrs(self, eids): 
 
-        move_time_start = time.time()
 
         if self._is_backprop_state:
+            move_time_start = time.time()
             backward_csr_ptrs = self._backward_graph.get_csr_ptrs(eids=eids)
+            move_time_end = time.time()
+            
             self.bwd_row_offset_ptr = backward_csr_ptrs[0]
             self.bwd_column_indices_ptr = backward_csr_ptrs[1]
             self.bwd_eids_ptr = backward_csr_ptrs[2]
         else:
+            move_time_start = time.time()
             forward_csr_ptrs = self._forward_graph.get_csr_ptrs(eids=eids)
+            move_time_end = time.time()
             self.fwd_row_offset_ptr = forward_csr_ptrs[0]
             self.fwd_column_indices_ptr = forward_csr_ptrs[1]
             self.fwd_eids_ptr = forward_csr_ptrs[2]
             
-        move_time_end = time.time()
         
         self._gpu_move_time += (move_time_end - move_time_start)
     

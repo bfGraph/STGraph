@@ -82,6 +82,47 @@ class DynamicGraph(SeastarGraph):
                 "num_edges": graph_attr[str(i)][1],
             }
         
+    # trying to sort the edge list in self.graph_updates to see
+    # if there is any improvement in PCSR insertion
+    def _preprocess_graph_structure_sorted(self, edge_list):
+        
+        graph_attr = self._get_graph_attr(edge_list)
+        self.graph_updates = {}
+        edge_dict = {}
+        
+        for i in range(len(edge_list)):
+            edge_set = set()
+            for j in range(len(edge_list[i])):
+                edge_set.add((edge_list[i][j][0], edge_list[i][j][1]))
+            edge_dict[str(i)] = edge_set
+
+        # for timestamp t=0, we will only have additions
+        # we should also sort the edges in the edge_list
+        # in the order src, dst
+        add_edge_t0 = list(edge_dict["0"])
+        add_edge_t0.sort()
+        self.graph_updates["0"] = {
+            "add": add_edge_t0,
+            "delete": [],
+            "num_nodes": graph_attr["0"][0],
+            "num_edges": graph_attr["0"][1],
+        }
+        
+        # for timestamps t = 1, 2, 3 ...
+        for i in range(1, len(edge_list)):
+            add_list_sorted = list(edge_dict[str(i)].difference(edge_dict[str(i - 1)]))
+            add_list_sorted.sort()
+            
+            delete_list_sorted = list(edge_dict[str(i - 1)].difference(edge_dict[str(i)]))
+            delete_list_sorted.sort()
+            
+            self.graph_updates[str(i)] = {
+                "add": add_list_sorted,
+                "delete": delete_list_sorted,
+                "num_nodes": graph_attr[str(i)][0],
+                "num_edges": graph_attr[str(i)][1],
+            }
+    
     def get_graph(self, timestamp: int):
         # print("💄💄💄 Get_graph (forward) called",flush=True)
         self._is_backprop_state = False
