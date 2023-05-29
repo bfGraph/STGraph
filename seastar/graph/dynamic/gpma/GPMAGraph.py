@@ -26,9 +26,7 @@ class GPMAGraph(DynamicGraph):
         init_gpma(self._forward_graph, self.max_num_nodes)
         init_gpma(self._backward_graph, self.max_num_nodes)
 
-        init_graph_updates(
-            self._forward_graph, self.graph_updates, is_forward_graph=True
-        )
+        init_graph_updates(self._forward_graph, self.graph_updates, reverse_edges=True)
         init_graph_updates(self._backward_graph, self.graph_updates)
 
         # base forward graph at t=0
@@ -39,8 +37,8 @@ class GPMAGraph(DynamicGraph):
         self._total_update_time = 0
         self._gpu_move_time = 0
 
-        self._get_graph_csr_ptrs()
         self._update_graph_cache()
+        self._get_graph_csr_ptrs()
 
     def graph_type(self):
         return "gpma"
@@ -142,7 +140,9 @@ class GPMAGraph(DynamicGraph):
 
         update_time_0 = time.time()
 
-        edge_update_to_t(self._backward_graph, self.current_timestamp)
+        edge_update_to_t(
+            self._backward_graph, self.current_timestamp, is_reverse_dir=True
+        )
 
         update_time_1 = time.time()
         self._total_update_time += update_time_1 - update_time_0
