@@ -1304,8 +1304,6 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
     DEV_VEC_KEY d_new_keys(ref_gpma.edge_count);
     DEV_VEC_VALUE d_new_values(ref_gpma.edge_count);
 
-    int src;
-
     for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
     {
         SIZE_TYPE beg = h_ref_row_offset[node];
@@ -1316,9 +1314,9 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
             // KEY_TYPE mask = (KEY_TYPE)node << 32;
             // unsigned int dst = (h_ref_keys[i] - mask);
             unsigned int dst = (h_ref_keys[i] & 0xffffffff);
-            if (h_ref_keys[i] != KEY_MAX && h_ref_keys[i] != KEY_NONE && dst != (unsigned int)COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
+            if (h_ref_keys[i] != KEY_MAX && dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
             {
-                src = (int)(h_ref_keys[i] >> 32);
+                unsigned int src = (h_ref_keys[i] >> 32);
                 h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + src;
                 h_new_values[edge_counter] = h_ref_values[i];
                 edge_counter += 1;
@@ -1346,41 +1344,29 @@ std::set<std::tuple<unsigned int, unsigned int>> get_gpma_edge_list(GPMA &gpma)
 
     cErr(cudaDeviceSynchronize());
 
-    unsigned int src;
+    // py::print("ROW_OFFSET: ", h_ref_row_offset.size());
+    // py::print("COL_IDX_SIZE: ", h_ref_keys.size());
+    // py::print("VALUES_SIZE: ", h_ref_values.size());
 
-    // for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
-    // {
-    //     SIZE_TYPE beg = h_ref_row_offset[node];
-    //     SIZE_TYPE end = h_ref_row_offset[node + 1];
-    //     for (SIZE_TYPE i = beg; i < end; ++i)
-    //     {
-    //         unsigned int dst = (h_ref_keys[i] & 0xffffffff);
-    //         if (h_ref_values[i] != VALUE_NONE)
-    //         {
-    //             std::tuple<int, int> tup;
-    //             src = (int)(h_ref_keys[i] >> 32);
-    //             std::get<0>(tup) = src;
-    //             std::get<1>(tup) = dst;
-    //             vec.insert(tup);
-    //         }
-    //     }
-    // }
-
-    py::print("ROW_OFFSET: ", h_ref_row_offset.size());
-    py::print("COL_IDX_SIZE: ", h_ref_keys.size());
-    py::print("VALUES_SIZE: ", h_ref_values.size());
-
-    for (int i = 0; i < h_ref_keys.size(); ++i)
+    for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
     {
-        unsigned int dst = (h_ref_keys[i] & 0xffffffff);
-        // if (h_ref_values[i] != VALUE_NONE)
-        // {
-        std::tuple<unsigned int, unsigned int> tup;
-        src = (unsigned int)(h_ref_keys[i] >> 32);
-        std::get<0>(tup) = src;
-        std::get<1>(tup) = dst;
-        vec.insert(tup);
-        // }
+        SIZE_TYPE beg = h_ref_row_offset[node];
+        SIZE_TYPE end = h_ref_row_offset[node + 1];
+        for (SIZE_TYPE i = beg; i < end; ++i)
+        {
+            // h_ref_keys[i] != KEY_MAX && h_ref_keys[i] != KEY_NONE
+            // KEY_TYPE mask = (KEY_TYPE)node << 32;
+            // unsigned int dst = (h_ref_keys[i] - mask);
+            unsigned int dst = (h_ref_keys[i] & 0xffffffff);
+            if (h_ref_keys[i] != KEY_MAX && dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
+            {
+                std::tuple<unsigned int, unsigned int> tup;
+                unsigned int src = (h_ref_keys[i] >> 32);
+                std::get<0>(tup) = src;
+                std::get<1>(tup) = dst;
+                vec.insert(tup);
+            }
+        }
     }
 
     return vec;

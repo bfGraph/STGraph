@@ -31,9 +31,14 @@ extern "C" __global__ void {{kernel_name}}(
                 // Seastar requires edgs to be indexed from 0
                 unsigned int eid = __ldg(eids + e) - 1;
                 
-                {{col_index}} = ({{index_type}})(col_indices_key & 0xffffffff);
+                // UNIMPLEMENTED CHECK: Note if the value of col_index exceeds that 
+                // of an int then during casting of unsigned int to int there 
+                // will be errors
+                unsigned int {{col_index}} = (col_indices_key & 0xffffffff);
 
-                if(col_indices_key != 0xFFFFFFFF && eid != 0){
+                // KEY_MAX: 0xFFFFFFFFFFFFFFFE
+                // COL_IDX_NONE: 0xFFFFFFFF
+                if(col_indices_key != 0xFFFFFFFFFFFFFFFE && {{col_index}} != 0xFFFFFFFF && eid != 0){
                     {{init_inner_offset}}
 
                     {%for edge_stmt in edges%}
