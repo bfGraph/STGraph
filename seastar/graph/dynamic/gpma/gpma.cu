@@ -72,9 +72,6 @@ public:
     // Maintains the number of deletions in every timestamp
     std::vector<int> delete_updates_count;
 
-    std::vector<VALUE_TYPE *> add_value_updates;
-    std::vector<VALUE_TYPE *> delete_value_updates;
-
     double density_lower_thres_leaf = 0.08;
     double density_lower_thres_root = 0.42;
     double density_upper_thres_root = 0.84;
@@ -179,6 +176,7 @@ __device__ void cub_sort_key_value(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE
 
     cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, keys, tmp_keys, values, tmp_values, size));
     cErr(cudaDeviceSynchronize());
+    printf("Amount of storage: %zu", temp_storage_bytes);
     cErr(cudaMalloc(&d_temp_storage, temp_storage_bytes));
     cErr(cudaDeviceSynchronize());
     cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, keys, tmp_keys, values, tmp_values, size));
@@ -986,7 +984,7 @@ void print_gpma_info(GPMA &gpma, int node)
         unsigned int dst = (col_indices[i] & 0xffffffff);
         VALUE_TYPE val = edge_values[i];
 
-        if (col_indices[i] != KEY_NONE && col_indices[i] != KEY_MAX && dst != (unsigned int)COL_IDX_NONE && val != VALUE_NONE)
+        if (col_indices[i] != KEY_NONE && col_indices[i] != KEY_MAX && (col_indices[i] & COL_IDX_NONE != COL_IDX_NONE) && val != VALUE_NONE)
         {
             py::print("[", col_indices[i], "] ", dst, "(", val, ")", "  ");
         }
@@ -1334,33 +1332,52 @@ void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
     cudaDeviceSynchronize();
 }
 
-std::set<std::tuple<int, int>> get_gpma_edge_list(GPMA &gpma)
+std::set<std::tuple<unsigned int, unsigned int>> get_gpma_edge_list(GPMA &gpma)
 {
 
-    std::set<std::tuple<int, int>> vec;
+    std::set<std::tuple<unsigned int, unsigned int>> vec;
     thrust::host_vector<SIZE_TYPE> h_ref_row_offset = gpma.row_offset;
     thrust::host_vector<KEY_TYPE>
         h_ref_keys = gpma.keys;
     thrust::host_vector<VALUE_TYPE> h_ref_values = gpma.values;
 
-    int src;
+    cErr(cudaDeviceSynchronize());
 
-    for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
+    unsigned int src;
+
+    // for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
+    // {
+    //     SIZE_TYPE beg = h_ref_row_offset[node];
+    //     SIZE_TYPE end = h_ref_row_offset[node + 1];
+    //     for (SIZE_TYPE i = beg; i < end; ++i)
+    //     {
+    //         unsigned int dst = (h_ref_keys[i] & 0xffffffff);
+    //         if (h_ref_values[i] != VALUE_NONE)
+    //         {
+    //             std::tuple<int, int> tup;
+    //             src = (int)(h_ref_keys[i] >> 32);
+    //             std::get<0>(tup) = src;
+    //             std::get<1>(tup) = dst;
+    //             vec.insert(tup);
+    //         }
+    //     }
+    // }
+
+    py::print("ROW_OFFSET: ", h_ref_row_offset.size());
+    py::print("COL_IDX_SIZE: ", h_ref_keys.size());
+    py::print("VALUES_SIZE: ", h_ref_values.size());
+
+    for (int i = 0; i < h_ref_keys.size(); ++i)
     {
-        SIZE_TYPE beg = h_ref_row_offset[node];
-        SIZE_TYPE end = h_ref_row_offset[node + 1];
-        for (SIZE_TYPE i = beg; i < end; ++i)
-        {
-            unsigned int dst = (h_ref_keys[i] & 0xffffffff);
-            if (h_ref_values[i] != VALUE_NONE)
-            {
-                std::tuple<int, int> tup;
-                src = (int)(h_ref_keys[i] >> 32);
-                std::get<0>(tup) = src;
-                std::get<1>(tup) = dst;
-                vec.insert(tup);
-            }
-        }
+        unsigned int dst = (h_ref_keys[i] & 0xffffffff);
+        // if (h_ref_values[i] != VALUE_NONE)
+        // {
+        std::tuple<unsigned int, unsigned int> tup;
+        src = (unsigned int)(h_ref_keys[i] >> 32);
+        std::get<0>(tup) = src;
+        std::get<1>(tup) = dst;
+        vec.insert(tup);
+        // }
     }
 
     return vec;
@@ -1410,11 +1427,11 @@ std::tuple<int, int> get_graph_attr(GPMA &gpma)
 
 void update_node_degrees(GPMA &gpma, KEY_TYPE *updates, int update_size, bool is_delete = false)
 {
-    int src, dst;
+    unsigned int src, dst;
     for (int i = 0; i < update_size; ++i)
     {
-        src = (int)(updates[i] >> 32);
-        dst = (int)(updates[i] & 0xffffffff);
+        src = (unsigned int)(updates[i] >> 32);
+        dst = (unsigned int)(updates[i] & 0xffffffff);
         if (is_delete)
         {
             gpma.in_degree[dst] -= 1;
@@ -1428,11 +1445,10 @@ void update_node_degrees(GPMA &gpma, KEY_TYPE *updates, int update_size, bool is
     }
 }
 
-std::vector<float> edge_update_to_t(GPMA &gpma, int timestamp, bool is_reverse_dir = false)
+void edge_update_to_t(GPMA &gpma, int timestamp, bool is_reverse_dir = false)
 {
     int add_edge_count, delete_edge_count;
     KEY_TYPE *add_updates_ptr, *delete_updates_ptr;
-    VALUE_TYPE *add_value_ptr, *delete_value_ptr;
 
     // is_reverse_dir specifies if we are moving backward in time, then add and delete have to be swapped
     if (is_reverse_dir)
@@ -1441,8 +1457,6 @@ std::vector<float> edge_update_to_t(GPMA &gpma, int timestamp, bool is_reverse_d
         delete_edge_count = gpma.add_updates_count[timestamp];
         add_updates_ptr = gpma.delete_updates[timestamp];
         delete_updates_ptr = gpma.add_updates[timestamp];
-        add_value_ptr = gpma.delete_value_updates[timestamp];
-        delete_value_ptr = gpma.add_value_updates[timestamp];
     }
     else
     {
@@ -1450,60 +1464,64 @@ std::vector<float> edge_update_to_t(GPMA &gpma, int timestamp, bool is_reverse_d
         delete_edge_count = gpma.delete_updates_count[timestamp];
         add_updates_ptr = gpma.add_updates[timestamp];
         delete_updates_ptr = gpma.delete_updates[timestamp];
-        add_value_ptr = gpma.add_value_updates[timestamp];
-        delete_value_ptr = gpma.delete_value_updates[timestamp];
     }
 
     gpma.edge_count = gpma.edge_count + add_edge_count - delete_edge_count;
 
     KEY_TYPE *add_key_device, *delete_key_device;
-    VALUE_TYPE *add_value_device, *delete_value_device;
 
     cErr(cudaMalloc(&add_key_device, sizeof(KEY_TYPE) * add_edge_count));
-    cErr(cudaMalloc(&delete_key_device, sizeof(KEY_TYPE) * delete_edge_count));
-    cErr(cudaMalloc(&add_value_device, sizeof(VALUE_TYPE) * add_edge_count));
-    cErr(cudaMalloc(&delete_value_device, sizeof(VALUE_TYPE) * delete_edge_count));
-
     cErr(cudaMemcpy(add_key_device, add_updates_ptr, sizeof(KEY_TYPE) * add_edge_count, cudaMemcpyHostToDevice));
-    cErr(cudaMemcpy(delete_key_device, delete_updates_ptr, sizeof(KEY_TYPE) * delete_edge_count, cudaMemcpyHostToDevice));
-    cErr(cudaMemcpy(add_value_device, add_value_ptr, sizeof(VALUE_TYPE) * add_edge_count, cudaMemcpyHostToDevice));
-    cErr(cudaMemcpy(delete_value_device, delete_value_ptr, sizeof(VALUE_TYPE) * delete_edge_count, cudaMemcpyHostToDevice));
-
     thrust::device_ptr<KEY_TYPE> add_key_thrust_dev_ptr = thrust::device_pointer_cast(add_key_device);
-    thrust::device_ptr<VALUE_TYPE> add_value_thrust_dev_ptr = thrust::device_pointer_cast(add_value_device);
     DEV_VEC_KEY add_key_thrust_dev(add_key_thrust_dev_ptr, add_key_thrust_dev_ptr + add_edge_count);
-    DEV_VEC_VALUE add_value_thrust_dev(add_value_thrust_dev_ptr, add_value_thrust_dev_ptr + add_edge_count);
-
-    thrust::device_ptr<KEY_TYPE> delete_key_thrust_dev_ptr = thrust::device_pointer_cast(delete_key_device);
-    thrust::device_ptr<VALUE_TYPE> delete_value_thrust_dev_ptr = thrust::device_pointer_cast(delete_value_device);
-    DEV_VEC_KEY delete_key_thrust_dev(delete_key_thrust_dev_ptr, delete_key_thrust_dev_ptr + delete_edge_count);
-    DEV_VEC_VALUE delete_value_thrust_dev(delete_value_thrust_dev_ptr, delete_value_thrust_dev_ptr + delete_edge_count);
-
-    auto start_time = std::chrono::high_resolution_clock::now();
+    thrust::device_vector<VALUE_TYPE> add_value_thrust_dev(add_edge_count, 1);
+    // auto start_time = std::chrono::high_resolution_clock::now();
     cudaDeviceSynchronize();
     update_gpma(gpma, add_key_thrust_dev, add_value_thrust_dev);
     cudaDeviceSynchronize();
+    cudaFree(add_key_device);
+
+    cErr(cudaMalloc(&delete_key_device, sizeof(KEY_TYPE) * delete_edge_count));
+    cErr(cudaMemcpy(delete_key_device, delete_updates_ptr, sizeof(KEY_TYPE) * delete_edge_count, cudaMemcpyHostToDevice));
+    thrust::device_ptr<KEY_TYPE> delete_key_thrust_dev_ptr = thrust::device_pointer_cast(delete_key_device);
+    DEV_VEC_KEY delete_key_thrust_dev(delete_key_thrust_dev_ptr, delete_key_thrust_dev_ptr + delete_edge_count);
+    thrust::device_vector<VALUE_TYPE> delete_value_thrust_dev(delete_edge_count, VALUE_NONE);
+    cudaDeviceSynchronize();
     update_gpma(gpma, delete_key_thrust_dev, delete_value_thrust_dev);
 
-    auto start_time_f = std::chrono::high_resolution_clock::now();
+    // auto start_time_f = std::chrono::high_resolution_clock::now();
     update_node_degrees(gpma, add_updates_ptr, add_edge_count);
     update_node_degrees(gpma, delete_updates_ptr, delete_edge_count, true);
-    auto end_time_f = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<float> time_f = (end_time_f - start_time_f);
+    // auto end_time_f = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<float> time_f = (end_time_f - start_time_f);
 
     cudaDeviceSynchronize();
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<float> time = (end_time - start_time);
-
-    cudaFree(add_key_device);
     cudaFree(delete_key_device);
-    cudaFree(add_value_device);
-    cudaFree(delete_value_device);
+    // auto end_time = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<float> time = (end_time - start_time);
 
-    std::vector<float> vec;
-    vec.push_back(time.count());
-    vec.push_back(time_f.count());
-    return vec;
+    // std::vector<float> vec;
+    // vec.push_back(time.count());
+    // vec.push_back(time_f.count());
+    // return vec;
+}
+
+void test_update_gpma(GPMA &gpma)
+{
+    thrust::host_vector<KEY_TYPE>
+        keys(50000);
+    thrust::host_vector<VALUE_TYPE> values(50000, 1);
+    for (unsigned int i = 1; i < 501; ++i)
+    {
+        for (unsigned int j = 1; j < 101; ++j)
+        {
+            keys[100 * (i - 1) + (j - 1)] = ((KEY_TYPE)i << 32) + j;
+        }
+    }
+    thrust::device_vector<KEY_TYPE> dev_keys = keys;
+    thrust::device_vector<VALUE_TYPE> dev_values = values;
+    update_gpma(gpma, dev_keys, dev_values);
+    cudaDeviceSynchronize();
 }
 
 void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, std::vector<std::tuple<int, int>>>> updates, bool reverse_edges = false)
@@ -1511,9 +1529,6 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
 
     gpma.add_updates.resize(updates.size());
     gpma.delete_updates.resize(updates.size());
-
-    gpma.add_value_updates.resize(updates.size());
-    gpma.delete_value_updates.resize(updates.size());
 
     gpma.add_updates_count.resize(updates.size());
     gpma.delete_updates_count.resize(updates.size());
@@ -1524,47 +1539,35 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
     {
         update_tup = updates[std::to_string(t)]["add"];
         std::vector<KEY_TYPE> add_key(update_tup.size());
-        std::vector<VALUE_TYPE> add_value(update_tup.size());
-        std::fill(add_value.begin(), add_value.end(), 1);
 
         for (int i = 0; i < update_tup.size(); ++i)
         {
-            int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
-            int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            unsigned int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            unsigned int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
             add_key[i] = ((KEY_TYPE)src << 32) + dst;
         }
 
         update_tup = updates[std::to_string(t)]["delete"];
         std::vector<KEY_TYPE> delete_key(update_tup.size());
-        std::vector<VALUE_TYPE> delete_value(update_tup.size());
-        std::fill(delete_value.begin(), delete_value.end(), VALUE_NONE);
 
         for (int i = 0; i < update_tup.size(); ++i)
         {
-            int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
-            int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            unsigned int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            unsigned int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
             delete_key[i] = ((KEY_TYPE)src << 32) + dst;
         }
 
         KEY_TYPE *pinned_add_key;
         KEY_TYPE *pinned_delete_key;
-        VALUE_TYPE *pinned_add_value;
-        VALUE_TYPE *pinned_delete_value;
 
         cErr(cudaMallocHost(&pinned_add_key, sizeof(KEY_TYPE) * add_key.size()));
         cErr(cudaMallocHost(&pinned_delete_key, sizeof(KEY_TYPE) * delete_key.size()));
-        cErr(cudaMallocHost(&pinned_add_value, sizeof(VALUE_TYPE) * add_value.size()));
-        cErr(cudaMallocHost(&pinned_delete_value, sizeof(VALUE_TYPE) * delete_value.size()));
 
         cErr(cudaMemcpy(pinned_add_key, add_key.data(), sizeof(KEY_TYPE) * add_key.size(), cudaMemcpyHostToHost));
         cErr(cudaMemcpy(pinned_delete_key, delete_key.data(), sizeof(KEY_TYPE) * delete_key.size(), cudaMemcpyHostToHost));
-        cErr(cudaMemcpy(pinned_add_value, add_value.data(), sizeof(VALUE_TYPE) * add_value.size(), cudaMemcpyHostToHost));
-        cErr(cudaMemcpy(pinned_delete_value, delete_value.data(), sizeof(VALUE_TYPE) * delete_value.size(), cudaMemcpyHostToHost));
 
         gpma.add_updates[t] = pinned_add_key;
         gpma.delete_updates[t] = pinned_delete_key;
-        gpma.add_value_updates[t] = pinned_add_value;
-        gpma.delete_value_updates[t] = pinned_delete_value;
         gpma.add_updates_count[t] = updates[std::to_string(t)]["add"].size();
         gpma.delete_updates_count[t] = updates[std::to_string(t)]["delete"].size();
     }
@@ -1588,6 +1591,7 @@ PYBIND11_MODULE(gpma, m)
     m.def("init_graph_updates", &init_graph_updates, "Initialize graph updates", py::arg("gpma"), py::arg("updates"), py::arg("reverse_edges") = false);
     m.def("edge_update_to_t", &edge_update_to_t, "Edge Update to timestamp", py::arg("gpma"), py::arg("timestamp"), py::arg("is_reverse_dir") = false);
     m.def("get_gpma_edge_list", &get_gpma_edge_list, "To get the edge list");
+    m.def("test_update_gpma", &test_update_gpma, "Testing update GPMA");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
