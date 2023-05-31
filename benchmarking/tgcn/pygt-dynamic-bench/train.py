@@ -55,7 +55,7 @@ def main(args):
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
     
-    eng_covid = FoorahBase(args.dataset,verbose=True)
+    eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True)
     # eng_covid = EnglandCOVID(verbose=True)
     
     print("Loaded dataset into the train.py pygt")
@@ -190,6 +190,9 @@ if __name__ == '__main__':
             help="feature size")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
+    parser.add_argument(
+        "--dataset_dir", type=str, default="foorah_large", help="dataset directory"
+    )
     parser.add_argument("--dataset", type=str, default="soorah_base",
             help="Name of the Soorah Dataset", metavar="dataset")
     args = parser.parse_args()

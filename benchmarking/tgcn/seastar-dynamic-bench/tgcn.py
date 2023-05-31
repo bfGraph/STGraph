@@ -1,8 +1,6 @@
 import math
 import torch
 import torch.nn as nn
-import dgl
-import dgl.function as fn
 from seastar.compiler import Seastar
 import torch.nn.functional as F
 from seastar.compiler.backend.pytorch_backend import backend_cb

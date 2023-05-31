@@ -228,8 +228,8 @@ def main(args):
 
     print("\nAverage Time taken (s): {:4f}".format(np.mean(dur)))
 
-    updates_per_sec = round((G._update_count / G._total_update_time), 0)
-    print(f'Updates per second: {updates_per_sec}')
+    # updates_per_sec = round((G._update_count / G._total_update_time), 0)
+    # print(f'Updates per second: {updates_per_sec}')
 
     # evaluate
     # print("Evaluating...\n")
