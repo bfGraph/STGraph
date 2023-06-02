@@ -20,6 +20,7 @@ class GPMAGraph(DynamicGraph):
         self._update_count = 0
         self._total_update_time = 0
         self._gpu_move_time = 0
+        self._copy_label_edges_time = 0
         
         init_gpma(self._forward_graph, self.max_num_nodes)
         init_gpma(self._backward_graph, self.max_num_nodes)
@@ -138,7 +139,12 @@ class GPMAGraph(DynamicGraph):
 
         # TODO: UNCOMMENT LATER
         label_edges(self._forward_graph)
+        
+        copy_time_0 = time.time()
         copy_label_edges(self._backward_graph, self._forward_graph)
+        copy_time_1 = time.time()
+        
+        self._copy_label_edges_time += (copy_time_1 - copy_time_0)
 
         self._get_graph_csr_ptrs()
         # self._get_graph_attributes()  # NOTE:
