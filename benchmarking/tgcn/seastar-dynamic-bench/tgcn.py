@@ -5,7 +5,8 @@ import dgl
 import dgl.function as fn
 from seastar.compiler import Seastar
 import torch.nn.functional as F
-from seastar.compiler.backend.pytorch_backend import backend_cb
+# from seastar.compiler.backend.seastar_backend import 
+from seastar.compiler.backend.seastar_backend import SeastarBackendTorch
 import snoop
 from rich import inspect
 
@@ -31,7 +32,7 @@ class SeastarGCNLayer(nn.Module):
         else:
             self.dropout = 0.
         self.reset_parameters()
-        self.seastar = Seastar(backend_cb)
+        self.seastar = Seastar(SeastarBackendTorch)
 
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight.size(1))

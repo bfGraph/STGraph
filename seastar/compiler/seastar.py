@@ -14,6 +14,7 @@ from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 
 import snoop
+from rich import inspect
 
 
 class Context():
@@ -187,9 +188,9 @@ class Context():
 
 
 class Seastar():
-    def __init__(self, run_cb):
+    def __init__(self, backend):
         self._ctx_map = {}
-        self._run_cb = run_cb
+        self._run_cb = backend.backend_cb
     
     def compile(self, nspace, hetero_graph=False):
         def wrapper(func):

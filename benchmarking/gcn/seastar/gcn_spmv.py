@@ -11,7 +11,7 @@ import torch.nn as nn
 import dgl
 import dgl.function as fn
 from seastar.compiler import Seastar
-from seastar.compiler.backend.pytorch_backend import backend_cb
+from seastar.compiler.backend.seastar_backend import backend_cb
 
 class EglGCNLayer(nn.Module):
     def __init__(self,

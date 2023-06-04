@@ -141,6 +141,7 @@ class GPMAGraph(DynamicGraph):
         label_edges(self._forward_graph)
         
         copy_time_0 = time.time()
+
         copy_label_edges(self._backward_graph, self._forward_graph)
         copy_time_1 = time.time()
         

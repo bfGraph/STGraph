@@ -1187,6 +1187,34 @@ void label_edges(GPMA &gpma)
     gpma.values = h_values;
 }
 
+// __global__ void copy_node_edge_labels(int num_nodes, SIZE_TYPE *ref_row_offset, KEY_TYPE *ref_col_ind, VALUE_TYPE ref_eids, SIZE_TYPE *new_row_offset, KEY_TYPE *new_col_ind, VALUE_TYPE *new_eids)
+// {
+//     int node = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (node < num_nodes)
+//     {
+//         // tid will be the current node a thread will be dealing with.
+//         // A single thread will operate on a single node. It will look for
+//         // out-edges in the new gpma graph. And label those accordingly.
+
+//         unsigned int beg = ref_row_offset[node];
+//         unsigned int end = ref_row_offset[node + 1];
+//         int edge_counter = 0;
+//         int edge_offset = new_row_offset
+
+//             for (int i = beg; i < end; ++i)
+//         {
+//             KEY_TYPE mask = (KEY_TYPE)node << 32;
+//             unsigned int dst = (ref_col_ind[i] - mask);
+//             if (dst != COL_IDX_NONE && ref_eids[i] != VALUE_NONE)
+//             {
+//                 h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + node;
+//                 h_new_values[edge_counter] = h_ref_values[i];
+//                 edge_counter += 1;
+//             }
+//         }
+//     }
+// }
+
 void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
 {
     int edge_counter = 0;

@@ -179,7 +179,7 @@ def run_seastar(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_ep
         time_per_update = 0
     else:
         time_per_update = G._total_update_time / G._update_count
-
+    
     return np.mean(dur), np.mean(copy_label_edge_arr)
 
 
@@ -236,7 +236,7 @@ def main(args):
             str(dataset),
             str(param["feat_size"]),
             str(results["gpma"]),
-            str(copy_label_edge_result["gpma"]),
+            str(copy_label_edge_result["gpma"])
         )
 
     console.print(table)
