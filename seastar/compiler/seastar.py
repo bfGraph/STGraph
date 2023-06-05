@@ -13,6 +13,8 @@ from .code_gen import code_gen
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 
+from seastar.compiler.backend.frameworks import SeastarBackend
+
 import snoop
 
 
@@ -187,15 +189,20 @@ class Context():
 
 
 class Seastar():
-    def __init__(self, backend):
+    def __init__(self, backend_framework: SeastarBackend):
         self._ctx_map = {}
-        self._run_cb = backend.backend_cb
+        self._backend_framework = backend_framework
+        self._run_cb = backend_framework.backend_cb
     
-    def compile(self, nspace, hetero_graph=False):
+    def compile(self, gnn_module, hetero_graph=False):
+        
+        # adding the GNN module and the backend framework to the namespace list
+        namespace = [gnn_module, self._backend_framework.backend_module]
+        
         def wrapper(func):
             if not func.__name__ in self._ctx_map:
                 if not hetero_graph:
-                    self._ctx_map[func.__name__] = Context(func, nspace, self._run_cb)
+                    self._ctx_map[func.__name__] = Context(func, namespace, self._run_cb)
                 else:
                     raise NotImplementedError('Heterogeneous graph is not supported yet')
             return self._ctx_map[func.__name__]

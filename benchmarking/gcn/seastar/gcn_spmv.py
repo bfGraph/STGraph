@@ -50,7 +50,7 @@ class EglGCNLayer(nn.Module):
 
         h = torch.mm(h, self.weight)
         
-        @self.seastar.compile(nspace=[self, torch])
+        @self.seastar.compile(gnn_module=self)
         def nb_compute(v):
             h = sum([nb.h*nb.norm for nb in v.innbs])
             h = h * v.norm

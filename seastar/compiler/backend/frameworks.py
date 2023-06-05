@@ -7,6 +7,7 @@ from seastar.compiler.backend.kernel_wrapper import KernelWrapperTorch
 class SeastarBackend(ABC):
     def __init__(self):
         self.backend_name = None
+        self.backend_module = None
         self.kernel_wrapper = None
         
     @abstractmethod
@@ -28,6 +29,7 @@ class SeastarBackendTorch(SeastarBackend):
     def __init__(self):
         super().__init__()
         self.backend_name = "torch"
+        self.backend_module = torch
         self.kernel_wrapper = KernelWrapperTorch
         
     def new_zeros_call_back(self, size, dtype, device, requires_grad=True):
