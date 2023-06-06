@@ -8,10 +8,14 @@ from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.graph.dynamic.gpma.gpma import (
     GPMA,
     init_gpma,
-    edge_update_to_t,
     init_graph_updates,
-    build_reverse_gpma,
+    edge_update_t,
+    label_edges,
+    build_backward_csr,
+    free_backward_csr,
     get_csr_ptrs,
+    get_out_degrees,
+    get_in_degrees
 )
 
 
@@ -19,71 +23,53 @@ class GPMAGraph(DynamicGraph):
     def __init__(self, edge_list, max_num_nodes):
         super().__init__(edge_list, max_num_nodes)
 
-        # forward and backward graphs for GPMA
+        # forward graph for GPMA
         self._forward_graph = GPMA()
-        self._backward_graph = GPMA()
-
         init_gpma(self._forward_graph, self.max_num_nodes)
-        init_gpma(self._backward_graph, self.max_num_nodes)
-
         init_graph_updates(self._forward_graph, self.graph_updates, reverse_edges=True)
-        init_graph_updates(self._backward_graph, self.graph_updates)
 
         # base forward graph at t=0
-        edge_update_to_t(self._forward_graph, 0)
+        edge_update_t(self._forward_graph, 0)
+        label_edges(self._forward_graph)
+
+        # Cacheing node degrees
+        self._in_degrees_cache = {}
+        self._out_degrees_cache = {}
 
         # for benchmarking purposes
         self._update_count = 0
         self._total_update_time = 0
         self._gpu_move_time = 0
 
-        self._update_graph_cache()
         self._get_graph_csr_ptrs()
 
     def graph_type(self):
         return "gpma"
-
+    
     def in_degrees(self):
-        return np.array(self._forward_graph.out_degree, dtype="int32")
-
+        if self.current_timestamp not in self._in_degrees_cache:
+            self._in_degrees_cache[self.current_timestamp] = np.array(get_out_degrees(self._forward_graph), dtype="int32")
+        
+        return self._in_degrees_cache[self.current_timestamp]
+    
     def out_degrees(self):
-        return np.array(self._forward_graph.in_degree, dtype="int32")
-
-    def _update_graph_cache(self, is_bwd=False):
-        if is_bwd:
-            # saving reverse base graph in cache
-            self.graph_cache["bwd"] = copy.deepcopy(self._backward_graph)
-        else:
-            self.graph_cache["fwd"] = copy.deepcopy(self._forward_graph)
-
-    def _get_cached_graph(self, is_bwd=False):
-        if is_bwd:
-            return copy.deepcopy(self.graph_cache["bwd"])
-        else:
-            return copy.deepcopy(self.graph_cache["fwd"])
+        if self.current_timestamp not in self._out_degrees_cache:
+            self._out_degrees_cache[self.current_timestamp] = np.array(get_in_degrees(self._forward_graph), dtype="int32")
+        
+        return self._out_degrees_cache[self.current_timestamp]
 
     def _get_graph_csr_ptrs(self):
-        forward_csr_ptrs = get_csr_ptrs(self._forward_graph)
-        backward_csr_ptrs = get_csr_ptrs(self._backward_graph)
 
+        forward_csr_ptrs = get_csr_ptrs(self._forward_graph)
         self.fwd_row_offset_ptr = forward_csr_ptrs[0]
         self.fwd_column_indices_ptr = forward_csr_ptrs[1]
         self.fwd_eids_ptr = forward_csr_ptrs[2]
 
-        self.bwd_row_offset_ptr = backward_csr_ptrs[0]
-        self.bwd_column_indices_ptr = backward_csr_ptrs[1]
-        self.bwd_eids_ptr = backward_csr_ptrs[2]
-
-    # TODO: Right now this returns (max_num_nodes,num_edges) see if this is what is required
-    # def _get_graph_attributes(self):
-
-    #     if not self._is_backprop_state:
-    #         graph_attr = get_graph_attr(self._forward_graph)
-    #     else:
-    #         graph_attr = get_graph_attr(self._backward_graph)
-
-    #     self.num_nodes = graph_attr[0]
-    #     self.num_edges = graph_attr[1]
+        if self._is_backprop_state:
+          backward_csr_ptrs = get_csr_ptrs(self._forward_graph, is_backward=True)
+          self.bwd_row_offset_ptr = backward_csr_ptrs[0]
+          self.bwd_column_indices_ptr = backward_csr_ptrs[1]
+          self.bwd_eids_ptr = backward_csr_ptrs[2]
 
     def _update_graph_forward(self):
         # if we went through the entire time-stamps
@@ -101,7 +87,8 @@ class GPMAGraph(DynamicGraph):
 
         update_time_0 = time.time()
 
-        edge_update_to_t(self._forward_graph, self.current_timestamp + 1)
+        edge_update_t(self._forward_graph, self.current_timestamp + 1)
+        label_edges(self._forward_graph)
 
         update_time_1 = time.time()
         self._total_update_time += update_time_1 - update_time_0
@@ -110,19 +97,7 @@ class GPMAGraph(DynamicGraph):
 
     def _init_reverse_graph(self):
         """Generates the reverse of the base graph"""
-
-        # checking if the reverse base graph exists in the cache
-        # we can load it from there instead of building it each time
-        if "bwd" in self.graph_cache:
-            self._backward_graph = self._get_cached_graph(is_bwd=True)
-        else:
-            build_reverse_gpma(self._backward_graph, self._forward_graph)
-
-            # storing the reverse base graph in cache after building
-            # it for the first time
-            self._update_graph_cache(is_bwd=True)
-
-        self._forward_graph = self._get_cached_graph()
+        build_backward_csr(self._forward_graph)
         self._get_graph_csr_ptrs()
 
     def _update_graph_backward(self):
@@ -140,9 +115,14 @@ class GPMAGraph(DynamicGraph):
 
         update_time_0 = time.time()
 
-        edge_update_to_t(
-            self._backward_graph, self.current_timestamp, is_reverse_dir=True
+        # Freeing resources from previous CSR
+        free_backward_csr(self._forward_graph)
+
+        edge_update_t(
+            self._forward_graph, self.current_timestamp, revert_update=True
         )
+        label_edges(self._forward_graph)
+        build_backward_csr(self._forward_graph)
 
         update_time_1 = time.time()
         self._total_update_time += update_time_1 - update_time_0
