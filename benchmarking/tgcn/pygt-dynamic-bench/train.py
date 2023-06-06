@@ -38,7 +38,9 @@ def to_default_device(data):
     if isinstance(data,(list,tuple)):
         return [to_default_device(x,get_default_device()) for x in data]
     
-    return data.to(get_default_device(),non_blocking = True)
+    # removed non_blocking
+    # (ORIGINAL) data.to(get_default_device(),non_blocking = True)
+    return data.to(get_default_device())
 
 def main(args):
 
@@ -67,6 +69,8 @@ def main(args):
     
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER STORING THE FEATURES: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     
     # print("📝📝📝 GPU Memory in just storing features/targets is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory in just storing features/targets is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
@@ -89,6 +93,8 @@ def main(args):
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
     model = to_default_device(PyGT_TGCN(args.feat_size))
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     # print("📝📝📝 GPU Memory after storing model is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory after storing model is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
     # print("\n")
@@ -102,6 +108,8 @@ def main(args):
     
     edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
     train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER STORING THE EDGE_WEIGHT & EDGE_LST: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     
     # print("📝📝📝 GPU Memory after storing edge list/weights: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory after storing edge list/weights: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))

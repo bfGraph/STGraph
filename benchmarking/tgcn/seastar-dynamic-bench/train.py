@@ -45,7 +45,9 @@ def to_default_device(data):
     if isinstance(data, (list, tuple)):
         return [to_default_device(x, get_default_device()) for x in data]
 
-    return data.to(get_default_device(), non_blocking=True)
+    # removed non_blocking
+    # (ORIGINAL) data.to(get_default_device(),non_blocking = True)
+    return data.to(get_default_device())
 
 
 def main(args):
@@ -79,6 +81,8 @@ def main(args):
 
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER STORING THE FEATURES: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
     # Hyperparameters
     train_test_split = 0.8
@@ -102,6 +106,8 @@ def main(args):
     test_targets = all_targets[int(len(all_targets) * train_test_split) :]
 
     model = to_default_device(SeastarTGCN(args.feat_size))
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -119,6 +125,9 @@ def main(args):
     else:
         print("Error: Invalid Type")
         quit()
+    
+    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print(f"STORAGE USED AFTER INITIALIZING SEASTAR GRAPH: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
     # inspect(G.graph_updates)
     # num_edges = 0
