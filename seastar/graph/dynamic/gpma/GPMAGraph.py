@@ -97,8 +97,14 @@ class GPMAGraph(DynamicGraph):
 
     def _init_reverse_graph(self):
         """Generates the reverse of the base graph"""
+        update_time_0 = time.time()
+
+        free_backward_csr(self._forward_graph)
         build_backward_csr(self._forward_graph)
         self._get_graph_csr_ptrs()
+
+        update_time_1 = time.time()
+        self._total_update_time += update_time_1 - update_time_0
 
     def _update_graph_backward(self):
         if self.current_timestamp < 0:

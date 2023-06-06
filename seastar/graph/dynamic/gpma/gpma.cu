@@ -1104,8 +1104,8 @@ std::vector<float> edge_update_t(GPMA &gpma, int timestamp, bool revert_update =
     std::chrono::duration<float> time_node_degree = (end_time_node_degrees - start_time_node_degrees);
 
     // freeing resources
-    cudaFree(add_key_device);
-    cudaFree(delete_key_device);
+    cErr(cudaFree(add_key_device));
+    cErr(cudaFree(delete_key_device));
 
     std::vector<float> vec;
     vec.push_back(time_update.count());
@@ -1148,6 +1148,7 @@ void label_edges(GPMA &gpma){
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.out_degree), RAW_PTR(gpma.cum_out_degree), gpma.row_num);
     cErr(cudaDeviceSynchronize());
+    cErr(cudaFree(d_temp_storage));
 
     // Invoking the label edges kernel
     SIZE_TYPE THREADS_NUM = 128;
@@ -1199,6 +1200,7 @@ std::vector<float> build_backward_csr(GPMA &gpma){
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.in_degree), gpma.bwd_row_offset, gpma.row_num);
     cErr(cudaDeviceSynchronize());
+    cErr(cudaFree(d_temp_storage));
 
     // Step 3: Insert the edge count in the last element slot in bwd_row_offset
     SIZE_TYPE edge_count = gpma.edge_count;
@@ -1224,9 +1226,9 @@ std::vector<float> build_backward_csr(GPMA &gpma){
 }
 
 void free_backward_csr(GPMA &gpma){
-    cudaFree(gpma.bwd_row_offset);
-    cudaFree(gpma.bwd_keys);
-    cudaFree(gpma.bwd_values);
+    cErr(cudaFree(gpma.bwd_row_offset));
+    cErr(cudaFree(gpma.bwd_keys));
+    cErr(cudaFree(gpma.bwd_values));
 }
 
 std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)

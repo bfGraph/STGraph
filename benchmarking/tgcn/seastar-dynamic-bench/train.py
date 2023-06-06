@@ -67,6 +67,10 @@ def main(args):
     nvidia_smi.nvmlInit()
     handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
 
+    if args.type == "gpma":
+        Graph = GPMAGraph([[(0,0)]],1)
+
+    torch.cuda.empty_cache()
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = psutil.virtual_memory()[3]
 
@@ -81,6 +85,8 @@ def main(args):
 
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
+
+    torch.cuda.empty_cache()
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
     print(f"STORAGE USED AFTER STORING THE FEATURES: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
@@ -106,6 +112,8 @@ def main(args):
     test_targets = all_targets[int(len(all_targets) * train_test_split) :]
 
     model = to_default_device(SeastarTGCN(args.feat_size))
+
+    torch.cuda.empty_cache()
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
     print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
@@ -126,6 +134,7 @@ def main(args):
         print("Error: Invalid Type")
         quit()
     
+    torch.cuda.empty_cache()
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
     print(f"STORAGE USED AFTER INITIALIZING SEASTAR GRAPH: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
@@ -177,6 +186,7 @@ def main(args):
 
             cost = cost + torch.mean((y_hat - train_targets[index]) ** 2)
 
+            torch.cuda.empty_cache()
             used_gpu_mem = (
                 nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
             )
