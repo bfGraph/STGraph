@@ -13,10 +13,10 @@ class EdgeDirection(Enum):
     OUT = 1
 
 class ValType(Enum):
-    S = 0
-    D = 1
-    E = 2
-    P = 3
+    SRC = 0
+    DEST = 1
+    EDGE = 2
+    PARAM = 3
 
 class OpType(Enum):
     S = 0
@@ -55,11 +55,11 @@ def infer_val_type(vals):
     assert isinstance(vals, Iterable), 'vals must be iterable'
     assert len(vals) >= 1
     for i in range(len(vals)):
-        if not is_const_scalar(vals[i]) and vals[i].val_type != ValType.P:
+        if not is_const_scalar(vals[i]) and vals[i].val_type != ValType.PARAM:
             first_non_p_type = vals[i].val_type
-    diff_val_type = any(val.val_type != first_non_p_type for val in vals if not is_const_scalar(val) and val.val_type != ValType.P )
+    diff_val_type = any(val.val_type != first_non_p_type for val in vals if not is_const_scalar(val) and val.val_type != ValType.PARAM )
     if diff_val_type:
-        vtype = ValType.E
+        vtype = ValType.EDGE
     else:
         vtype = first_non_p_type
     return vtype
@@ -68,11 +68,11 @@ def infer_op_type_from_args(op_schema, args):
     if 'agg' in op_schema._op_name.lower():
         return OpType.A
     inf_val_type = infer_val_type(args)
-    if inf_val_type == ValType.E:
+    if inf_val_type == ValType.EDGE:
         return OpType.E
-    elif inf_val_type == ValType.S:
+    elif inf_val_type == ValType.SRC:
         return OpType.S
-    elif inf_val_type == ValType.D:
+    elif inf_val_type == ValType.DEST:
         return OpType.D
 
 

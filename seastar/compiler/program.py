@@ -78,13 +78,13 @@ class Var(object):
             self._is_grad_of.clear()
     
     def is_srcvar(self):
-        return self.val_type == ValType.S
+        return self.val_type == ValType.SRC
     
     def is_dstvar(self):
-        return self.val_type == ValType.D
+        return self.val_type == ValType.DEST
 
     def is_edgevar(self):
-        return self.val_type == ValType.E
+        return self.val_type == ValType.EDGE
 
     def is_nodevar(self):
         return self.is_srcvar() or self.is_dstvar()

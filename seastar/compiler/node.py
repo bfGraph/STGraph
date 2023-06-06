@@ -1,7 +1,9 @@
 from .utils import EdgeDirection
 from .program import Stmt
-from .val import create_src_node_val
 from .schema import Schema
+
+from seastar.compiler.utils import ValType
+from seastar.compiler.val import ValCreator
 
 class NbNode(object):
     def __init__(self, center, direction):
@@ -27,7 +29,9 @@ class CentralNode(object):
         for k,v in feat_map.items():
             setattr(self, k, v)
             for nb in self.innbs:
-                setattr(nb, k, create_src_node_val(v._v, v.backend, id=str(v.var.int_id), fprog=v.fprog, reduce_dim=False))
+                val_creator = ValCreator()
+                src_node_val = val_creator.create(ValType.SRC, v._v, v.backend, id=str(v.var.int_id), fprog=v.fprog, reduce_dim=False)
+                setattr(nb, k, src_node_val)
                 nb.__dict__[k].var._stmt = Stmt.create_stmt(op_schema=Schema('GTypeCast'), args=[v.var], ret=nb.__dict__[k].var) 
                 v.fprog.append_stmt(nb.__dict__[k].var._stmt)
                 nb.__dict__[k].var._requires_grad = v.var._requires_grad

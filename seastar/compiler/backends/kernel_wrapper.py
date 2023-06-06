@@ -1,7 +1,3 @@
-from abc import ABC, abstractmethod
-
-import torch
-
 class KernelWrapper():
     def __init__(self):
         pass
@@ -16,7 +12,3 @@ class KernelWrapper():
     def backward(ctx, *gradout):
         executor, kid = ctx.backward_cache
         return (None, None, None, None) + executor.backward_cb(kid, gradout)
-    
-class KernelWrapperTorch(KernelWrapper, torch.autograd.Function):
-    def __init__(self):
-        super().__init__()

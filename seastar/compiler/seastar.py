@@ -3,7 +3,6 @@ from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 
 from .node import CentralNode
-from .val import create_edge_val, create_src_node_val, create_dst_node_val, create_param_val
 from .op import create_op, AggMaxOp, AggMinOp, AggMeanOp
 from .program import Var, Stmt, Program
 from .passes import optimize, CF, fuse, visualize
@@ -13,7 +12,9 @@ from .code_gen import code_gen
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 
-from seastar.compiler.backend.frameworks import SeastarBackend
+from seastar.compiler.backends.callback import SeastarBackend
+from seastar.compiler.utils import ValType
+from seastar.compiler.val import ValCreator
 
 import snoop
 
@@ -25,6 +26,7 @@ class Context():
         self._nspace = nspace
         self._entry_count = 0
         self._run_cb = run_cb
+        self.val_creator = ValCreator()
         # Hold reference to parameters of current module to avoid repeated lookup
         self._input_cache = {}
         self._graph_info_cache = None
@@ -93,13 +95,16 @@ class Context():
         cen = CentralNode()
         if nfeats:
             for k, v in nfeats.items():
-                setattr(cen, k, create_dst_node_val(v, backend, id=k+cen_attr_postfix, fprog=fprog))
+                dst_node_val = self.val_creator.create(ValType.DEST, v, backend, id=k+cen_attr_postfix, fprog=fprog, reduce_dim=True)
+                setattr(cen, k, dst_node_val)
                 for n in cen.innbs:
-                    setattr(n, k, create_src_node_val(v, backend, id=k+inb_attr_postfix, fprog=fprog))
+                    src_node_val = self.val_creator.create(ValType.SRC, v, backend, id=k+inb_attr_postfix, fprog=fprog, reduce_dim=True)
+                    setattr(n, k, src_node_val)
         if efeats:
             for k, v in efeats.items():
                 for e in cen.inedges:
-                    setattr(e, k, create_edge_val(v, backend, id=k, fprog=fprog))
+                    edge_val = self.val_creator.create(ValType.EDGE, v, backend, id=k, fprog=fprog, reduce_dim=True)
+                    setattr(e, k, edge_val)
         return cen
     
     def _monkey_patch_namespace(self, old_libs, input_cache, fprog, backend):
@@ -128,7 +133,8 @@ class Context():
                                     raise KeyError('Found', key, ' already in old_libs')
                                 old_libs[k][mkey] = m[mkey] 
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                m[mkey] = create_param_val(m[mkey], backend, id=mkey, fprog=fprog)
+                                param_val = self.val_creator.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                m[mkey] = param_val
 
                         # symbolizing buffers for self namespace
                         if key.startswith('_buffers'):
@@ -137,7 +143,8 @@ class Context():
                                     raise KeyError('Found', key, 'already in old_libs')
                                 old_libs[k][mkey] = m[mkey]
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                m[mkey] = create_param_val(m[mkey], backend, id=mkey, fprog=fprog)
+                                param_val = self.val_creator.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                m[mkey] = param_val
 
                         # symbolizing modules for self namespace
                         if key.startswith('_modules'):

@@ -2,10 +2,12 @@ import traceback
 import abc
 from collections.abc import Iterable
 
-from .val import create_val, Val
+from .val import Val
 from .utils import infer_val_type, ValType
 from .schema import Schema
 from .program import Stmt
+
+from seastar.compiler.val import ValCreator
 
 def create_op(op, backend, fprog):
     if backend == 'torch':
@@ -17,6 +19,7 @@ class Op(abc.ABC):
     def __init__(self, op, fprog):
         self._op = op
         self.fprog = fprog
+        self.val_creator = ValCreator()
 
     def __call__(self, *args, **kargs):
         """Any type/shape inconsistency can be detected by executing the op"""
@@ -34,7 +37,7 @@ class Op(abc.ABC):
             vtype = infer_val_type(args)
             assert all(val.backend == first_backend for val in args)
             bkend = first_backend
-            ret_val = create_val(tensor=ret, backend=bkend, val_type=vtype, id=None, fprog=self.fprog, reduce_dim=False)
+            ret_val = self.val_creator.create(vtype, ret, bkend, None, self.fprog, False)
             def call(*arg_list):
                 return self._op(*arg_list, **kargs)
             self.fprog.append_stmt(Stmt.create_stmt(self.to_schema(), 
@@ -65,9 +68,10 @@ class TorchOp(Op):
 class AggOp(abc.ABC):
     def __call__(self, fprog, args):
         bkend = args[0].backend
-        vtype = ValType.D # Aggregation op are almost always used in forward propagation. This assumption may break in the future.
+        vtype = ValType.DEST # Aggregation op are almost always used in forward propagation. This assumption may break in the future.
         t = args[0].v 
-        ret_val = create_val(tensor=t.clone().detach().requires_grad_(False), backend=bkend, val_type=vtype, id=None, fprog=fprog, reduce_dim=False)
+        val_creator = ValCreator()
+        ret_val = val_creator.create(vtype, t.clone().detach().requires_grad_(False), bkend, None, fprog, False)
         fprog.append_stmt(Stmt.create_stmt(self.to_schema(),
                                                 args=list((arg.var if isinstance(arg, Val) else arg for arg in args)),
                                                 ret = ret_val.var,

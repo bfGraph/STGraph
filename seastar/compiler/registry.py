@@ -298,7 +298,7 @@ class AggMaxOp(OpImpl):
         grad_stmt_list = []
         # More precisely, the type of ret should be of type.E but it's OK as long as we don't materialize it.
         ret = self.create_var_like(x)
-        ret._val_type = ValType.E
+        ret._val_type = ValType.EDGE
         grad_stmt_list.append(self.create_stmt(Schema('BackwardAMax'), args=[x, y], ret=ret))
         grad_stmt_list += self.multiply_grad(dzdy=grad_y, dydx=grad_stmt_list[-1].ret, x=x)
         if not x.is_edgevar():
