@@ -12,7 +12,7 @@ def CF(prog):
         #    var1 = cur_stmt.args[0]
         #    user_list = list(cur_stmt.ret.users)
         #    for stmt in user_list:
-        #        if stmt.op_name.lower() == 'mul' and 1 in stmt.args and stmt.ret.val_type==ValType.E:
+        #        if stmt.op_name.lower() == 'mul' and 1 in stmt.args and stmt.ret.val_type==ValType.EDGE:
         #            stmt.ret.replace_all_uses_with(var1)
         #            stmt.remove_cur()
                     #if len(cur_stmt.ret.users) == 0:

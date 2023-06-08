@@ -22,6 +22,7 @@ class CoraDataset:
         self._train_split = split
         self._test_split = 1-split
 
+        self._local_file_path = f"../../dataset/cora/cora.json"
         self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/cora.json"
         self._verbose = verbose
 
@@ -37,11 +38,17 @@ class CoraDataset:
 
     def _load_dataset(self) -> None:
         
-        # loading the dataset by downloading them online
-        if self._verbose:
-            console.log(f'Downloading [cyan]{self.name}[/cyan] dataset')
-        self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
-
+        if self._is_local_exists():
+            # loading the dataset from the local folder
+            if self._verbose:
+                console.log(f'Loading [cyan]{self.name}[/cyan] dataset locally')
+            with open(self._local_file_path) as dataset_json:
+                self._dataset = json.load(dataset_json)
+        else:
+            # loading the dataset by downloading them online
+            if self._verbose:
+                console.log(f'Downloading [cyan]{self.name}[/cyan] dataset')
+            self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
 
     def _get_edge_info(self):
         edges = np.array(self._dataset["edges"])
@@ -110,3 +117,6 @@ class CoraDataset:
             
         self.num_nodes = len(node_set)
         self.num_edges = len(self._edge_list)
+        
+    def _is_local_exists(self) -> bool:
+        return os.path.exists(self._local_file_path)

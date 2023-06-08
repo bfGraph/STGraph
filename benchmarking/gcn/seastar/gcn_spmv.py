@@ -11,7 +11,7 @@ import torch.nn as nn
 import dgl
 import dgl.function as fn
 from seastar.compiler import Seastar
-from seastar.compiler.backend.pytorch_backend import backend_cb
+from seastar.compiler.backend.pytorch.torch_callback import SeastarBackendTorch
 
 class EglGCNLayer(nn.Module):
     def __init__(self,
@@ -35,7 +35,7 @@ class EglGCNLayer(nn.Module):
         else:
             self.dropout = 0.
         self.reset_parameters()
-        self.seastar = Seastar(backend_cb)
+        self.seastar = Seastar(SeastarBackendTorch())
 
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight.size(1))
@@ -49,7 +49,7 @@ class EglGCNLayer(nn.Module):
 
         h = torch.mm(h, self.weight)
         
-        @self.seastar.compile(nspace=[self, torch])
+        @self.seastar.compile(gnn_module=self)
         def nb_compute(v):
             h = sum([nb.h*nb.norm for nb in v.innbs])
             h = h * v.norm
