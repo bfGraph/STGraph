@@ -65,7 +65,7 @@ class Context():
         return self._executor_cache
 
     def _trace(self, nfeats, efeats, input_cache, fprog):
-        backend = self.find_backend(self._nspace)
+        backend = self._find_backend()
         central_node = self._init_central_node(nfeats, efeats, fprog, backend)
         # pretty_print_Central_Node(central_node=central_node, print_tensors=False)
         old_libs = defaultdict(dict)
@@ -177,21 +177,16 @@ class Context():
                                 m[mkey] = old_libs[k][mkey]
         else:
             raise NotImplementedError('Backend ' + backend[0] + ' is not supported yet!') 
-
-
-    def find_backend(self, namespace):
-        k =  '__name__'
-        for n in namespace:
-            if k in n.__dict__:
-                name = n.__dict__[k].lower()
-                if 'torch' in name:
-                    return ('torch', n)
-                elif 'tensorflow' in name:
-                    return ('tensorflow', n)
-                elif 'mxnet' in name:
-                    return ('mxnet', n)
-                else:
-                    raise NotImplementedError("Backend support for " + name + " is not implemnted yet")
+    
+    def _find_backend(self):
+        """ Finds the backend framework being used
+        
+            Returns:    A tuple containing the name and module instance of 
+                        the backend being used
+        """
+        backend_module = self._nspace[1]
+        backend_name = backend_module.__name__
+        return (backend_name, backend_module)
 
     def _mapping_key(self, name_space_id, original_key):
         return str(name_space_id) + str(original_key)
