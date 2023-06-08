@@ -5,7 +5,7 @@ import dgl
 import dgl.function as fn
 from seastar.compiler import Seastar
 import torch.nn.functional as F
-from seastar.compiler.backends.pytorch_backend import backend_cb
+from seastar.compiler.backend.pytorch_backend import backend_cb
 import snoop
 from rich import inspect
 

@@ -1,8 +1,8 @@
 import torch
 import ctypes
 
-from seastar.compiler.backends.callback import SeastarBackend
-from seastar.compiler.backends.pytorch.torch_kernel_wrapper import KernelWrapperTorch 
+from seastar.compiler.backend.callback import SeastarBackend
+from seastar.compiler.backend.pytorch.torch_kernel_wrapper import KernelWrapperTorch 
 
 class SeastarBackendTorch(SeastarBackend):
     ''' Seastar backend using PyTorch framework'''

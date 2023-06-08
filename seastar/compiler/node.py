@@ -3,7 +3,7 @@ from .program import Stmt
 from .schema import Schema
 
 from seastar.compiler.utils import ValType
-from seastar.compiler.val import ValCreator
+from seastar.compiler.val.val_factory import ValFactory
 
 class NbNode(object):
     def __init__(self, center, direction):
@@ -29,8 +29,8 @@ class CentralNode(object):
         for k,v in feat_map.items():
             setattr(self, k, v)
             for nb in self.innbs:
-                val_creator = ValCreator()
-                src_node_val = val_creator.create(ValType.SRC, v._v, v.backend, id=str(v.var.int_id), fprog=v.fprog, reduce_dim=False)
+                val_factory = ValFactory()
+                src_node_val = val_factory.create(ValType.SRC, v._v, v.backend, id=str(v.var.int_id), fprog=v.fprog, reduce_dim=False)
                 setattr(nb, k, src_node_val)
                 nb.__dict__[k].var._stmt = Stmt.create_stmt(op_schema=Schema('GTypeCast'), args=[v.var], ret=nb.__dict__[k].var) 
                 v.fprog.append_stmt(nb.__dict__[k].var._stmt)

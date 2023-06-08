@@ -1,131 +1,7 @@
-import abc
+from seastar.compiler.val.val import Val
 from seastar.compiler.utils import ValType, infer_val_type
 from seastar.compiler.program import Var, Stmt
 from seastar.compiler.schema import Schema
-
-"""Val is a tensor wrapper for different backends"""
-
-class ValCreator:
-    def __init__(self):
-        """Factory class to create Val objects"""
-        pass
-
-    def create(self, type: ValType, tensor, backend, id, fprog, reduce_dim):
-        val_backend = self.get_val_backend(backend)
-
-        return val_backend(
-            backend=backend,
-            tensor=tensor,
-            val_type=type,
-            id=id,
-            fprog=fprog,
-            reduce_dim=reduce_dim,
-        )
-
-    def get_val_backend(self, backend):
-        key, _ = backend
-        if key == "torch":
-            return TorchVal
-        else:
-            raise NotImplementedError(
-                f"Backend support for {key} has not been implemented yet"
-            )
-
-class Val(abc.ABC):
-    @abc.abstractmethod
-    def __init__(self, tensor, id, fprog):
-        """
-        We store the original tensor and create a new tensor with the same attributes as
-        the original one except for its size, which is reduced by the fist dimension (assume
-        to be 0-th dim) for node and edge tensor.
-        _t : the original tensor
-        _v : local tracing tensor
-        var: intermediate representation of this val
-        """
-        self._t = tensor
-        self._id = id
-        self._v = None
-        self.var = None
-        self.fprog = fprog
-        self.val_creator = ValCreator()
-
-    @abc.abstractmethod
-    def dtype(self):
-        """Return the DType"""
-
-    @abc.abstractmethod
-    def layout(self):
-        """Return the layout"""
-
-    @abc.abstractmethod
-    def size(self):
-        """Return the size(i.e. shape)"""
-
-    @abc.abstractmethod
-    def requires_grad(self):
-        """Return whether requires gradient"""
-
-    @abc.abstractmethod
-    def val_type(self):
-        """Return ValueType"""
-
-    @abc.abstractmethod
-    def backend(self):
-        """Return backend system"""
-
-    @abc.abstractmethod
-    def backend_key(self):
-        """Return key of backend system"""
-
-    @abc.abstractmethod
-    def device(self):
-        """Return which device is on"""
-
-    @abc.abstractmethod
-    def view(self, *args, **kargs):
-        """Tensor.view"""
-
-    @abc.abstractmethod
-    def __mul__(self, other):
-        """self * other"""
-
-    @abc.abstractmethod
-    def __add__(self, other):
-        """self + other"""
-
-    @abc.abstractmethod
-    def __radd__(self, other):
-        """Override sum edge aggregation, it starts with 0(int) + Val"""
-
-    @abc.abstractmethod
-    def __sub__(self, other):
-        """self - other"""
-
-    @abc.abstractmethod
-    def __truediv__(self, other):
-        """self / other"""
-
-    @abc.abstractmethod
-    def __floordiv__(self, other):
-        """self // other"""
-
-    @abc.abstractmethod
-    def sum(self, *args, **kargs):
-        """Tensor.sum()"""
-
-    def __str__(self):
-        return str(self.var)
-
-    def __repr__(self):
-        return str(self)
-
-    @property
-    def v(self):
-        return self._v
-
-    @property
-    def id(self):
-        return self._id
 
 class TorchVal(Val):
     def __init__(self, backend, tensor, val_type, id, fprog, reduce_dim):
@@ -183,7 +59,7 @@ class TorchVal(Val):
     def __mul__(self, other):
         vtype = infer_val_type((self, other))
         if isinstance(other, TorchVal):
-            ret_val = self.val_creator.create(
+            ret_val = self.val_factory.create(
                 vtype, self.v * other.v, self.backend, None, self.fprog, False
             )
 
@@ -199,7 +75,7 @@ class TorchVal(Val):
                 )
             )
         else:
-            ret_val = self.val_creator.create(
+            ret_val = self.val_factory.create(
                 vtype, self.v * other, self.backend, None, self.fprog, False
             )
 
@@ -221,7 +97,7 @@ class TorchVal(Val):
 
     def __add__(self, other):
         vtype = infer_val_type((self, other))
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             vtype, self.v + other.v, self.backend, None, self.fprog, False
         )
 
@@ -242,7 +118,7 @@ class TorchVal(Val):
         # agg_sum, we can omit its callback since we will generate code for it
         assert isinstance(other, int)
         assert self.val_type in (ValType.SRC, ValType.EDGE)
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             ValType.DEST, self.v, self.backend, None, self.fprog, False
         )
         self.fprog.append_stmt(
@@ -254,7 +130,7 @@ class TorchVal(Val):
         # TODO: An attempt made by us, uncomment the below which is original
         # raise NotImplementedError("__sub__ Op not supported")
         vtype = infer_val_type((self, other))
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             vtype, self.v - other.v, self.backend, None, self.fprog, False
         )
 
@@ -273,7 +149,7 @@ class TorchVal(Val):
 
     def __truediv__(self, other):
         vtype = infer_val_type((self, other))
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             vtype, self.v / other.v, self.backend, None, self.fprog, False
         )
 
@@ -294,7 +170,7 @@ class TorchVal(Val):
         raise NotImplementedError("__floordiv__ Op not supported")
 
     def sum(self, *args, **kargs):
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             self.val_type,
             self.v.sum(*args, **kargs),
             self.backend,
@@ -321,7 +197,7 @@ class TorchVal(Val):
         return ret_val
 
     def view(self, *args, **kargs):
-        ret_val = self.val_creator.create(
+        ret_val = self.val_factory.create(
             self.val_type,
             self.v.view(*args, **kargs),
             self.backend,
@@ -349,4 +225,3 @@ class TorchVal(Val):
             )
         )
         return ret_val
-

@@ -3,7 +3,7 @@ from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 
 from .node import CentralNode
-from .op import create_op, AggMaxOp, AggMinOp, AggMeanOp
+# from .op.op import create_op, AggMaxOp, AggMinOp, AggMeanOp
 from .program import Var, Stmt, Program
 from .passes import optimize, CF, fuse, visualize
 from .schema import Schema
@@ -12,9 +12,10 @@ from .code_gen import code_gen
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 
-from seastar.compiler.backends.callback import SeastarBackend
+from seastar.compiler.backend.callback import SeastarBackend
 from seastar.compiler.utils import ValType
-from seastar.compiler.val import ValCreator
+from seastar.compiler.val.val_factory import ValFactory
+from seastar.compiler.op.op_factory import OpFactory
 
 import snoop
 
@@ -26,7 +27,8 @@ class Context():
         self._nspace = nspace
         self._entry_count = 0
         self._run_cb = run_cb
-        self.val_creator = ValCreator()
+        self.val_factory = ValFactory()
+        self._op_factory = OpFactory()
         # Hold reference to parameters of current module to avoid repeated lookup
         self._input_cache = {}
         self._graph_info_cache = None
@@ -95,15 +97,15 @@ class Context():
         cen = CentralNode()
         if nfeats:
             for k, v in nfeats.items():
-                dst_node_val = self.val_creator.create(ValType.DEST, v, backend, id=k+cen_attr_postfix, fprog=fprog, reduce_dim=True)
+                dst_node_val = self.val_factory.create(ValType.DEST, v, backend, id=k+cen_attr_postfix, fprog=fprog, reduce_dim=True)
                 setattr(cen, k, dst_node_val)
                 for n in cen.innbs:
-                    src_node_val = self.val_creator.create(ValType.SRC, v, backend, id=k+inb_attr_postfix, fprog=fprog, reduce_dim=True)
+                    src_node_val = self.val_factory.create(ValType.SRC, v, backend, id=k+inb_attr_postfix, fprog=fprog, reduce_dim=True)
                     setattr(n, k, src_node_val)
         if efeats:
             for k, v in efeats.items():
                 for e in cen.inedges:
-                    edge_val = self.val_creator.create(ValType.EDGE, v, backend, id=k, fprog=fprog, reduce_dim=True)
+                    edge_val = self.val_factory.create(ValType.EDGE, v, backend, id=k, fprog=fprog, reduce_dim=True)
                     setattr(e, k, edge_val)
         return cen
     
@@ -120,7 +122,7 @@ class Context():
                             if key in old_libs[k]:
                                 raise KeyError('Found', key, ' already in old_libs')
                             old_libs[k][key] = m
-                            nspace.__dict__[key] = create_op(m, backend[0], fprog=fprog)
+                            nspace.__dict__[key] = self._op_factory.create(m, backend[0], fprog)
                 else:
                     ## Dealing with module
                     for key in nspace.__dict__.keys():
@@ -133,7 +135,7 @@ class Context():
                                     raise KeyError('Found', key, ' already in old_libs')
                                 old_libs[k][mkey] = m[mkey] 
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                param_val = self.val_creator.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                param_val = self.val_factory.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
                                 m[mkey] = param_val
 
                         # symbolizing buffers for self namespace
@@ -143,7 +145,7 @@ class Context():
                                     raise KeyError('Found', key, 'already in old_libs')
                                 old_libs[k][mkey] = m[mkey]
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                param_val = self.val_creator.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                param_val = self.val_factory.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
                                 m[mkey] = param_val
 
                         # symbolizing modules for self namespace
@@ -152,7 +154,7 @@ class Context():
                                 if mkey in old_libs[k]:
                                     raise KeyError('Found', key, ' already in old_libs')
                                 old_libs[k][mkey] = m[mkey]
-                                m[mkey] = create_op(m[mkey], backend[0], fprog=fprog)
+                                m[mkey] = self._op_factory.create(m[mkey], backend[0], fprog)
         else:
             raise NotImplementedError('Backend ' + backend[0] + ' is not supported yet!') 
 
