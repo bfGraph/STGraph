@@ -36,6 +36,9 @@ class ExeState(object):
         # contains arg tensors for the current execution of nb_compute only
         self.current_tensor_map = {}
 
+        # contains IDs of args required for backward propagation of the current timestamp
+        self.bwd_common_tensor_list = []
+
         self.dep_map = {}
         self.executed_bunit = set()
     
@@ -53,6 +56,15 @@ class ExeState(object):
                     self.dep_map[arg.id] += 1
                 else:
                     self.dep_map[arg.id] = 1
+
+        # Initializing bwd_common_tensor_list
+        for bu in bunits:
+            for arg in bu.kernel_args():
+                # print(f"arg.id: {arg.id}")
+                if arg.id in input_map.keys():
+                    self.bwd_common_tensor_list.append(arg.id)
+        # print("End of initializing bwd_common_tensor_list\n")
+
         #print('dependency map', self.dep_map)
         self.num_bunits = len(bunits)
         # deletes all tensors that were previously stored here (verified)
@@ -302,12 +314,14 @@ class Executor(object):
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
             
-        self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        self.ts.tensor_map_stack.push({key: self.ts.current_tensor_map[key] for key in self.ts.bwd_common_tensor_list})
         
         if isinstance(self.graph,DynamicGraph):
             self.ts.graph_timestamp_stack.push(self.graph.current_timestamp)
-
-        return tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
+        
+        ret = tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
+        self.ts.current_tensor_map = {}
+        return ret
 
     @snoop
     def backward_cb(self, kid, grad_list):
@@ -358,6 +372,8 @@ class Executor(object):
         return ret
 
     def execute_prog(self, units):
+        current_tensor_map = self.ts.current_tensor_map
+        self.ts.current_tensor_map = {}
         for unit in  units:
             for stmt in unit.program:
-                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.current_tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))
+                self.ts.track_tensor(stmt.ret.id, stmt.execute([current_tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))
