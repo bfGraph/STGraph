@@ -10,6 +10,7 @@ from tqdm import tqdm
 from tgcn import SeastarTGCN
 import snoop
 import os
+import gc
 
 import nvidia_smi
 import psutil
@@ -18,6 +19,7 @@ from rich import inspect
 from rich.pretty import pprint
 from rich.console import Console
 from rich.table import Table
+import sys
 
 # from rich.traceback import install
 # install(show_locals=True)
@@ -69,6 +71,8 @@ def main(args):
 
     if args.type == "gpma":
         Graph = GPMAGraph([[(0,0)]],1)
+    elif args.type == "naive":
+        Graph = NaiveGraph([[(0,0)]],1)
 
     torch.cuda.empty_cache()
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
@@ -179,10 +183,32 @@ def main(args):
             )
             edge_weight = torch.unsqueeze(edge_weight, 1)
 
+            print(f">>> (Before Model Call) PRINTING TENSOR TRACE FOR T={index} <<<")
+            torch.cuda.synchronize()
+            gc.collect()
+            for obj in gc.get_objects():
+                try:
+                    if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
+                        print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
+                except:
+                    pass
+            print(f">>> (Before Model Call) END PRINTING TENSOR TRACE FOR T={index} <<<")
+
             # forward propagation
             y_hat, hidden_state = model(
                 G, train_features[index], edge_weight, hidden_state
             )
+
+            print(f">>> (After Model Call) PRINTING TENSOR TRACE FOR T={index} <<<")
+            torch.cuda.synchronize()
+            gc.collect()
+            for obj in gc.get_objects():
+                try:
+                    if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
+                        print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
+                except:
+                    pass
+            print(f">>> (After Model call) END PRINTING TENSOR TRACE FOR T={index} <<<")
 
             cost = cost + torch.mean((y_hat - train_targets[index]) ** 2)
 
@@ -190,14 +216,15 @@ def main(args):
             used_gpu_mem = (
                 nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
             )
+            print(f"(E={epoch} , T={index}) GPU Mem: {(used_gpu_mem * 1.0) / (1024**2)}\n")
             gpu_mem_arr.append(used_gpu_mem)
             used_cpu_mem = (psutil.virtual_memory()[3]) - initial_used_cpu_mem
             cpu_mem_arr.append(used_cpu_mem)
             # run_time_this_timestamp = time.time() - t1
             # print(f"⌛⌛⌛ Takes a total of {run_time_this_timestamp}")
 
-            # if index == 1:
-            #     quit()
+            if index == 2:
+                quit()
 
         cost = cost / (index + 1)
 
