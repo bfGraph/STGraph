@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-from seastar_tgcn import SeastarTGCN
+from tgcn import SeastarTGCN
 import snoop
 import os
 
@@ -22,6 +22,9 @@ from seastar.dataset.FoorahBase import FoorahBase
 
 import seastar.compiler.debugging.print_variables as print_var
 
+from benchmarking.suite.table import BenchmarkTable
+
+
 # GPU | CPU
 def get_default_device():
     if torch.cuda.is_available():
@@ -29,13 +32,28 @@ def get_default_device():
     else:
         return torch.device("cpu")
 
+
 def to_default_device(data):
     if isinstance(data, (list, tuple)):
         return [to_default_device(x, get_default_device()) for x in data]
 
     return data.to(get_default_device(), non_blocking=True)
 
+
 def run_naive(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_epochs):
+    console.log("Starting Naive Benchmarking")
+
+    naive_tgcn_table = BenchmarkTable(
+        title="Training TGCN using Naive",
+        col_name_list=[
+            "Epoch",
+            "MSE",
+            "Avg. Time Taken",
+            "Max. GPU Memory",
+            "Max. CPU Memory",
+        ],
+    )
+
     print_var.is_print_verbose_log = False
 
     nvidia_smi.nvmlInit()
@@ -83,14 +101,14 @@ def run_naive(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_epoc
     # metrics
     dur = []
     gpu_move_time_dur = []
-    
+
     temp_array = []
     prop_time_dur = []
-    
+
     cuda = True
 
     if type == "naive":
-        G = NaiveGraph(train_edges_lst, max_num_nodes)
+        G = NaiveGraph(train_edges_lst)
     else:
         print("Error: Invalid Type")
         quit()
@@ -109,8 +127,6 @@ def run_naive(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_epoc
 
         gpu_mem_arr = []
         cpu_mem_arr = []
-
-        update_time_start = G._total_update_time
 
         # dyn_graph_index is dynamic graph index
         for index in range(0, len(train_features)):
@@ -152,16 +168,24 @@ def run_naive(dataset_dir, dataset, feat_size, lr, type, max_num_nodes, num_epoc
 
         run_time_this_epoch = time.time() - t0
 
-        update_time_end = G._total_update_time
-
         if epoch >= 3:
-            dur.append(run_time_this_epoch)  
+            dur.append(run_time_this_epoch)
 
-    return np.mean(dur), np.mean(cpu_mem_arr), np.mean(gpu_mem_arr)
+        naive_tgcn_table.add_row(
+            [
+                epoch,
+                round(cost.item(), 4),
+                round(run_time_this_epoch, 4),
+                round(((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))), 4),
+                round(((sum(cpu_mem_arr) * 1.0) / ((1024**2) * len(cpu_mem_arr))), 4),
+            ]
+        )
+
+    naive_tgcn_table.display()
+    # return np.mean(dur), np.mean(cpu_mem_arr), np.mean(gpu_mem_arr)
+
 
 def main(args):
-    console.log("Starting Naive Benchmarking")
-
     dataset_dir = args.dataset_dir
 
     # creating the dataset list
@@ -182,8 +206,8 @@ def main(args):
         time_results = {}
         cpu_mem_results = {}
         gpu_mem_results = {}
-        
-        avg_time = run_naive(
+
+        run_naive(
             dataset_dir,
             dataset,
             param["feat_size"],
@@ -192,7 +216,6 @@ def main(args):
             param["max_num_nodes"],
             num_epochs,
         )
-        time_results[avg_time] = round(avg_time, 4)
 
 
 if __name__ == "__main__":

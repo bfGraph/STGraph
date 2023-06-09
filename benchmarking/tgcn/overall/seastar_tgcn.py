@@ -3,7 +3,15 @@ import torch
 import torch.nn as nn
 from seastar.compiler import Seastar
 import torch.nn.functional as F
+# from seastar.compiler.backend.pytorch_backend import backend_cb
 from seastar.compiler.backend.pytorch.torch_callback import SeastarBackendTorch
+import snoop
+from rich import inspect
+
+from rich.traceback import install
+
+install(show_locals=True)
+
 
 class SeastarGCNLayer(nn.Module):
     def __init__(self, in_feats, out_feats, activation=None, dropout=None, bias=True):
@@ -52,6 +60,15 @@ class SeastarGCNLayer(nn.Module):
             e_feats={"weight": edge_weight},
         )
 
+        # @self.seastar.compile(nspace=[self, torch])
+        # def nb_compute(v):
+        #     # The nb_edge.src returns a list with one element, this element is an object of NbNode type
+        #     # hence the translation. Can be cleaned up later.
+        #     h = sum([nb.h*nb.norm for nb in v.innbs])
+        #     h = h * v.norm
+        #     return h
+        # h = nb_compute(g=g, n_feats={'norm': g.ndata['norm'], 'h' : h})
+
         # bias
         if self.bias is not None:
             h = h + self.bias
@@ -95,7 +112,12 @@ class SeastarTGCNCell(torch.nn.Module):
         return H
 
     def _calculate_update_gate(self, g, X, edge_weight, H):
+        # print(X.shape)
         h = self.conv_z(g, X, edge_weight=edge_weight)
+        # print(h.shape)
+        # print(H.shape)
+        # print("\n")
+        # quit()
         Z = torch.cat((h, H), axis=1)  # axis values need to be checked
         Z = self.linear_z(Z)
         Z = torch.sigmoid(Z)
