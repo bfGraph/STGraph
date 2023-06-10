@@ -3,6 +3,7 @@ import snoop
 from collections import deque
 from ..graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.compiler.debugging.seastar_logger import print_log
+import torch
 
 class Stack:
     def __init__(self, val=None):
@@ -276,7 +277,7 @@ class Executor(object):
     def create_tensor_for_vars(self, var_list):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
-                                               device=var.device,
+                                               device=torch.device("cuda:0"),
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.current_tensor_map}
         self.ts.current_tensor_map = {**self.ts.current_tensor_map, **ret_tensors}
 
@@ -284,7 +285,7 @@ class Executor(object):
     def create_tensor_for_grad_vars(self, var_list, tensor_map):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
-                                               device=var.device,
+                                               device=torch.device("cuda:0"),
                                                requires_grad=var.requires_grad) for var in var_list if var.id not in tensor_map}
         tensor_map = {**tensor_map, **ret_tensors}
         return tensor_map

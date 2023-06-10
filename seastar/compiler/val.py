@@ -20,7 +20,8 @@ def create_val(tensor, backend, val_type, id, fprog, reduce_dim):
     global val_seq
     key, _ = backend
     if key == 'torch':
-        return TorchVal(backend=backend, tensor=tensor, val_type=val_type, id=id, fprog=fprog, reduce_dim=reduce_dim)
+        torch_val = TorchVal(backend=backend, tensor=tensor, val_type=val_type, id=id, fprog=fprog, reduce_dim=reduce_dim)
+        return torch_val
     else:
         raise NotImplementedError(key+ ' hasn\'t been implemented')
 
@@ -36,7 +37,7 @@ class Val(abc.ABC):
         _v : local tracing tensor
         var: intermediate representation of this val
         """
-        self._t = tensor
+        self._t = tensor.clone().detach().cpu().requires_grad_(False)
         self._id = id
         self._v = None
         self.var = None

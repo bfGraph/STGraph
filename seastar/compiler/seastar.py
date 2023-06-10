@@ -12,6 +12,8 @@ from .autodiff import diff
 from .code_gen import code_gen 
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
+import gc
+import torch
 
 import snoop
 
@@ -47,13 +49,12 @@ class Context():
             # print('TracedProgram' + str(fprog), 'Ret value:', ret)
             # pretty_print_GIR(fprog,"TGCN GIR")
             self._executor_cache = self._diff_then_compile(ret, fprog, graph)
+        
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
         for k, v in edge_feats.items():
             self._input_cache[var_prefix+k] = v
-        # print("🔴 Input Cache")
-        # print(self._input_cache)
         self._executor_cache.restart(self._input_cache, graph)
         self._entry_count += 1
         return self._executor_cache
@@ -66,6 +67,7 @@ class Context():
         self._monkey_patch_namespace(old_libs, input_cache, fprog, backend)
         ret = self._f(central_node)
         self._remove_patch(old_libs, backend)
+
         if ret == None:
             raise NameError('Ret is none. Execution is aborted')
         return [ret.var] if not isinstance(ret, Iterable) else ret.var

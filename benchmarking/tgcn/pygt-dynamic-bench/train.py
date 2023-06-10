@@ -107,7 +107,7 @@ def main(args):
     dur = []
     cuda = True
     
-    edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
+    # edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
     train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
     print(f"STORAGE USED AFTER STORING THE EDGE_WEIGHT & EDGE_LST: {(used_gpu_mem * 1.0) / (1024**2)}\n")
@@ -142,33 +142,36 @@ def main(args):
             
             # t1 = time.time()
             
-            edge_weight = edge_weight_lst[index]
+            edge_weight = to_default_device(
+                torch.FloatTensor(train_edge_weights_lst[index])
+            )
+            edge_weight = torch.unsqueeze(edge_weight, 1)
             train_edges = train_edges_lst[index]
 
-            print(f">>> PRINTING TENSOR TRACE FOR T={index} <<<")
-            torch.cuda.synchronize()
-            gc.collect()
-            for obj in gc.get_objects():
-                try:
-                    if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
-                        print(type(obj), obj.size(), obj.device)
-                except:
-                    pass
-            print(f">>> END PRINTING TENSOR TRACE FOR T={index} <<<")
+            # print(f">>> PRINTING TENSOR TRACE FOR T={index} <<<")
+            # torch.cuda.synchronize()
+            # gc.collect()
+            # for obj in gc.get_objects():
+            #     try:
+            #         if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
+            #             print(type(obj), obj.size(), obj.device)
+            #     except:
+            #         pass
+            # print(f">>> END PRINTING TENSOR TRACE FOR T={index} <<<")
 
             # forward propagation
             y_hat, hidden_state = model(train_features[index], train_edges, edge_weight, hidden_state)
 
-            print(f">>> PRINTING TENSOR TRACE FOR T={index} <<<")
-            torch.cuda.synchronize()
-            gc.collect()
-            for obj in gc.get_objects():
-                try:
-                    if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
-                        print(type(obj), obj.size(), obj.device)
-                except:
-                    pass
-            print(f">>> END PRINTING TENSOR TRACE FOR T={index} <<<")
+            # print(f">>> PRINTING TENSOR TRACE FOR T={index} <<<")
+            # torch.cuda.synchronize()
+            # gc.collect()
+            # for obj in gc.get_objects():
+            #     try:
+            #         if (torch.is_tensor(obj) or ((hasattr(obj, 'data') and torch.is_tensor(obj.data)))) and obj.device != torch.device("cpu"):
+            #             print(type(obj), obj.size(), obj.device)
+            #     except:
+            #         pass
+            # print(f">>> END PRINTING TENSOR TRACE FOR T={index} <<<")
 
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
             
@@ -191,8 +194,8 @@ def main(args):
             #         pass
             # print(f">>> END PRINTING TENSOR TRACE FOR T={index} <<<")
             
-            if index == 2:
-                quit()
+            # if index == 2:
+            #     quit()
             
         # print("📝📝📝 GPU Memory after training is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem)*1.0))/(1024**2))
         # print("📝📝📝 GPU Memory after training is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
