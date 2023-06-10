@@ -130,9 +130,9 @@ class TorchVal(Val):
         '''IR var relies on reducedim'''
         super().__init__(tensor, id, fprog)
         if reduce_dim:
-            self._v = self._t.clone().detach().requires_grad_(False).mean(dim=0)
+            self._v = self._t.mean(dim=0)
         else:
-            self._v = self._t.clone().detach().requires_grad_(False)
+            self._v = self._t
         self.var = Var.create_var(self.size, self.dtype, self.val_type, var_id = self._id, device=self._t.device, requires_grad=self._t.requires_grad) 
         self.fprog = fprog
 
