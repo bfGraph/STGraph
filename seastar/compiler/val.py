@@ -37,6 +37,7 @@ class Val(abc.ABC):
         _v : local tracing tensor
         var: intermediate representation of this val
         """
+         # (WARNING) This needs to be modified to remove pytorch dependency
         self._t = tensor.clone().detach().cpu().requires_grad_(False)
         self._id = id
         self._v = None

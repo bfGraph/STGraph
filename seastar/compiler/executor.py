@@ -275,6 +275,7 @@ class Executor(object):
         return  ret
     
     def create_tensor_for_vars(self, var_list):
+        # (WARNING) This needs to be modified to remove pytorch dependency
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=torch.device("cuda:0"),
@@ -283,6 +284,7 @@ class Executor(object):
 
     @snoop
     def create_tensor_for_grad_vars(self, var_list, tensor_map):
+         # (WARNING) This needs to be modified to remove pytorch dependency
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=torch.device("cuda:0"),
