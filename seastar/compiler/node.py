@@ -20,8 +20,8 @@ class CentralNode(object):
     def __init__(self):
         self.innbs = [NbNode(self, EdgeDirection.IN)] 
         self.outnbs = [NbNode(self, EdgeDirection.OUT)] 
-        self.inedges = [NbEdge(self, EdgeDirection.IN, self.innbs)] 
-        self.outedges = [NbEdge(self, EdgeDirection.OUT, self.outnbs)] 
+        self.inedges = [NbEdge(self, EdgeDirection.IN, self.innbs[i]) for i in range(len(self.innbs))] 
+        self.outedges = [NbEdge(self, EdgeDirection.OUT, self.outnbs[i]) for i in range(len(self.outnbs))] 
     
     def update_allnode(self, feat_map):
         for k,v in feat_map.items():

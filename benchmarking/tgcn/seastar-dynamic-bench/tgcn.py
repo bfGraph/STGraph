@@ -45,9 +45,7 @@ class SeastarGCNLayer(nn.Module):
 
         @self.seastar.compile(nspace=[self, torch])
         def nb_compute(v):
-            # The nb_edge.src returns a list with one element, this element is an object of NbNode type
-            # hence the translation. Can be cleaned up later.
-            h = sum([nb_edge.src[0].norm * nb_edge.src[0].h * nb_edge.edge_weight for nb_edge in v.inedges])
+            h = sum([nb_edge.src.norm * nb_edge.src.h * nb_edge.edge_weight for nb_edge in v.inedges])
             h = h * v.norm
             return h
         
