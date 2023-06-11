@@ -235,10 +235,20 @@ void print_dev_array(std::uintptr_t ptr, int size)
     std::cout << "\n";
 }
 
+std::vector<int> get_array(std::uintptr_t ptr, int size)
+{
+    int *dev_ptr = reinterpret_cast<int *>(ptr);
+    int *host_ptr = (int *)malloc(size * sizeof(int));
+    // thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast(raw_ptr);
+    cudaMemcpy(host_ptr, dev_ptr, size * sizeof(int), cudaMemcpyDeviceToHost);
+    std::vector<int> vec(host_ptr,host_ptr+size);
+    return vec;
+}
 PYBIND11_MODULE(csr, m)
 {
     m.doc() = "CPython module for CSR"; // optional module docstring
     m.def("print_dev_array", &print_dev_array, "Print arrays on the device");
+    m.def("get_array",&get_array,"Get Array");
 
     py::class_<CSR>(m, "CSR")
         // .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
