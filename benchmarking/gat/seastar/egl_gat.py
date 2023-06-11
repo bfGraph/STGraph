@@ -1,14 +1,9 @@
 """Torch modules for graph attention networks(GAT)."""
 # pylint: disable= no-member, arguments-differ, invalid-name
-import argparse
-
 import torch
-import dgl
 from torch import nn
-from seastar import Seastar
-from seastar.backend.pytorch_backend import backend_cb
-
-from seastar import Seastar
+from seastar.compiler.backend.pytorch_backend import backend_cb
+from seastar.compiler import Seastar
 
 # pylint: enable=W0235
 class EglGATConv(nn.Module):
@@ -49,7 +44,6 @@ class EglGATConv(nn.Module):
             nn.init.xavier_normal_(self.res_fc.weight, gain=gain)
 
     def forward(self, graph, feat):
-        graph = graph.local_var()
         h_dst = h_src = self.feat_drop(feat)
         feat_src = feat_dst = self.fc(h_src).view(-1, self._num_heads, self._out_feats)
         el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)

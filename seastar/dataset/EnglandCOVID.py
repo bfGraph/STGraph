@@ -16,7 +16,7 @@ from rich.traceback import install
 install(show_locals=True)
 
 class EnglandCOVID:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75) -> None:
+    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
         self.name = "EnglandCOVID"
         self.lags = lags
         self.split = split
@@ -31,9 +31,13 @@ class EnglandCOVID:
 
         self._load_dataset()
         self.total_timestamps = self._dataset["time_periods"]
-        self._get_edge_info()
         self._get_targets_and_features()
-        self._presort_edge_weights()
+
+        if for_seastar:
+            self._get_edge_info_seastar()
+            self._presort_edge_weights()
+        else:
+            self._get_edge_info_pygt()
 
     def get_graph_data(self):
         return self._graph_updates, self._max_num_nodes
@@ -47,13 +51,13 @@ class EnglandCOVID:
         # THIS NEEDS TO BE EDITED
         # with open('../../dataset/eng_covid/eng_covid.json', 'w') as f:
         #     json.dump(self._dataset,f)
-
-    def _get_edge_info(self):
+    
+    def _get_edge_info_seastar(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
         self._edge_weights = []
 
-        for time in range(self._dataset["time_periods"] - self.lags):
+        for time in range(self._dataset["time_periods"]):
             time_edge_list = []
             time_edge_weights = []
 
@@ -65,6 +69,18 @@ class EnglandCOVID:
 
             self._edge_list.append(time_edge_list)
             self._edge_weights.append(time_edge_weights)
+
+    def _get_edge_info_pygt(self):
+        self._edge_list  = []
+        self._edge_weights = []
+        
+        for time in range(self._dataset["time_periods"]):
+            self._edge_list.append(
+                np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
+            )
+            self._edge_weights.append(
+                np.array(self._dataset["edge_mapping"]["edge_weight"][str(time)])
+            )
 
     def _get_targets_and_features(self):
         stacked_target = np.array(self._dataset["y"])

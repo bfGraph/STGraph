@@ -151,8 +151,10 @@ class SeastarTGCNCell(torch.nn.Module):
 class SeastarTGCN(torch.nn.Module):
   def __init__(self, node_features):
     super(SeastarTGCN, self).__init__()
-    self.temporal = SeastarTGCNCell(node_features, node_features*2)
-    self.linear = torch.nn.Linear(node_features*2, node_features)
+    # self.temporal = SeastarTGCNCell(node_features, node_features*2)
+    # self.linear = torch.nn.Linear(node_features*2, node_features)
+    self.temporal = SeastarTGCNCell(node_features, 32)
+    self.linear = torch.nn.Linear(32, 1)
 
   def forward(self, g, node_feat, edge_weight, hidden_state):
     h = self.temporal(g, node_feat, edge_weight, hidden_state)

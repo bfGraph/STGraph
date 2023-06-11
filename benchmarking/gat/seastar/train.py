@@ -9,17 +9,15 @@ Pytorch implementation: https://github.com/Diego999/pyGAT
 """
 
 import argparse
-import numpy as np
-import networkx as nx
 import time
 import torch
 import torch.nn.functional as F
-import dgl
-import dgl.function as fn
+from seastar.graph.static.StaticGraph import StaticGraph
+from seastar.dataset.cora import CoraDataset
 from egl_gat import EglGAT
 from utils import EarlyStopping
-from dgl.data import register_data_args, load_data
 import snoop
+import numpy as np
 
 
 def accuracy(logits, labels):
@@ -39,7 +37,7 @@ def evaluate(model, features, labels, mask):
 
 def train(args):
     # load and preprocess dataset
-    path = '../../dataset/' + str(args.dataset) + '/'
+    path = '../../dataset/' + 'cora' + '/'
     '''
     edges = np.loadtxt(path + 'edges.txt')
     edges = edges.astype(int)
@@ -52,6 +50,15 @@ def train(args):
     labels = np.loadtxt(path + 'labels.txt')
     labels = labels.astype(int)
     '''
+    # cora = CoraDataset(verbose=True)
+    # features = torch.FloatTensor(cora.get_all_features())
+    # labels = torch.LongTensor(cora.get_all_targets())
+    # train_mask = cora.get_train_mask()
+    # test_mask = cora.get_test_mask()
+    # train_mask = torch.BoolTensor(train_mask)
+    # test_mask = torch.BoolTensor(test_mask)
+    # num_edges = len(cora.get_edges())
+
     edges = np.load(path + 'edges.npy')
     features = np.load(path + 'features.npy')
     train_mask = np.load(path + 'train_mask.npy')
@@ -64,7 +71,7 @@ def train(args):
 
     assert train_mask.shape[0] == num_nodes
 
-    print('dataset {}'.format(args.dataset))
+    print('dataset {}'.format("Cora"))
     print('# of edges : {}'.format(num_edges))
     print('# of nodes : {}'.format(num_nodes))
     print('# of features : {}'.format(num_feats))
@@ -87,12 +94,10 @@ def train(args):
         labels = labels.cuda()
         train_mask = train_mask.cuda()
 
-    u = edges[:,0]
-    v = edges[:,1]
-    g = dgl.graph((u,v), num_nodes=num_nodes)
-    # add self loop
-    g = dgl.add_self_loop(g)
-    g = g.to(features.device)
+    print(edges.shape)
+    edges_lst = [(edge[0],edge[1]) for edge in edges]
+    print(edges_lst)
+    g = StaticGraph(edges_lst)
 
     # create model
     heads = ([args.num_heads] * args.num_layers) + [args.num_out_heads]
@@ -188,7 +193,7 @@ def train(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='GAT')
-    register_data_args(parser)
+    # register_data_args(parser)
 
     # COMMENT IF SNOOP IS TO BE ENABLED
     snoop.install(enabled=False)

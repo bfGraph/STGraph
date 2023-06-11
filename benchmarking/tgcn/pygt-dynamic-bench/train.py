@@ -58,7 +58,8 @@ def main(args):
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
     
-    eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True)
+    eng_covid = EnglandCOVID()
+    # FoorahBase(args.dataset_dir, args.dataset, verbose=True)
     # eng_covid = EnglandCOVID(verbose=True)
     
     print("Loaded dataset into the train.py pygt")
