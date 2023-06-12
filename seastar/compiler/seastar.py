@@ -67,6 +67,7 @@ class Context():
         self._monkey_patch_namespace(old_libs, input_cache, fprog, backend)
         ret = self._f(central_node)
         self._remove_patch(old_libs, backend)
+        self._destroy_central_node(central_node, nfeats, efeats)
 
         if ret == None:
             raise NameError('Ret is none. Execution is aborted')
@@ -101,6 +102,17 @@ class Context():
                 for e in cen.inedges:
                     setattr(e, k, create_edge_val(v, backend, id=k, fprog=fprog))
         return cen
+
+    def _destroy_central_node(self, cen, nfeats, efeats):
+        if nfeats:
+            for k, _ in nfeats.items():
+                delattr(cen, k)
+                for n in cen.innbs:
+                    delattr(n, k)
+        if efeats:
+            for k, _ in efeats.items():
+                for e in cen.inedges:
+                    delattr(e, k)
     
     def _monkey_patch_namespace(self, old_libs, input_cache, fprog, backend):
         """Symbolizing central node and its innbs and inedges""" 

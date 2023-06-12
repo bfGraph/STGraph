@@ -8,6 +8,7 @@ import json
 import urllib
 from tqdm import tqdm
 from tgcn import SeastarTGCN
+from eng_tgcn import Eng_SeastarTGCN
 import snoop
 import os
 import gc
@@ -72,15 +73,17 @@ def main(args):
     if args.type == "gpma":
         Graph = GPMAGraph([[(0,0)]],1)
     elif args.type == "naive":
-        Graph = NaiveGraph([[(0,0)]],1)
+        Graph = NaiveGraph([[(0,0)]],[[1]],1)
 
     torch.cuda.empty_cache()
     initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     initial_used_cpu_mem = psutil.virtual_memory()[3]
 
-    eng_covid = EnglandCOVID(for_seastar=True)
     
-    # FoorahBase(args.dataset_dir, args.dataset, verbose=True, for_seastar=True)
+    # eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True, for_seastar=True)
+    eng_covid = EnglandCOVID(for_seastar=True)
+    args.feat_size = 8
+    args.max_num_nodes = 129
 
     print("Loaded dataset into the train.py seastar")
 
@@ -117,7 +120,8 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split) :]
     test_targets = all_targets[int(len(all_targets) * train_test_split) :]
 
-    model = to_default_device(SeastarTGCN(args.feat_size))
+    # model = to_default_device(SeastarTGCN(args.feat_size))
+    model = to_default_device(Eng_SeastarTGCN(args.feat_size))
 
     torch.cuda.empty_cache()
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
@@ -131,7 +135,7 @@ def main(args):
     cuda = True
 
     if args.type == "naive":
-        G = NaiveGraph(train_edges_lst,args.max_num_nodes)
+        G = NaiveGraph(train_edges_lst, train_edge_weights_lst, args.max_num_nodes)
     elif args.type == "pcsr":
         G = PCSRGraph(train_edges_lst,args.max_num_nodes)
     elif args.type == "gpma":
@@ -175,7 +179,7 @@ def main(args):
             G.get_graph(index)
 
             # normalization
-            degs = torch.from_numpy(G.in_degrees()).type(torch.int32)
+            degs = torch.from_numpy(G.weighted_in_degrees()).type(torch.float32)
             norm = torch.pow(degs, -0.5)
             norm[torch.isinf(norm)] = 0
             norm = to_default_device(norm)

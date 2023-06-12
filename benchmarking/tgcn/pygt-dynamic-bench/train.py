@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import json
 import urllib
 from tqdm import tqdm
-from tgcn import PyGT_TGCN
+from eng_tgcn import Eng_PyGT_TGCN
 import snoop
 import os
 import nvidia_smi
@@ -58,9 +58,10 @@ def main(args):
     initial_used_cpu_mem = (psutil.virtual_memory()[3])
     
     
-    eng_covid = EnglandCOVID()
-    # FoorahBase(args.dataset_dir, args.dataset, verbose=True)
-    # eng_covid = EnglandCOVID(verbose=True)
+    # eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True)
+
+    eng_covid = EnglandCOVID(verbose=True)
+    args.feat_size = 8
     
     print("Loaded dataset into the train.py pygt")
     
@@ -94,7 +95,9 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split):]
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
-    model = to_default_device(PyGT_TGCN(args.feat_size))
+    # model = to_default_device(PyGT_TGCN(args.feat_size))
+    model = to_default_device(Eng_PyGT_TGCN(args.feat_size))
+
     used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
     print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     # print("📝📝📝 GPU Memory after storing model is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))

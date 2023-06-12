@@ -270,8 +270,6 @@ class ExecutionUnit(object):
             col_indices_ptr = graph.fwd_column_indices_ptr
             eids_ptr = graph.fwd_eids_ptr
         else:
-            #TODO: Will probably have to change this so that this accesses 
-            #backward row_offset, col_indices, eids
             row_offsets_ptr = graph.bwd_row_offset_ptr
             col_indices_ptr = graph.bwd_column_indices_ptr
             eids_ptr = graph.bwd_eids_ptr

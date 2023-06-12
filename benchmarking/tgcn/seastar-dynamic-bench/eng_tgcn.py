@@ -32,10 +32,12 @@ class SeastarGCNLayer(nn.Module):
         self.seastar = Seastar(backend_cb)
 
     def reset_parameters(self):
-        stdv = 1. / math.sqrt(self.weight.size(1))
-        self.weight.data.uniform_(-stdv, stdv)
+        # stdv = 1. / math.sqrt(self.weight.size(1))
+        # self.weight.data.uniform_(-stdv, stdv)
+        nn.init.xavier_uniform_(self.weight)
         if self.bias is not None:
-            self.bias.data.uniform_(-stdv, stdv)
+            # self.bias.data.uniform_(-stdv, stdv)
+            nn.init.zeros_(self.bias)
 
     def forward(self, g, h, edge_weight=None):
         if self.dropout:
@@ -148,13 +150,11 @@ class SeastarTGCNCell(torch.nn.Module):
         return H
         
 
-class SeastarTGCN(torch.nn.Module):
+class Eng_SeastarTGCN(torch.nn.Module):
   def __init__(self, node_features):
-    super(SeastarTGCN, self).__init__()
-    self.temporal = SeastarTGCNCell(node_features, node_features*2)
-    self.linear = torch.nn.Linear(node_features*2, node_features)
-    # self.temporal = SeastarTGCNCell(node_features, 32)
-    # self.linear = torch.nn.Linear(32, 1)
+    super(Eng_SeastarTGCN, self).__init__()
+    self.temporal = SeastarTGCNCell(node_features, 32)
+    self.linear = torch.nn.Linear(32, 1)
 
   def forward(self, g, node_feat, edge_weight, hidden_state):
     h = self.temporal(g, node_feat, edge_weight, hidden_state)

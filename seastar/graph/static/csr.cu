@@ -32,12 +32,13 @@ public:
 
     std::vector<int> in_degrees;
     std::vector<int> out_degrees;
+    std::vector<float> weighted_out_degrees;
 
     std::uintptr_t row_offset_ptr;
     std::uintptr_t column_indices_ptr;
     std::uintptr_t eids_ptr;
 
-    CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool is_edge_reverse);
+    CSR(std::vector<std::tuple<int, int, int>> edge_list, std::vector<float> edge_weight, int num_nodes, bool is_edge_reverse);
     // std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
     void get_csr_ptrs();
     // void label_edges();
@@ -55,7 +56,7 @@ bool sort_by_sec(const std::tuple<int, int> &a,
            std::tie(std::get<1>(b), std::get<0>(b));
 }
 
-CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool is_edge_reverse = false)
+CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, std::vector<float> edge_weight, int num_nodes, bool is_edge_reverse = false)
 {
 
     // initialising row_offset values all to -1
@@ -67,6 +68,7 @@ CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool i
 
     in_degrees.resize(num_nodes, 0);
     out_degrees.resize(num_nodes, 0);
+    weighted_out_degrees.resize(num_nodes, 0);
 
     int current_src;
     int beg = 0;
@@ -103,6 +105,7 @@ CSR::CSR(std::vector<std::tuple<int, int, int>> edge_list, int num_nodes, bool i
         // updating the degree arrays
         out_degrees[src] += 1;
         in_degrees[dst] += 1;
+        weighted_out_degrees[src] += edge_weight[eid];
     }
 
     row_offset[current_src + 1] = end;
@@ -252,7 +255,7 @@ PYBIND11_MODULE(csr, m)
 
     py::class_<CSR>(m, "CSR")
         // .def(py::init<std::vector<std::tuple<int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
-        .def(py::init<std::vector<std::tuple<int, int, int>>, int, bool>(), py::arg("edge_list"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
+        .def(py::init<std::vector<std::tuple<int, int, int>>, std::vector<float>, int, bool>(), py::arg("edge_list"), py::arg("edge_weight"), py::arg("num_nodes"), py::arg("is_edge_reverse") = false)
         // .def("label_edges", &CSR::label_edges)
         // .def("copy_label_edges", &CSR::copy_label_edges)
         .def("get_csr_ptrs", &CSR::get_csr_ptrs)
@@ -265,6 +268,7 @@ PYBIND11_MODULE(csr, m)
         .def_readwrite("row_offset_ptr", &CSR::row_offset_ptr)
         .def_readwrite("column_indices_ptr", &CSR::column_indices_ptr)
         .def_readwrite("eids_ptr", &CSR::eids_ptr)
+        .def_readwrite("weighted_out_degrees", &CSR::weighted_out_degrees)
         .def_readwrite("out_degrees", &CSR::out_degrees)
         .def_readwrite("in_degrees", &CSR::in_degrees)
         .def("__copy__", [](const CSR &self)

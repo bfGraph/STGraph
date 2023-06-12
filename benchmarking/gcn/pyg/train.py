@@ -75,9 +75,9 @@ def main(args):
     n_classes = int(max(labels) - min(labels) + 1)
     train_edges = to_default_device(torch.from_numpy(np.array(cora.get_edges()).T)).type(torch.int64)
 
-    print("SHAPE")
-    print(train_edges.shape)
-    print(train_edges.dtype)
+    # print("SHAPE")
+    # print(train_edges.shape)
+    # print(train_edges.dtype)
 
     # model = EglGCN(g,
     #             num_feats,

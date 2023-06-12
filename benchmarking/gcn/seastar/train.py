@@ -14,6 +14,8 @@ from seastar.dataset.cora import CoraDataset
 import snoop
 
 from gcn_spmv import EglGCN
+import gc
+import sys
 
 def accuracy(logits, labels):
     _, indices = torch.max(logits, dim=1)
@@ -68,7 +70,9 @@ def main(args):
         train_mask = train_mask.cuda()
         test_mask = test_mask.cuda()
 
-    g = StaticGraph(cora.get_edges())
+    print("Features Shape: ", features.shape)
+    edge_weight = [[1] for _ in range(len(cora.get_edges()))]
+    g = StaticGraph(cora.get_edges(), edge_weight, features.shape[0])
     
     # add self loop
     # if args.self_loop:
@@ -77,15 +81,17 @@ def main(args):
     # g = g.to(features.device)
 
     # normalization
-    degs = torch.from_numpy(g.in_degrees()).type(torch.int32)
+    degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)
     norm = torch.pow(degs, -0.5)
     norm[torch.isinf(norm)] = 0
     
     norm = to_default_device(norm)
     g.ndata['norm'] = norm.unsqueeze(1)
+    print("Norm Shape: ", g.ndata['norm'].shape)
 
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
+    print("Num Classes: ",n_classes)
 
     model = EglGCN(g,
                 num_feats,
@@ -113,8 +119,22 @@ def main(args):
         if cuda:
             torch.cuda.synchronize()
         t0 = time.time()
+
+        # print(f"\n\n------- BEFORE MODEL E={epoch} ----------")
+        # # gc.collect()
+        # for obj in gc.get_objects():
+        #     if torch.is_tensor(obj):
+        #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
+
         # forward
         logits = model(features)
+
+        # print(f"------- AFTER MODEL E={epoch} -------\n\n")
+        # # gc.collect()
+        # for obj in gc.get_objects():
+        #     if torch.is_tensor(obj):
+        #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
+
         loss = loss_fcn(logits[train_mask], labels[train_mask])
         now_mem = torch.cuda.max_memory_allocated(0)
         Used_memory = max(now_mem, Used_memory)

@@ -13,7 +13,7 @@ from seastar.graph.SeastarGraph import SeastarGraph
 from seastar.graph.static.csr import CSR
 
 class StaticGraph(SeastarGraph):
-    def __init__(self, edge_list, num_nodes):    
+    def __init__(self, edge_list, edge_weights, num_nodes):    
         super().__init__()
         self._num_nodes = num_nodes
         self._num_edges = len(set(edge_list))
@@ -21,12 +21,12 @@ class StaticGraph(SeastarGraph):
         # console.log("Building forward edge list")
         self._prepare_edge_lst_fwd(edge_list)
         # console.log("Creating forward graph")
-        self._forward_graph = CSR(self.fwd_edge_list, self._num_nodes, is_edge_reverse=True)
+        self._forward_graph = CSR(self.fwd_edge_list, edge_weights, self._num_nodes, is_edge_reverse=True)
         
         # console.log("Building backward edge list")
         self._prepare_edge_lst_bwd(self.fwd_edge_list)
         # console.log("Creating backward graph")
-        self._backward_graph = CSR(self.bwd_edge_list, self._num_nodes)
+        self._backward_graph = CSR(self.bwd_edge_list, edge_weights, self._num_nodes)
         
         # console.log("Getting CSR ptrs")
         self._get_graph_csr_ptrs()
@@ -67,3 +67,6 @@ class StaticGraph(SeastarGraph):
     
     def out_degrees(self):
         return np.array(self._forward_graph.in_degrees, dtype='int32')
+    
+    def weighted_in_degrees(self):
+        return np.array(self._forward_graph.weighted_out_degrees, dtype='int32')

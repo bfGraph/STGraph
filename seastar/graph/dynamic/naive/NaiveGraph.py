@@ -9,7 +9,7 @@ import time
 
 
 class NaiveGraph(DynamicGraph):
-    def __init__(self, edge_list, max_num_nodes):
+    def __init__(self, edge_list, edge_weight_lst, max_num_nodes):
         super().__init__(edge_list, max_num_nodes)
         # inspect(edge_list)
         self._prepare_edge_lst_fwd(edge_list)
@@ -17,13 +17,14 @@ class NaiveGraph(DynamicGraph):
         self._forward_graph = [
             CSR(
                 self.fwd_edge_list[i],
+                edge_weight_lst[i],
                 self.graph_attr[str(i)][0],
                 is_edge_reverse=True,
             )
             for i in range(len(self.fwd_edge_list))
         ]
         self._backward_graph = [
-            CSR(self.bwd_edge_list[i], self.graph_attr[str(i)][0])
+            CSR(self.bwd_edge_list[i], edge_weight_lst[i], self.graph_attr[str(i)][0])
             for i in range(len(self.bwd_edge_list))
         ]
         # self._forward_graph = [CSR(self.fwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"], is_edge_reverse=True)]
@@ -73,6 +74,14 @@ class NaiveGraph(DynamicGraph):
         return np.array(
             self._forward_graph[self.current_timestamp].in_degrees, dtype="int32"
         )
+    
+    def weighted_in_degrees(self):
+        if self.current_timestamp not in self._in_degrees_cache:
+            self._in_degrees_cache[self.current_timestamp] = np.array(
+                self._forward_graph[self.current_timestamp].weighted_out_degrees, dtype="float32"
+            )
+
+        return self._in_degrees_cache[self.current_timestamp]
 
     def _get_graph_csr_ptrs(self, timestamp):
         if self._is_backprop_state:

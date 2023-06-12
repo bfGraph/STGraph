@@ -96,8 +96,8 @@ def train(args):
 
     print(edges.shape)
     edges_lst = [(edge[0],edge[1]) for edge in edges]
-    print(edges_lst)
-    g = StaticGraph(edges_lst)
+    # print(edges_lst)
+    g = StaticGraph(edges_lst, num_nodes)
 
     # create model
     heads = ([args.num_heads] * args.num_layers) + [args.num_out_heads]

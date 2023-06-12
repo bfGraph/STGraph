@@ -36,10 +36,12 @@ class EglGCNLayer(nn.Module):
         self.seastar = Seastar(backend_cb)
 
     def reset_parameters(self):
-        stdv = 1. / math.sqrt(self.weight.size(1))
-        self.weight.data.uniform_(-stdv, stdv)
+        # stdv = 1. / math.sqrt(self.weight.size(1))
+        # self.weight.data.uniform_(-stdv, stdv)
+        nn.init.xavier_uniform_(self.weight)
         if self.bias is not None:
-            self.bias.data.uniform_(-stdv, stdv)
+            # self.bias.data.uniform_(-stdv, stdv)
+            nn.init.zeros_(self.bias)
 
     def forward(self, h):
         if self.dropout:
