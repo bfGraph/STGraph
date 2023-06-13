@@ -3,8 +3,7 @@ from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 
 from .node import CentralNode
-from .val import create_edge_val, create_src_node_val, create_dst_node_val, create_param_val
-from .op import create_op, AggMaxOp, AggMinOp, AggMeanOp
+# from .op.op import create_op, AggMaxOp, AggMinOp, AggMeanOp
 from .program import Var, Stmt, Program
 from .passes import optimize, CF, fuse, visualize
 from .schema import Schema
@@ -14,6 +13,11 @@ from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
 import gc
 import torch
+
+from seastar.compiler.backend.callback import SeastarBackend
+from seastar.compiler.utils import ValType
+from seastar.compiler.val.val_factory import ValFactory
+from seastar.compiler.op.op_factory import OpFactory
 
 import snoop
 
@@ -25,6 +29,8 @@ class Context():
         self._nspace = nspace
         self._entry_count = 0
         self._run_cb = run_cb
+        self.val_factory = ValFactory()
+        self._op_factory = OpFactory()
         # Hold reference to parameters of current module to avoid repeated lookup
         self._input_cache = {}
         self._graph_info_cache = None
@@ -60,7 +66,7 @@ class Context():
         return self._executor_cache
 
     def _trace(self, nfeats, efeats, input_cache, fprog):
-        backend = self.find_backend(self._nspace)
+        backend = self._find_backend()
         central_node = self._init_central_node(nfeats, efeats, fprog, backend)
         # pretty_print_Central_Node(central_node=central_node, print_tensors=False)
         old_libs = defaultdict(dict)
@@ -94,13 +100,16 @@ class Context():
         cen = CentralNode()
         if nfeats:
             for k, v in nfeats.items():
-                setattr(cen, k, create_dst_node_val(v, backend, id=k+cen_attr_postfix, fprog=fprog))
+                dst_node_val = self.val_factory.create(ValType.DEST, v, backend, id=k+cen_attr_postfix, fprog=fprog, reduce_dim=True)
+                setattr(cen, k, dst_node_val)
                 for n in cen.innbs:
-                    setattr(n, k, create_src_node_val(v, backend, id=k+inb_attr_postfix, fprog=fprog))
+                    src_node_val = self.val_factory.create(ValType.SRC, v, backend, id=k+inb_attr_postfix, fprog=fprog, reduce_dim=True)
+                    setattr(n, k, src_node_val)
         if efeats:
             for k, v in efeats.items():
                 for e in cen.inedges:
-                    setattr(e, k, create_edge_val(v, backend, id=k, fprog=fprog))
+                    edge_val = self.val_factory.create(ValType.EDGE, v, backend, id=k, fprog=fprog, reduce_dim=True)
+                    setattr(e, k, edge_val)
         return cen
 
     def _destroy_central_node(self, cen, nfeats, efeats):
@@ -127,7 +136,7 @@ class Context():
                             if key in old_libs[k]:
                                 raise KeyError('Found', key, ' already in old_libs')
                             old_libs[k][key] = m
-                            nspace.__dict__[key] = create_op(m, backend[0], fprog=fprog)
+                            nspace.__dict__[key] = self._op_factory.create(m, backend[0], fprog)
                 else:
                     ## Dealing with module
                     for key in nspace.__dict__.keys():
@@ -140,7 +149,8 @@ class Context():
                                     raise KeyError('Found', key, ' already in old_libs')
                                 old_libs[k][mkey] = m[mkey] 
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                m[mkey] = create_param_val(m[mkey], backend, id=mkey, fprog=fprog)
+                                param_val = self.val_factory.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                m[mkey] = param_val
 
                         # symbolizing buffers for self namespace
                         if key.startswith('_buffers'):
@@ -149,7 +159,8 @@ class Context():
                                     raise KeyError('Found', key, 'already in old_libs')
                                 old_libs[k][mkey] = m[mkey]
                                 input_cache[var_prefix+mkey] = m[mkey]
-                                m[mkey] = create_param_val(m[mkey], backend, id=mkey, fprog=fprog)
+                                param_val = self.val_factory.create(ValType.PARAM, m[mkey], backend, id=mkey, fprog=fprog, reduce_dim=False)
+                                m[mkey] = param_val
 
                         # symbolizing modules for self namespace
                         if key.startswith('_modules'):
@@ -157,7 +168,7 @@ class Context():
                                 if mkey in old_libs[k]:
                                     raise KeyError('Found', key, ' already in old_libs')
                                 old_libs[k][mkey] = m[mkey]
-                                m[mkey] = create_op(m[mkey], backend[0], fprog=fprog)
+                                m[mkey] = self._op_factory.create(m[mkey], backend[0], fprog)
         else:
             raise NotImplementedError('Backend ' + backend[0] + ' is not supported yet!') 
 
@@ -180,36 +191,36 @@ class Context():
                                 m[mkey] = old_libs[k][mkey]
         else:
             raise NotImplementedError('Backend ' + backend[0] + ' is not supported yet!') 
-
-
-    def find_backend(self, namespace):
-        k =  '__name__'
-        for n in namespace:
-            if k in n.__dict__:
-                name = n.__dict__[k].lower()
-                if 'torch' in name:
-                    return ('torch', n)
-                elif 'tensorflow' in name:
-                    return ('tensorflow', n)
-                elif 'mxnet' in name:
-                    return ('mxnet', n)
-                else:
-                    raise NotImplementedError("Backend support for " + name + " is not implemnted yet")
+    
+    def _find_backend(self):
+        """ Finds the backend framework being used
+        
+            Returns:    A tuple containing the name and module instance of 
+                        the backend being used
+        """
+        backend_module = self._nspace[1]
+        backend_name = backend_module.__name__
+        return (backend_name, backend_module)
 
     def _mapping_key(self, name_space_id, original_key):
         return str(name_space_id) + str(original_key)
 
 
 class Seastar():
-    def __init__(self, run_cb):
+    def __init__(self, backend_framework: SeastarBackend):
         self._ctx_map = {}
-        self._run_cb = run_cb
+        self._backend_framework = backend_framework
+        self._run_cb = backend_framework.backend_cb
     
-    def compile(self, nspace, hetero_graph=False):
+    def compile(self, gnn_module, hetero_graph=False):
+        
+        # adding the GNN module and the backend framework to the namespace list
+        namespace = [gnn_module, self._backend_framework.backend_module]
+        
         def wrapper(func):
             if not func.__name__ in self._ctx_map:
                 if not hetero_graph:
-                    self._ctx_map[func.__name__] = Context(func, nspace, self._run_cb)
+                    self._ctx_map[func.__name__] = Context(func, namespace, self._run_cb)
                 else:
                     raise NotImplementedError('Heterogeneous graph is not supported yet')
             return self._ctx_map[func.__name__]
