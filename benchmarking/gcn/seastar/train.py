@@ -16,6 +16,7 @@ import snoop
 from gcn_spmv import EglGCN
 import gc
 import sys
+import nvidia_smi
 
 def accuracy(logits, labels):
     _, indices = torch.max(logits, dim=1)
@@ -48,8 +49,15 @@ def to_default_device(data):
     return data.to(get_default_device(),non_blocking = True)
 
 def main(args):
+
+    nvidia_smi.nvmlInit()
+    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     
     cora = CoraDataset(verbose=True)
+
+    tmp = StaticGraph([(0,0)], [1], 1)
+
+    initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())
@@ -71,7 +79,7 @@ def main(args):
         test_mask = test_mask.cuda()
 
     print("Features Shape: ", features.shape)
-    edge_weight = [[1] for _ in range(len(cora.get_edges()))]
+    edge_weight = [1 for _ in range(len(cora.get_edges()))]
     g = StaticGraph(cora.get_edges(), edge_weight, features.shape[0])
     
     # add self loop
@@ -136,7 +144,11 @@ def main(args):
         #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
 
         loss = loss_fcn(logits[train_mask], labels[train_mask])
-        now_mem = torch.cuda.max_memory_allocated(0)
+        # now_mem = torch.cuda.max_memory_allocated(0)
+        # Used_memory = max(now_mem, Used_memory)
+        now_mem = (
+                nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+            )
         Used_memory = max(now_mem, Used_memory)
 
         optimizer.zero_grad()
