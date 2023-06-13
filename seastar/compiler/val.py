@@ -3,6 +3,7 @@ from .utils import ValType, infer_val_type
 from .program import Var, Stmt
 from .schema import Schema
 from .utils import val_seq
+import torch
 
 def create_dst_node_val(tensor, backend, id, fprog, reduce_dim=True):
     return create_val(tensor, backend, ValType.D, id, fprog, reduce_dim)
@@ -38,7 +39,8 @@ class Val(abc.ABC):
         var: intermediate representation of this val
         """
          # (WARNING) This needs to be modified to remove pytorch dependency
-        self._t = tensor.clone().detach().cpu().requires_grad_(False)
+        # self._t = tensor
+        self._t = tensor.clone().detach().cpu().requires_grad_(tensor.requires_grad)
         self._id = id
         self._v = None
         self.var = None
@@ -130,10 +132,17 @@ class TorchVal(Val):
         '''IR var relies on reducedim'''
         super().__init__(tensor, id, fprog)
         if reduce_dim:
-            self._v = self._t.mean(dim=0)
+            self._v = self._t.clone().detach().requires_grad_(False).mean(dim=0)
+            # self._v = self._t.mean(dim=0)
         else:
-            self._v = self._t
-        self.var = Var.create_var(self.size, self.dtype, self.val_type, var_id = self._id, device=self._t.device, requires_grad=self._t.requires_grad) 
+            self._v = self._t.clone().detach().requires_grad_(False)
+            # self._v = self._t
+
+        # (JOEL) TEMPORARY
+        self.tmp_device = torch.device("cuda:0")
+        
+        # (WARNING) edit this to remove tmp_device
+        self.var = Var.create_var(self.size, self.dtype, self.val_type, var_id = self._id, device=self.tmp_device, requires_grad=self._t.requires_grad) 
         self.fprog = fprog
 
     @property
@@ -166,7 +175,9 @@ class TorchVal(Val):
 
     @property
     def device(self):
-        return self._t.get_device()
+        # return self._t.get_device()
+        # (WARNING) CHANGE THIS LATER
+        return self.tmp_device
 
     def __mul__(self, other):
         vtype = infer_val_type((self, other))
