@@ -9,10 +9,9 @@ import json
 import urllib
 from tqdm import tqdm
 from eng_tgcn import Eng_PyGT_TGCN
+from tgcn import PyGT_TGCN
 import snoop
 import os
-import nvidia_smi
-import psutil
 import gc
 
 from rich import inspect
@@ -51,17 +50,10 @@ def main(args):
     else:
         print("😔 CUDA is not available")
     
-    nvidia_smi.nvmlInit()
-    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     
-    initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
-    initial_used_cpu_mem = (psutil.virtual_memory()[3])
-    
-    
-    # eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True)
-
-    eng_covid = EnglandCOVID(verbose=True)
-    args.feat_size = 8
+    eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True)
+    # eng_covid = EnglandCOVID(verbose=True)
+    # args.feat_size = 8
     
     print("Loaded dataset into the train.py pygt")
     
@@ -72,8 +64,6 @@ def main(args):
     
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER STORING THE FEATURES: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     
     # print("📝📝📝 GPU Memory in just storing features/targets is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory in just storing features/targets is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
@@ -95,11 +85,9 @@ def main(args):
     test_features = all_features[int(len(all_features) * train_test_split):]
     test_targets = all_targets[int(len(all_targets) * train_test_split):]
 
-    # model = to_default_device(PyGT_TGCN(args.feat_size))
-    model = to_default_device(Eng_PyGT_TGCN(args.feat_size))
+    model = to_default_device(PyGT_TGCN(args.feat_size))
+    # model = to_default_device(Eng_PyGT_TGCN(args.feat_size))
 
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     # print("📝📝📝 GPU Memory after storing model is: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory after storing model is: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
     # print("\n")
@@ -113,8 +101,6 @@ def main(args):
     
     # edge_weight_lst = [to_default_device(torch.FloatTensor(edge_weight)) for edge_weight in train_edge_weights_lst]
     train_edges_lst = [to_default_device(torch.from_numpy(np.array(edge_index))) for edge_index in train_edges_lst]
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER STORING THE EDGE_WEIGHT & EDGE_LST: {(used_gpu_mem * 1.0) / (1024**2)}\n")
     
     # print("📝📝📝 GPU Memory after storing edge list/weights: {}".format(((nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem) * 1.0)/(1024**2)))
     # print("📝📝📝 CPU Memory after storing edge list/weights: {}".format(((psutil.virtual_memory()[3] - initial_used_cpu_mem) * 1.0)/(1024**2)))
@@ -179,10 +165,8 @@ def main(args):
 
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
             
-            used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+            used_gpu_mem = torch.cuda.max_memory_allocated(0)
             gpu_mem_arr.append(used_gpu_mem)
-            used_cpu_mem = (psutil.virtual_memory()[3]) - initial_used_cpu_mem
-            cpu_mem_arr.append(used_cpu_mem)
             
             # run_time_this_timestamp = time.time() - t1
             # print(f"⌛⌛⌛ Takes a total of {run_time_this_timestamp}")
@@ -219,10 +203,9 @@ def main(args):
         if epoch >= 3:
             dur.append(run_time_this_epoch)
 
-        print('Epoch {:03d} | Time(s) {:.4f} | MSE {:.2f} | Used GPU Memory (Max) {:.3f} mb | Used GPU Memory (Avg) {:.3f} mb | Used CPU Memory (Max) {:.3f} mb | Used CPU Memory (Avg) {:.3f} mb'.format(
-            epoch, run_time_this_epoch, cost, (max(gpu_mem_arr) * 1.0 / (1024**2)), ((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))), (max(cpu_mem_arr) * 1.0 / (1024**2)), ((sum(cpu_mem_arr) * 1.0) / ((1024**2) * len(cpu_mem_arr)))
+        print('Epoch {:03d} | Time(s) {:.4f} | MSE {:.2f} | Used GPU Memory (Max) {:.3f} mb | Used GPU Memory (Avg) {:.3f} mb '.format(
+            epoch, run_time_this_epoch, cost, (max(gpu_mem_arr) * 1.0 / (1024**2)), ((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr)))
         ))
-
 
     print('Average Time taken: {:6f}'.format(np.mean(dur)))
 

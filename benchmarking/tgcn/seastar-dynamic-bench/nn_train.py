@@ -3,23 +3,26 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import snoop
-import nvidia_smi
-import psutil
+import pynvml
 from rich.console import Console
 from rich.table import Table
 from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
 from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+from seastar.graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from seastar.dataset.EnglandCOVID import EnglandCOVID
 import seastar.compiler.debugging.print_variables as print_var
 from seastar.nn.pytorch.temporal.tgcn import TGCN
+from seastar.dataset.FoorahBase import FoorahBase
 
 
 class SeastarTGCN(torch.nn.Module):
     def __init__(self, node_features):
         super(SeastarTGCN, self).__init__()
-        self.temporal = TGCN(node_features, 32)
-        self.linear = torch.nn.Linear(32, 1)
+        # self.temporal = TGCN(node_features, 32)
+        # self.linear = torch.nn.Linear(32, 1)
+        self.temporal = TGCN(node_features, 2*node_features)
+        self.linear = torch.nn.Linear(2*node_features, node_features)
 
     def forward(self, g, node_feat, edge_weight, hidden_state):
         h = self.temporal(g, node_feat, edge_weight, hidden_state)
@@ -56,26 +59,18 @@ def main(args):
     table.add_column("MSE", justify="left")
     table.add_column("Max. GPU Memory (mb)", justify="left")
     table.add_column("Avg. GPU Memory (mb)", justify="left")
-    table.add_column("Max. CPU Memory (mb)", justify="left")
-    table.add_column("Avg. CPU Memory (mb)", justify="left")
 
-    nvidia_smi.nvmlInit()
-    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
 
     if args.type == "gpma":
         Graph = GPMAGraph([[(0,0)]],1)
     elif args.type == "naive":
         Graph = NaiveGraph([[(0,0)]],[[1]],1)
 
-    torch.cuda.empty_cache()
-    initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
-    initial_used_cpu_mem = psutil.virtual_memory()[3]
-
     
-    # eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True, for_seastar=True)
-    eng_covid = EnglandCOVID(for_seastar=True)
-    args.feat_size = 8
-    args.max_num_nodes = 129
+    eng_covid = FoorahBase(args.dataset_dir, args.dataset, verbose=True, for_seastar=True)
+    # eng_covid = EnglandCOVID(for_seastar=True)
+    # args.feat_size = 8
+    # args.max_num_nodes = 129
 
     print("Loaded dataset into the train.py seastar")
 
@@ -86,10 +81,6 @@ def main(args):
 
     all_features = to_default_device(torch.FloatTensor(np.array(all_features)))
     all_targets = to_default_device(torch.FloatTensor(np.array(all_targets)))
-
-    torch.cuda.empty_cache()
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER STORING THE FEATURES: {(used_gpu_mem * 1.0) / (1024**2)}\n")
 
     # Hyperparameters
     train_test_split = 0.8
@@ -115,10 +106,6 @@ def main(args):
     # model = to_default_device(SeastarTGCN(args.feat_size))
     model = to_default_device(SeastarTGCN(args.feat_size))
 
-    torch.cuda.empty_cache()
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER STORING THE MODEL: {(used_gpu_mem * 1.0) / (1024**2)}\n")
-
     # use optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
@@ -126,6 +113,9 @@ def main(args):
     dur = []
     cuda = True
 
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
     if args.type == "naive":
         G = NaiveGraph(train_edges_lst, train_edge_weights_lst, args.max_num_nodes)
     elif args.type == "pcsr":
@@ -136,9 +126,13 @@ def main(args):
         print("Error: Invalid Type")
         quit()
     
-    torch.cuda.empty_cache()
-    used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-    print(f"STORAGE USED AFTER INITIALIZING SEASTAR GRAPH: {(used_gpu_mem * 1.0) / (1024**2)}\n")
+    graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    print("Measuerd Graph Size (pynvml): ", graph_mem, " B")
+    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB")
+
+    # A simple sanity check
+    print("Measuerd Graph Size (pynvml): ", graph_mem, " B")
+    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB")
 
     # train
     print("Training...\n")
@@ -153,16 +147,25 @@ def main(args):
         optimizer.zero_grad()
 
         gpu_mem_arr = []
-        cpu_mem_arr = []
 
         # dyn_graph_index is dynamic graph index
         for index in range(0, len(train_features)):
 
+            if isinstance(G, DynamicGraph):
+                initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
+
             # Getting the graph for a particular timestamp
             G.get_graph(index)
 
+            if isinstance(G, DynamicGraph):
+                graph_mem_delta = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+                graph_mem = graph_mem + graph_mem_delta
+                print(f"(E={epoch}|T={index}) Measuerd Graph Size (pynvml): {graph_mem} B")
+                print(f"E={epoch}|T={index}) Measuerd Graph Size (pynvml):  {(graph_mem/(1024**2))} MB")
+
             # normalization
-            degs = torch.from_numpy(G.weighted_in_degrees()).type(torch.float32)
+            # degs = torch.from_numpy(G.weighted_in_degrees()).type(torch.float32)
+            degs = torch.from_numpy(G.in_degrees()).type(torch.float32)
             norm = torch.pow(degs, -0.5)
             norm[torch.isinf(norm)] = 0
             norm = to_default_device(norm)
@@ -177,14 +180,9 @@ def main(args):
 
             cost = cost + torch.mean((y_hat - train_targets[index]) ** 2)
 
-            torch.cuda.empty_cache()
-            used_gpu_mem = (
-                nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-            )
-
+            used_gpu_mem = torch.cuda.max_memory_allocated(0) + graph_mem
             gpu_mem_arr.append(used_gpu_mem)
-            used_cpu_mem = (psutil.virtual_memory()[3]) - initial_used_cpu_mem
-            cpu_mem_arr.append(used_cpu_mem)
+
 
         cost = cost / (index + 1)
         cost.backward()
@@ -204,8 +202,6 @@ def main(args):
             str(round(cost.item(), 4)),
             str(round((max(gpu_mem_arr) * 1.0 / (1024**2)), 4)),
             str(round(((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))), 4)),
-            str(round((max(cpu_mem_arr) * 1.0 / (1024**2)), 4)),
-            str(round(((sum(cpu_mem_arr) * 1.0) / ((1024**2) * len(cpu_mem_arr))), 4)),
         )
 
     console = Console()
