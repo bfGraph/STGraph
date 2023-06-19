@@ -137,6 +137,7 @@ def main(args):
     # train
     print("Training...\n")
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -180,16 +181,15 @@ def main(args):
 
             cost = cost + torch.mean((y_hat - train_targets[index]) ** 2)
 
-            used_gpu_mem = torch.cuda.max_memory_allocated(0) + graph_mem
-            gpu_mem_arr.append(used_gpu_mem)
-
-
         cost = cost / (index + 1)
         cost.backward()
         optimizer.step()
 
         if cuda:
             torch.cuda.synchronize()
+
+        used_gpu_mem = torch.cuda.max_memory_allocated(0) + graph_mem
+        gpu_mem_arr.append(used_gpu_mem)
 
         run_time_this_epoch = time.time() - t0
 

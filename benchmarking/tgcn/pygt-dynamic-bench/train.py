@@ -115,6 +115,7 @@ def main(args):
     # train
     print("Training...\n")
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -165,9 +166,6 @@ def main(args):
 
             cost = cost + torch.mean((y_hat-train_targets[index])**2)
             
-            used_gpu_mem = torch.cuda.max_memory_allocated(0)
-            gpu_mem_arr.append(used_gpu_mem)
-            
             # run_time_this_timestamp = time.time() - t1
             # print(f"⌛⌛⌛ Takes a total of {run_time_this_timestamp}")
 
@@ -197,6 +195,9 @@ def main(args):
 
         if cuda:
             torch.cuda.synchronize()
+        
+        used_gpu_mem = torch.cuda.max_memory_allocated(0)
+        gpu_mem_arr.append(used_gpu_mem)
 
         run_time_this_epoch = time.time() - t0
 

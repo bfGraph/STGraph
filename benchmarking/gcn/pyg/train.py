@@ -106,6 +106,7 @@ def main(args):
     Used_memory = 0
 
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -113,12 +114,13 @@ def main(args):
         # forward
         logits = model(features, train_edges)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
-        now_mem = torch.cuda.max_memory_allocated(0)
-        Used_memory = max(now_mem, Used_memory)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        now_mem = torch.cuda.max_memory_allocated(0)
+        Used_memory = max(now_mem, Used_memory)
 
         if cuda:
             torch.cuda.synchronize()

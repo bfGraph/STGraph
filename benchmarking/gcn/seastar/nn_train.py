@@ -155,6 +155,7 @@ def main(args):
     Used_memory = 0
 
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -181,12 +182,13 @@ def main(args):
         # now_mem_pynvml = (
         #         pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
         #     )
-        now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
-        Used_memory = max(now_mem, Used_memory)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
+        Used_memory = max(now_mem, Used_memory)
 
         if cuda:
             torch.cuda.synchronize()
