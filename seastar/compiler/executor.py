@@ -288,7 +288,7 @@ class Executor(object):
         # (WARNING) This needs to be modified to remove pytorch dependency
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
-                                               device=torch.device("cuda:0"),
+                                               device=var.device,
                                                requires_grad=True) for var in var_list if var.id not in self.ts.current_tensor_map}
         
         for key, val in ret_tensors.items():
@@ -299,7 +299,7 @@ class Executor(object):
          # (WARNING) This needs to be modified to remove pytorch dependency
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
-                                               device=torch.device("cuda:0"),
+                                               device=var.device,
                                                requires_grad=True) for var in var_list if var.id not in tensor_map}
         tensor_map = {**tensor_map, **ret_tensors}
         return tensor_map
