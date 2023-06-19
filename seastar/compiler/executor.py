@@ -293,7 +293,6 @@ class Executor(object):
         for key, val in ret_tensors.items():
             self.ts.track_tensor(key,val)
 
-    @snoop
     def create_tensor_for_grad_vars(self, var_list, tensor_map):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
@@ -320,7 +319,6 @@ class Executor(object):
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
     
-    @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
         '''FuncWrapper will call this function in forward pass'''
         units = self.forward_exec_units[uid]
@@ -337,7 +335,6 @@ class Executor(object):
         self.ts.clear_current_tensor_state()
         return ret
 
-    @snoop
     def backward_cb(self, kid, grad_list):
         '''FuncWrapper will call this function in backward pass'''
 
