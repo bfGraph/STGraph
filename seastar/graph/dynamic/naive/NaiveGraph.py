@@ -9,11 +9,15 @@ import time
 
 
 class NaiveGraph(DynamicGraph):
-    def __init__(self, edge_list, edge_weight_lst, max_num_nodes):
+    def __init__(self, edge_list, max_num_nodes):
         super().__init__(edge_list, max_num_nodes)
         # inspect(edge_list)
         self._prepare_edge_lst_fwd(edge_list)
         self._prepare_edge_lst_bwd(self.fwd_edge_list)
+
+        # This is used because edge weights is a compulsary argument to CSR
+        edge_weight_lst = [[1 for _ in edge_list_t] for edge_list_t in edge_list]
+
         self._forward_graph = [
             CSR(
                 self.fwd_edge_list[i],
