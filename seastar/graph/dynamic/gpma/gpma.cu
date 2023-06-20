@@ -73,9 +73,9 @@ public:
     SIZE_TYPE* out_degree_host;
 
     // pointers to reverse CSR
-    SIZE_TYPE* bwd_row_offset;
-    KEY_TYPE* bwd_keys;
-    VALUE_TYPE* bwd_values;
+    SIZE_TYPE* bwd_row_offset = NULL;
+    KEY_TYPE* bwd_keys = NULL;
+    VALUE_TYPE* bwd_values = NULL;
 
     // (add|delete)_updates stores the add/delete updates of every timestamp
     // (add|delete)_updates_count maintains the number of additions/deletions
