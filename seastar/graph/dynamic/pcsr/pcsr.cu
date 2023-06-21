@@ -27,8 +27,17 @@ using namespace std;
 
 using namespace std::chrono;
 
-typedef thrust::device_vector<int> DEV_VEC;
-#define RAW_PTR(x) thrust::raw_pointer_cast((x).data())
+#define cErr(errcode)                             \
+    {                                             \
+        gpuAssert((errcode), __FILE__, __LINE__); \
+    }
+__inline__ __host__ __device__ void gpuAssert(cudaError_t code, const char *file, int line)
+{
+    if (code != cudaSuccess)
+    {
+        printf("GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////
 
@@ -266,46 +275,52 @@ class PCSR
 public:
     // data members
     std::vector<node_t> nodes;
+    std::vector<uint32_t> in_degrees;
+    std::vector<uint32_t> out_degrees;
+
     edge_list_t edges;
     uint32_t edge_count;
 
     // replacing device vectors
-    int *row_offset_device;
-    int *column_indices_device;
-    int *eids_device;
+    uint32_t *row_offset_pinned;
+    uint32_t *column_indices_pinned;
+    uint32_t *eids_pinned;
+
+    // replacing device vectors
+    uint32_t *row_offset_device;
+    uint32_t *column_indices_device;
+    uint32_t *eids_device;
 
     // member functions
-    PCSR(uint32_t init_n);
-    void init_graph(std::string graph_file_path);
-
-    void add_node();
-    void add_edge(uint32_t src, uint32_t dest, uint32_t value);
-    void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
-    void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
-    // void edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
-    void delete_edge(uint32_t src, uint32_t dest);
+    PCSR(uint32_t init_n, uint32_t max_edge_count);
+    
+    // PCSR specific internal functions
     uint64_t get_n();
-    // vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
-    void print_graph();
-    void print_array();
-    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(std::vector<int> eids);
-    // std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs_bench(std::vector<int> eids);
-    // void label_edges();
-    // uint32_t find_edge_id(uint32_t src, uint32_t dest);
-    // std::tuple<uint32_t, uint32_t> get_graph_attr();
-
+    void add_node();
     uint32_t insert(uint32_t index, edge_t elem, uint32_t src);
     void double_list();
     int slide_right(int index);
     void slide_left(int index);
     void fix_sentinel(int32_t node_index, int in);
     void redistribute(int index, int len);
+    void add_edge(uint32_t src, uint32_t dest, uint32_t value);
+    void add_edge_update(uint32_t src, uint32_t dest, uint32_t value);
+    void delete_edge(uint32_t src, uint32_t dest);
+
+    // exposed APIs
+    void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
+    void label_edges();
+    void build_csr();
+    void build_reverse_csr();
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
+    vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
+    void move_pinned_to_gpu();
 };
 
 ////////////////////////////////////////////////////////////////////////////
 
 // removed default argument of 0
-PCSR::PCSR(uint32_t init_n)
+PCSR::PCSR(uint32_t init_n, uint32_t max_num_edges)
 {
     if (init_n != 0)
     {
@@ -326,47 +341,17 @@ PCSR::PCSR(uint32_t init_n)
         {
             add_node();
         }
-    }
-}
 
-void PCSR::init_graph(std::string graph_file_path)
-{
+        in_degrees.resize(init_n);
+        out_degrees.resize(init_n);
 
-    FILE *fp;
-    fp = fopen(graph_file_path.c_str(), "r");
-    if (!fp)
-    {
-        printf("Open file failed.\n");
-        exit(-1);
-    }
+        cErr(cudaMallocHost(&row_offset_pinned, sizeof(uint32_t) * (init_n + 1)));
+        cErr(cudaMallocHost(&column_indices_pinned, sizeof(uint32_t) * max_num_edges));
+        cErr(cudaMallocHost(&eids_pinned, sizeof(uint32_t) * max_num_edges));
 
-    // loading the number of nodes and edges present in
-    // the graph into the variables node_size and edge_size respectively
-    int node_size, edge_size;
-    fscanf(fp, "%d %d", &node_size, &edge_size);
-
-    edges.N = 2 << bsr_word(node_size);
-    edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-    edges.H = bsr_word(edges.N / edges.logN);
-    edge_count = 0;
-
-    edges.items.resize(edges.N);
-    for (int i = 0; i < edges.N; i++)
-    {
-        edge_t new_edge(0, 0);
-        edges.items[i] = new_edge;
-    }
-
-    for (int i = 0; i < node_size; i++)
-    {
-        add_node();
-    }
-
-    for (int i = 0; i < edge_size; i++)
-    {
-        int source, dest, edge_value;
-        fscanf(fp, "%d %d %d", &source, &dest, &edge_value);
-        add_edge(source, dest, edge_value);
+        cErr(cudaMalloc(&row_offset_device, sizeof(uint32_t) * (init_n + 1)));
+        cErr(cudaMalloc(&column_indices_device, sizeof(uint32_t) * max_num_edges));
+        cErr(cudaMalloc(&eids_device, sizeof(uint32_t) * max_num_edges));
     }
 }
 
@@ -717,307 +702,43 @@ uint64_t PCSR::get_n()
     return nodes.size();
 }
 
-// vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
-// {
-//     uint64_t n = get_n();
-//     vector<tuple<uint32_t, uint32_t, uint32_t>> output;
-
-//     output.resize(edge_count);
-//     int iter = 0;
-//     for (int i = 0; i < n; i++)
-//     {
-//         uint32_t start = nodes[i].beginning;
-//         uint32_t end = nodes[i].end;
-//         for (int j = start + 1; j < end; j++)
-//         {
-//             if (!is_null(edges.items[j]))
-//             {
-//                 output[iter] =
-//                     make_tuple(i, edges.items[j].dest, edges.items[j].value);
-//                 iter += 1;
-//             }
-//         }
-//     }
-//     return output;
-// }
-
-void PCSR::print_graph()
+vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges()
 {
-    int num_vertices = nodes.size();
+    uint64_t n = get_n();
+    vector<tuple<uint32_t, uint32_t, uint32_t>> output;
 
-    // printing the graph matrix column indices
-    for (int i = 0; i < num_vertices; ++i)
-        printf("   %d", i);
-
-    printf("\n");
-
-    for (int i = 0; i < num_vertices; i++)
+    output.resize(edge_count);
+    int iter = 0;
+    for (int i = 0; i < n; i++)
     {
-        // +1 to avoid sentinel
-
-        // printing the graph matrix row indices
-        printf("%d ", i);
-        int matrix_index = 0;
-
-        for (uint32_t j = nodes[i].beginning + 1; j < nodes[i].end; j++)
+        uint32_t start = nodes[i].beginning;
+        uint32_t end = nodes[i].end;
+        for (int j = start + 1; j < end; j++)
         {
             if (!is_null(edges.items[j]))
             {
-                while (matrix_index < edges.items[j].dest)
-                {
-                    printf("    ");
-                    matrix_index++;
-                }
-                // printf("%03d ", edges.items[j].value);
-                printf(" %d  ", edges.items[j].value);
-                matrix_index++;
+                output[iter] =
+                    make_tuple(i, edges.items[j].dest, edges.items[j].value);
+                iter += 1;
             }
         }
-        for (uint32_t j = matrix_index; j < num_vertices; j++)
-        {
-            printf("    ");
-        }
-        printf("\n");
     }
+    return output;
 }
 
-void PCSR::print_array()
+void PCSR::label_edges()
 {
-    for (int i = 0; i < edges.N; i++)
-    {
-        if (is_null(edges.items[i]))
-        {
-            printf("%d-x ", i);
-        }
-        else if (is_sentinel(edges.items[i]))
-        {
-            uint32_t value = edges.items[i].value;
-            if (value == UINT32_MAX)
-            {
-                value = 0;
-            }
-            printf("\n%d-s(%u):(%d, %d) ", i, value, nodes[value].beginning,
-                   nodes[value].end);
-        }
-        else
-        {
-            printf("%d-(%d, %u) ", i, edges.items[i].dest, edges.items[i].value);
-        }
-    }
-    printf("\n\n");
-}
-
-// modifying get_csr_ptrs to accomodate the removal of thrust vectors
-std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(std::vector<int> eids)
-{
-
-    // getting the size of row_offset and column_indices
-    int row_offset_size = nodes.size() + 1;
-    int column_indices_size = edges.items.size();
-
-    int *host_row_offset, *host_column_indices, *host_eids;
-    int *dev_row_offset, *dev_column_indices, *dev_eids;
-
-    // intializing spaces for row_offset and column_indices
-    // in the CPU with their respective sizes
-    host_row_offset = (int *)malloc(row_offset_size * sizeof(int));
-    host_column_indices = (int *)malloc(edge_count * sizeof(int));
-    host_eids = (int *)malloc(edge_count * sizeof(int));
-
-    host_row_offset[0] = 0;
-
-    // calculating the row_offset in CPU
-    for (int i = 0; i < row_offset_size - 1; ++i)
-        host_row_offset[i + 1] = nodes[i].num_neighbors + host_row_offset[i];
-
-    // calculating the column_indices in CPU
-    int iter = 0;
+    uint32_t column_indices_size = edges.items.size();
+    uint32_t counter = 1;
     for (int i = 0; i < column_indices_size; ++i)
     {
         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
         {
-            host_column_indices[iter] = edges.items[i].dest;
-            iter += 1;
+            edges.items[i].value = counter;
+            ++counter;
         }
     }
-
-    // moving the row_offset and column_indices array from CPU to GPU
-    // firstly initializing the memory in GPU after freeing the
-    // already inistialized space in GPU for previous row_offset and
-    // column_indices values
-
-    cudaFree(row_offset_device);
-    cudaFree(column_indices_device);
-    cudaFree(eids_device);
-
-    cudaMalloc((void **)&dev_row_offset, row_offset_size * sizeof(int));
-    cudaMalloc((void **)&dev_column_indices, edge_count * sizeof(int));
-    cudaMalloc((void **)&dev_eids, edge_count * sizeof(int));
-
-    cudaMemcpy(dev_row_offset, host_row_offset, row_offset_size * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_column_indices, host_column_indices, edge_count * sizeof(int), cudaMemcpyHostToDevice);
-
-    if (eids.size() == 0)
-    {
-        // fill the values of host_eids with 0, 1, 2 ...
-        for (int i = 0; i < edge_count; ++i)
-            host_eids[i] = i;
-    }
-    else
-    {
-        // copy the values from eids to host_eids
-        for (int i = 0; i < edge_count; ++i)
-            host_eids[i] = eids[i];
-    }
-
-    // move the host_eids value to dev_eids
-    cudaMemcpy(dev_eids, host_eids, edge_count * sizeof(int), cudaMemcpyHostToDevice);
-
-    // setting the PCSR arrays device pointers
-    row_offset_device = dev_row_offset;
-    column_indices_device = dev_column_indices;
-    eids_device = dev_eids;
-
-    free(host_row_offset);
-    free(host_column_indices);
-    free(host_eids);
-
-    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
-    std::get<0>(t) = (std::uintptr_t)row_offset_device;
-    std::get<1>(t) = (std::uintptr_t)column_indices_device;
-    std::get<2>(t) = (std::uintptr_t)eids_device;
-    return t;
 }
-
-// std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs_bench(std::vector<int> eids)
-// {
-//     /*
-//         This function is being used only for benchmarking purposes.
-//         The logic is exactly the same as PCSR::get_csr_ptrs_bench() but it
-//         has timers logging the time taken to execute each part of the function
-//     */
-
-//     // we are building a compressed CSR arrays without
-//     // the -1 values which indicates an empty edge
-
-//     auto total_time_start = high_resolution_clock::now();
-
-//     ////////////////////////////////////////////////////////////////////////
-//     auto init_host_vectors_start = high_resolution_clock::now();
-
-//     thrust::host_vector<int> row_offset;
-//     thrust::host_vector<int> column_indices;
-
-//     int row_offset_size = nodes.size() + 1;
-//     int column_indices_size = edges.items.size();
-
-//     // first element of row offset is always zero
-//     row_offset.resize(row_offset_size);
-//     column_indices.resize(edge_count);
-//     row_offset[0] = 0;
-
-//     auto init_host_vectors_end = high_resolution_clock::now();
-//     ////////////////////////////////////////////////////////////////////////
-
-//     ////////////////////////////////////////////////////////////////////////
-//     auto calc_rowoff_start = high_resolution_clock::now();
-//     for (int i = 0; i < row_offset_size - 1; ++i)
-//     {
-//         row_offset[i + 1] = nodes[i].num_neighbors + row_offset[i];
-//     }
-//     auto calc_rowoff_end = high_resolution_clock::now();
-//     ////////////////////////////////////////////////////////////////////////
-
-//     int iter = 0;
-//     for (int i = 0; i < column_indices_size; ++i)
-//     {
-//         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
-//         {
-//             column_indices[iter] = edges.items[i].dest;
-//             iter += 1;
-//         }
-//     }
-
-//     row_offset_device = row_offset;
-//     column_indices_device = column_indices;
-//     eids_device.resize(edge_count);
-
-//     if (eids.size() == 0)
-//         thrust::sequence(eids_device.begin(), eids_device.end());
-//     else
-//         thrust::copy(eids.begin(), eids.end(), eids_device.begin());
-
-//     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
-//     std::get<0>(t) = (std::uintptr_t)RAW_PTR(row_offset_device);
-//     std::get<1>(t) = (std::uintptr_t)RAW_PTR(column_indices_device);
-//     std::get<2>(t) = (std::uintptr_t)RAW_PTR(eids_device);
-
-//     auto total_time_end = high_resolution_clock::now();
-
-//     auto total_time_duration = duration_cast<microseconds>(total_time_end - total_time_start);
-//     auto init_host_vectors_duration = duration_cast<microseconds>(init_host_vectors_end - init_host_vectors_start);
-//     auto calc_rowoff_duration = duration_cast<microseconds>(calc_rowoff_end - calc_rowoff_start);
-
-//     std::cout << "Total: " << total_time_duration.count() << " "
-//               << "InitHostVectors: " << init_host_vectors_duration.count()
-//               << "CalcRowOffset: " << calc_rowoff_duration.count()
-//               << std::endl;
-
-//     return t;
-// }
-
-// void PCSR::label_edges()
-// {
-
-//     uint32_t column_indices_size = edges.items.size();
-//     uint32_t counter = 1;
-//     for (int i = 0; i < column_indices_size; ++i)
-//     {
-//         if (!is_sentinel(edges.items[i]) && !is_null(edges.items[i]))
-//         {
-//             edges.items[i].value = counter;
-//             ++counter;
-//         }
-//     }
-// }
-
-// uint32_t PCSR::find_edge_id(uint32_t src, uint32_t dest)
-// {
-//     edge_t e;
-//     e.dest = dest;
-//     // setting a random number
-//     e.value = 0;
-
-//     uint32_t loc = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end);
-//     return edges.items[loc].value;
-// }
-
-// std::tuple<uint32_t, uint32_t> PCSR::get_graph_attr()
-// {
-//     std::tuple<uint32_t, uint32_t> t;
-//     std::get<0>(t) = nodes.size();
-//     std::get<1>(t) = edge_count;
-//     return t;
-// }
-
-// void copy_label_edges(PCSR &pcsr, PCSR &ref_pcsr)
-// {
-//     uint64_t n = pcsr.get_n();
-
-//     for (int i = 0; i < n; i++)
-//     {
-//         uint32_t start = pcsr.nodes[i].beginning;
-//         uint32_t end = pcsr.nodes[i].end;
-//         for (int j = start + 1; j < end; j++)
-//         {
-//             if (!is_null(pcsr.edges.items[j]))
-//             {
-//                 // Searching for the edge_id of reverse edge from reference_pcsr
-//                 pcsr.edges.items[j].value = ref_pcsr.find_edge_id(pcsr.edges.items[j].dest, i);
-//             }
-//         }
-//     }
-// }
 
 void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
 {
@@ -1029,84 +750,104 @@ void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_lis
         uint32_t src = (is_reverse_edge_local == true) ? std::get<1>(edge) : std::get<0>(edge);
         uint32_t dst = (is_reverse_edge_local == true) ? std::get<0>(edge) : std::get<1>(edge);
 
-        if (is_delete_local)
+        if (is_delete_local){
+            in_degrees[dst] -= 1;
+            out_degrees[src] -= 1;
             delete_edge(src, dst);
-        else
+        }else{
+            in_degrees[dst] += 1;
+            out_degrees[src] += 1;
             add_edge(src, dst, 1);
+        }
     }
 }
 
-// ignore for now, tried it out and no significant speedup observed
-// void PCSR::edge_update_list_optm(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
-// {
-//     // using loop unswitching ---> for-loop optimization
-//     // conditions: (is_delete, is_reverse_edge)
-//     if (is_delete == false && is_reverse_edge == false)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<0>(edge);
-//             uint32_t dst = std::get<1>(edge);
-
-//             add_edge(src, dst, 1);
-//         }
-//         return;
-//     }
-
-//     if (is_delete == false && is_reverse_edge == true)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<1>(edge);
-//             uint32_t dst = std::get<0>(edge);
-
-//             add_edge(src, dst, 1);
-//         }
-//         return;
-//     }
-
-//     if (is_delete == true && is_reverse_edge == false)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<0>(edge);
-//             uint32_t dst = std::get<1>(edge);
-
-//             delete_edge(src, dst);
-//         }
-//         return;
-//     }
-
-//     if (is_delete == true && is_reverse_edge == true)
-//     {
-//         for (auto &edge : edge_list)
-//         {
-//             uint32_t src = std::get<1>(edge);
-//             uint32_t dst = std::get<0>(edge);
-
-//             delete_edge(src, dst);
-//         }
-//         return;
-//     }
-// }
-
-void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
+void PCSR::build_reverse_csr()
 {
-    // cout << "💄💄💄 Building Reverse PCSR" << endl
-    //      << flush;
-    uint64_t n = ref_pcsr.get_n();
+    uint64_t n = get_n();
+    // computing the bwd row offsets
+    row_offset_pinned[0] = in_degrees[0];
+    for(int i=1; i<in_degrees.size(); ++i){
+        row_offset_pinned[i] = row_offset_pinned[i-1] + in_degrees[i];
+    }
+    row_offset_pinned[in_degrees.size()] = edge_count;
+    
     for (int i = 0; i < n; i++)
     {
-        uint32_t start = ref_pcsr.nodes[i].beginning;
-        uint32_t end = ref_pcsr.nodes[i].end;
+        uint32_t start = nodes[i].beginning;
+        uint32_t end = nodes[i].end;
         for (int j = start + 1; j < end; j++)
         {
-            if (!is_sentinel(ref_pcsr.edges.items[j]) && !is_null(ref_pcsr.edges.items[j]))
+            if (!is_sentinel(edges.items[j]) && !is_null(edges.items[j]))
             {
-                pcsr.add_edge(ref_pcsr.edges.items[j].dest, i, ref_pcsr.edges.items[j].value);
+                row_offset_pinned[edges.items[j].dest] -= 1;
+
+                int col_index = row_offset_pinned[edges.items[j].dest];
+                column_indices_pinned[col_index] = i;
+                eids_pinned[col_index] = edges.items[j].value;
             }
         }
     }
+
+    move_pinned_to_gpu();
+}
+
+void PCSR::build_csr()
+{
+    // computing the bwd row offsets
+    uint64_t n = get_n();
+    row_offset_pinned[0] = out_degrees[0];
+    for(int i=1; i<out_degrees.size(); ++i){
+        row_offset_pinned[i] = row_offset_pinned[i-1] + out_degrees[i];
+    }
+    row_offset_pinned[out_degrees.size()] = edge_count;
+    
+    for (int i = 0; i < n; i++)
+    {
+        uint32_t start = nodes[i].beginning;
+        uint32_t end = nodes[i].end;
+        for (int j = start + 1; j < end; j++)
+        {
+            if (!is_sentinel(edges.items[j]) && !is_null(edges.items[j]))
+            {
+                row_offset_pinned[i] -= 1;
+                column_indices_pinned[row_offset_pinned[i]] = edges.items[j].dest;
+                eids_pinned[row_offset_pinned[i]] = edges.items[j].value;
+            }
+        }
+    }
+
+    move_pinned_to_gpu();
+}
+
+void PCSR::move_pinned_to_gpu(){
+    cErr(cudaMemcpy(row_offset_device, row_offset_pinned, sizeof(uint32_t) * (get_n() + 1), cudaMemcpyHostToDevice));
+    cErr(cudaMemcpy(column_indices_device, column_indices_pinned, sizeof(uint32_t) * edge_count, cudaMemcpyHostToDevice));
+    cErr(cudaMemcpy(eids_device, eids_pinned, sizeof(uint32_t) * edge_count, cudaMemcpyHostToDevice));
+}
+
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(){
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    std::get<0>(t) = (std::uintptr_t)row_offset_device;
+    std::get<1>(t) = (std::uintptr_t)column_indices_device;
+    std::get<2>(t) = (std::uintptr_t)eids_device;
+    return t;
+}
+
+std::vector<std::vector<uint32_t>> read_gpu_csr(PCSR &pcsr){
+    std::vector<uint32_t> row_offset(pcsr.get_n() + 1);
+    std::vector<uint32_t> column_indices(pcsr.edge_count);
+    std::vector<uint32_t> eids(pcsr.edge_count);
+
+    cErr(cudaMemcpy(row_offset.data(), pcsr.row_offset_device, sizeof(uint32_t) * (pcsr.get_n() + 1), cudaMemcpyDeviceToHost));
+    cErr(cudaMemcpy(column_indices.data(), pcsr.column_indices_device, sizeof(uint32_t) * pcsr.edge_count, cudaMemcpyDeviceToHost));
+    cErr(cudaMemcpy(eids.data(), pcsr.eids_device, sizeof(uint32_t) * pcsr.edge_count, cudaMemcpyDeviceToHost));
+
+    std::vector<std::vector<uint32_t>> res;
+    res.push_back(row_offset);
+    res.push_back(column_indices);
+    res.push_back(eids);
+    return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1116,65 +857,20 @@ void build_reverse_pcsr(PCSR &pcsr, PCSR &ref_pcsr)
 PYBIND11_MODULE(pcsr, m)
 {
     m.doc() = "PCSR Dynamic Graph Representation";
-    // m.def("copy_label_edges", &copy_label_edges, "Label edges of a PCSR based on another PCSR");
-    m.def("build_reverse_pcsr", &build_reverse_pcsr, "Builds the reverse PCSR based on another PCSR");
-
-    py::class_<node_t>(m, "Node")
-        .def(py::init<int, int, int>(), py::arg("beg") = 0, py::arg("_end") = 0, py::arg("num_neigh") = 0)
-        .def_readwrite("beginning", &_node::beginning)
-        .def_readwrite("end", &_node::end)
-        .def_readwrite("num_neighbors", &_node::num_neighbors)
-        .def_readwrite("in_degree", &_node::in_degree);
-
-    py::class_<edge_t>(m, "Edge")
-        .def(py::init<int, int>(), py::arg("_dest") = 0, py::arg("_value") = 0)
-        .def_readwrite("dest", &edge_t::dest)
-        .def_readwrite("value", &edge_t::value);
-
-    py::class_<edge_list_t>(m, "EdgeList")
-        .def(py::init<>())
-        .def_readwrite("N", &edge_list_t::N)
-        .def_readwrite("H", &edge_list_t::H)
-        .def_readwrite("logN", &edge_list_t::logN)
-        .def_readwrite("items", &edge_list_t::items);
-
-    py::class_<pair_int>(m, "PairInt")
-        .def(py::init<int, int>())
-        .def_readwrite("x", &pair_int::x)
-        .def_readwrite("y", &pair_int::y);
-
-    py::class_<pair_double>(m, "PairDouble")
-        .def(py::init<double, double>())
-        .def_readwrite("x", &pair_double::x)
-        .def_readwrite("y", &pair_double::y);
+    m.def("read_gpu_csr", &read_gpu_csr, "Read CSR arrays from the GPU");
 
     py::class_<PCSR>(m, "PCSR")
-        .def(py::init<int>(), py::arg("init_n") = 0)
-        .def("init_graph", &PCSR::init_graph)
-        .def("add_node", &PCSR::add_node)
-        .def("insert", &PCSR::insert)
-        .def("double_list", &PCSR::double_list)
-        .def("slide_right", &PCSR::slide_right)
-        .def("slide_left", &PCSR::slide_left)
-        .def("fix_sentinel", &PCSR::fix_sentinel)
-        .def("redistribute", &PCSR::redistribute)
-        .def("print_graph", &PCSR::print_graph)
-        .def("add_edge", &PCSR::add_edge)
-        .def("add_edge_update", &PCSR::add_edge_update)
-        .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
-        // .def("edge_update_list_optm", &PCSR::edge_update_list_optm, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
-        // .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
-        .def("delete_edge", &PCSR::delete_edge)
-        .def("get_n", &PCSR::get_n)
-        // .def("get_edges", &PCSR::get_edges)
-        .def("print_array", &PCSR::print_array)
-        .def("get_csr_ptrs", &PCSR::get_csr_ptrs, py::arg("eids"))
-        // .def("get_csr_ptrs_bench", &PCSR::get_csr_ptrs_bench, py::arg("eids"))
-        // .def("get_graph_attr", &PCSR::get_graph_attr)
-        // .def("find_edge_id", &PCSR::find_edge_id)
-        .def_readwrite("nodes", &PCSR::nodes)
-        .def_readwrite("edges", &PCSR::edges)
+        .def(py::init<int, int>(), py::arg("init_n"), py::arg("max_edge_count"))
+        .def_readwrite("in_degrees", &PCSR::in_degrees)
+        .def_readwrite("out_degrees", &PCSR::out_degrees)
         .def_readwrite("edge_count", &PCSR::edge_count)
+        .def("get_n", &PCSR::get_n)
+        .def("edge_update_list", &PCSR::edge_update_list, py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false)
+        .def("label_edges", &PCSR::label_edges, "Creates edge labels for the current GPMA")
+        .def("get_edges", &PCSR::get_edges)
+        .def("build_csr", &PCSR::build_csr)
+        .def("build_reverse_csr", &PCSR::build_reverse_csr)
+        .def("get_csr_ptrs", &PCSR::get_csr_ptrs)
         .def("__copy__", [](const PCSR &self)
              { return PCSR(self); })
         .def(

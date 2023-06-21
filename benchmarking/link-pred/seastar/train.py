@@ -49,13 +49,15 @@ def to_default_device(data):
 def main(args):
 
     dataloader = LinkPredDatasetLoader(args.dataset_dir, args.dataset, args.num_nodes, verbose=True, for_seastar=True)
-    print("Loaded dataset into the train.py pygt", flush=True)
+    print("Loaded dataset into the train.py seastar", flush=True)
 
     # to allocate initial CUDA context object
-    if args.type == "gpma":
-        Graph = GPMAGraph([[(0,0)]],1)
-    elif args.type == "naive":
+    if args.type == "naive":
         Graph = NaiveGraph([[(0,0)]],1)
+    elif args.type == "pcsr":
+        Graph = PCSRGraph([[(0,0)]],1)
+    elif args.type == "gpma":
+        Graph = GPMAGraph([[(0,0)]],1)
     
 
     train_edges_lst = dataloader.get_edges()

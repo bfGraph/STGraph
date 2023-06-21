@@ -4,97 +4,59 @@ from rich import inspect
 import time
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.pcsr.pcsr import PCSR, build_reverse_pcsr
+from seastar.graph.dynamic.pcsr.pcsr import PCSR
 
 class PCSRGraph(DynamicGraph):
     def __init__(self, edge_list, max_num_nodes):
         super().__init__(edge_list, max_num_nodes)
         
-        # preprocessing the edge ids for forward and backward pass
-        # so that it doesn't have to be calculated each time
-        self._prepare_eid_bwd(edge_list) 
+        # Get the maximum number of edges
+        self._get_max_num_edges()
         
-        self._forward_graph = PCSR(self.max_num_nodes)
-        self._backward_graph = PCSR(self.max_num_nodes)
-        self._forward_graph.edge_update_list(self.graph_updates["0"]["add"],is_reverse_edge=True)
+        self._forward_graph = PCSR(self.max_num_nodes, self.max_num_edges)
+        self._forward_graph.edge_update_list(self.graph_updates["0"]["add"], is_reverse_edge=True)
+        self._forward_graph.label_edges()   
+        self._forward_graph.build_csr()
+        self._get_graph_csr_ptrs()
         
-        # Using cache to possibly make pcsr faster
+        # Using cache to make pcsr faster
         self.graph_cache = {}
         self._in_degrees_cache = {}
         self._out_degrees_cache = {}
-        
-        # for benchmarking purposes
-        self._update_count = 0
-        self._total_update_time = 0
-        self._gpu_move_time = 0
-        
-        self._update_graph_cache()
-        self._get_graph_csr_ptrs(eids=list())
     
-    def _prepare_eid_bwd(self, edge_list):   
-        fwd_edge_list = []
-        for i in range(len(edge_list)):
-            edge_list_for_t = edge_list[i]
-            edge_list_for_t.sort(key = lambda x: (x[1],x[0]))
-            edge_list_for_t = [(edge_list_for_t[j][0],edge_list_for_t[j][1],j) for j in range(len(edge_list_for_t))]
-            fwd_edge_list.append(edge_list_for_t)
-        
-        self.bwd_eid_list = []
-        for i in range(len(fwd_edge_list)):
-            edge_list_for_t = fwd_edge_list[i]
-            edge_list_for_t.sort()
-            eid_t = [edge_list_for_t[i][2] for i in range(len(edge_list_for_t))]
-            self.bwd_eid_list.append(eid_t)
+    def _get_max_num_edges(self):
+        updates = self.graph_updates
+        edge_set = set()
+        for i in range(len(updates)):
+          for j in range(len(updates[str(i)]["add"])):
+            edge_set.add(updates[str(i)]["add"][j])
+        self.max_num_edges = len(edge_set)
                 
     def graph_type(self):
         return "pcsr"
         
     def in_degrees(self):
         if self.current_timestamp not in self._in_degrees_cache:
-            self._in_degrees_cache[self.current_timestamp] = np.array([node.num_neighbors for node in self._forward_graph.nodes], dtype='int32')
+            self._in_degrees_cache[self.current_timestamp] = np.array(self._forward_graph.out_degrees, dtype='int32')
         
         return self._in_degrees_cache[self.current_timestamp]
     
     def out_degrees(self):
         if self.current_timestamp not in self._out_degrees_cache:
-            self._out_degrees_cache[self.current_timestamp] = np.array([node.in_degree for node in self._forward_graph.nodes], dtype='int32')
+            self._out_degrees_cache[self.current_timestamp] = np.array(self._forward_graph.in_degrees, dtype='int32')
         
         return self._out_degrees_cache[self.current_timestamp]
     
-    def _update_graph_cache(self, is_bwd=False):
-        if is_bwd:
-            # saving reverse base graph in cache
-            self.graph_cache['bwd'] = copy.deepcopy(self._backward_graph)
-        else:
-            self.graph_cache['fwd'] = copy.deepcopy(self._forward_graph)
-            
-    def _get_cached_graph(self, is_bwd=False):
-        if is_bwd:
-            return copy.deepcopy(self.graph_cache['bwd'])
-        else:
-            return copy.deepcopy(self.graph_cache['fwd'])
-    
-    def _get_graph_csr_ptrs(self, eids): 
-
-
+    def _get_graph_csr_ptrs(self): 
+        csr_ptrs = self._forward_graph.get_csr_ptrs()
         if self._is_backprop_state:
-            move_time_start = time.time()
-            backward_csr_ptrs = self._backward_graph.get_csr_ptrs(eids=eids)
-            move_time_end = time.time()
-            
-            self.bwd_row_offset_ptr = backward_csr_ptrs[0]
-            self.bwd_column_indices_ptr = backward_csr_ptrs[1]
-            self.bwd_eids_ptr = backward_csr_ptrs[2]
+            self.bwd_row_offset_ptr = csr_ptrs[0]
+            self.bwd_column_indices_ptr = csr_ptrs[1]
+            self.bwd_eids_ptr = csr_ptrs[2]
         else:
-            move_time_start = time.time()
-            forward_csr_ptrs = self._forward_graph.get_csr_ptrs(eids=eids)
-            move_time_end = time.time()
-            self.fwd_row_offset_ptr = forward_csr_ptrs[0]
-            self.fwd_column_indices_ptr = forward_csr_ptrs[1]
-            self.fwd_eids_ptr = forward_csr_ptrs[2]
-            
-        
-        self._gpu_move_time += (move_time_end - move_time_start)
+            self.fwd_row_offset_ptr = csr_ptrs[0]
+            self.fwd_column_indices_ptr = csr_ptrs[1]
+            self.fwd_eids_ptr = csr_ptrs[2]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
@@ -104,55 +66,27 @@ class PCSRGraph(DynamicGraph):
         
         graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
         graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
-        
-        self._update_count += len(graph_additions)
-        self._update_count += len(graph_deletions)
 
-        update_time_0 = time.time()
-
-        self._forward_graph.edge_update_list(graph_additions,is_reverse_edge=True)
-        self._forward_graph.edge_update_list(graph_deletions,is_delete=True,is_reverse_edge=True)
-        
-        update_time_1 = time.time()
-        self._total_update_time += (update_time_1 - update_time_0)
-        
-        self._get_graph_csr_ptrs(eids=list())
+        self._forward_graph.edge_update_list(graph_additions, is_reverse_edge=True)
+        self._forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
+        self._forward_graph.label_edges()   
+        self._forward_graph.build_csr()
+        self._get_graph_csr_ptrs()
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
-        
-        # checking if the reverse base graph exists in the cache
-        # we can load it from there instead of building it each time
-        if 'bwd' in self.graph_cache:
-            self._backward_graph = self._get_cached_graph(is_bwd=True)
-        else:
-            build_reverse_pcsr(self._backward_graph, self._forward_graph)
+        self._forward_graph.build_reverse_csr()
+        self._get_graph_csr_ptrs()
 
-            # storing the reverse base graph in cache after building
-            # it for the first time
-            self._update_graph_cache(is_bwd=True)
-            
-        self._get_graph_csr_ptrs(eids=self.bwd_eid_list[self.current_timestamp])
-        
-        # Resetting the forward graph so that it can be used later
-        self._forward_graph = self._get_cached_graph()
-        
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
             raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
         
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
-        
-        self._update_count += len(graph_additions)
-        self._update_count += len(graph_deletions)
 
-        update_time_0 = time.time()
-        
-        self._backward_graph.edge_update_list(graph_additions)   
-        self._backward_graph.edge_update_list(graph_deletions,is_delete=True)
-        
-        update_time_1 = time.time()
-        self._total_update_time += (update_time_1 - update_time_0)
-        
-        self._get_graph_csr_ptrs(eids=self.bwd_eid_list[self.current_timestamp - 1])
+        self._forward_graph.edge_update_list(graph_additions, is_reverse_edge=True)   
+        self._forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
+        self._forward_graph.label_edges() 
+        self._forward_graph.build_reverse_csr()
+        self._get_graph_csr_ptrs()
