@@ -293,6 +293,7 @@ public:
 
     // member functions
     PCSR(uint32_t init_n, uint32_t max_edge_count);
+    // ~PCSR();
     
     // PCSR specific internal functions
     uint64_t get_n();
@@ -319,7 +320,6 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////
 
-// removed default argument of 0
 PCSR::PCSR(uint32_t init_n, uint32_t max_num_edges)
 {
     if (init_n != 0)
@@ -354,6 +354,21 @@ PCSR::PCSR(uint32_t init_n, uint32_t max_num_edges)
         cErr(cudaMalloc(&eids_device, sizeof(uint32_t) * max_num_edges));
     }
 }
+
+// PCSR::~PCSR()
+// {
+//     cErr(cudaFree(row_offset_pinned));
+//     cErr(cudaFree(column_indices_pinned));
+//     cErr(cudaFree(eids_pinned));
+
+//     cErr(cudaFree(row_offset_device));
+//     cErr(cudaFree(column_indices_device));
+//     cErr(cudaFree(eids_device));
+
+//     nodes.clear();
+//     in_degrees.clear();
+//     out_degrees.clear();
+// }
 
 // add a node to the graph
 void PCSR::add_node()

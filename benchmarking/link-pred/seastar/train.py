@@ -49,13 +49,14 @@ def to_default_device(data):
 def main(args):
 
     dataloader = LinkPredDatasetLoader(args.dataset_dir, args.dataset, args.num_nodes, verbose=True, for_seastar=True)
-    print("Loaded dataset into the train.py seastar", flush=True)
+    print("Loaded dataset into the train.py seastar")
 
     # to allocate initial CUDA context object
+    Graph = None
     if args.type == "naive":
         Graph = NaiveGraph([[(0,0)]],1)
     elif args.type == "pcsr":
-        Graph = PCSRGraph([[(0,0)]],1)
+        Graph = PCSRGraph([[(0,1)]],2) # PCSRGraph([[(0,1)]],2)
     elif args.type == "gpma":
         Graph = GPMAGraph([[(0,0)]],1)
     
@@ -64,11 +65,11 @@ def main(args):
     pos_neg_edges_lst, pos_neg_targets_lst = dataloader.get_pos_neg_edges()
     train_features = to_default_device(torch.randn((dataloader._max_num_nodes, args.feat_size)))
     edge_weight = None
-    print("Features ready", flush=True)
+    print("Features ready")
     
     model = to_default_device(SeastarTGCN(args.feat_size, args.multiplier))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    print("Model ready", flush=True)
+    print("Model ready")
 
     # metrics
     dur = []
@@ -77,7 +78,7 @@ def main(args):
 
     pos_neg_edges_lst = [to_default_device(torch.from_numpy(pos_neg_edges)) for pos_neg_edges in pos_neg_edges_lst]
     pos_neg_targets_lst = [to_default_device(torch.from_numpy(pos_neg_targets).type(torch.float32)) for pos_neg_targets in pos_neg_targets_lst]
-    print("Edge lists ready", flush=True)
+    print("Edge lists ready")
     criterion = torch.nn.BCEWithLogitsLoss()
 
     pynvml.nvmlInit()

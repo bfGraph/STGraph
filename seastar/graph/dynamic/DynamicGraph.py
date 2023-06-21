@@ -6,7 +6,6 @@ class DynamicGraph(SeastarGraph):
         super().__init__()
         self.graph_updates = {}
         self.max_num_nodes = max_num_nodes
-        self.graph_cache = {}
         self.graph_attr = {str(t): (self.max_num_nodes, len(set(edge_list[t]))) for t in range(len(edge_list))}
 
         # Indicates whether the graph is currently undergoing backprop
