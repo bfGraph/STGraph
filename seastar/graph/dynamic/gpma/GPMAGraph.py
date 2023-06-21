@@ -47,16 +47,10 @@ class GPMAGraph(DynamicGraph):
         return "gpma"
     
     def in_degrees(self):
-        if self.current_timestamp not in self._in_degrees_cache:
-            self._in_degrees_cache[self.current_timestamp] = np.array(get_out_degrees(self._forward_graph), dtype="int32")
-        
-        return self._in_degrees_cache[self.current_timestamp]
+        return np.array(get_out_degrees(self._forward_graph), dtype="int32")
     
     def out_degrees(self):
-        if self.current_timestamp not in self._out_degrees_cache:
-            self._out_degrees_cache[self.current_timestamp] = np.array(get_in_degrees(self._forward_graph), dtype="int32")
-        
-        return self._out_degrees_cache[self.current_timestamp]
+        return np.array(get_in_degrees(self._forward_graph), dtype="int32")
 
     def _get_graph_csr_ptrs(self):
 

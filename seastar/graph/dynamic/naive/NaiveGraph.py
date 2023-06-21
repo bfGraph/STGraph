@@ -31,12 +31,6 @@ class NaiveGraph(DynamicGraph):
             CSR(self.bwd_edge_list[i], edge_weight_lst[i], self.graph_attr[str(i)][0])
             for i in range(len(self.bwd_edge_list))
         ]
-        # self._forward_graph = [CSR(self.fwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"], is_edge_reverse=True)]
-        # self._backward_graph = [CSR(self.bwd_edge_list[0], self.graph_updates[str(0)]["num_nodes"])]
-
-        # Using cache to possibly make pcsr faster
-        self._in_degrees_cache = {}
-        self._out_degrees_cache = {}
 
         # for benchmarking purposes
         self._update_count = 0
@@ -67,44 +61,25 @@ class NaiveGraph(DynamicGraph):
         return "csr"
 
     def in_degrees(self):
-        if self.current_timestamp not in self._in_degrees_cache:
-            self._in_degrees_cache[self.current_timestamp] = np.array(
-                self._forward_graph[self.current_timestamp].out_degrees, dtype="int32"
-            )
-
-        return self._in_degrees_cache[self.current_timestamp]
-
-    def out_degrees(self):
-        return np.array(
-            self._forward_graph[self.current_timestamp].in_degrees, dtype="int32"
-        )
+        return np.array(self._forward_graph[self.current_timestamp].out_degrees, dtype="int32")
     
-    def weighted_in_degrees(self):
-        if self.current_timestamp not in self._in_degrees_cache:
-            self._in_degrees_cache[self.current_timestamp] = np.array(
-                self._forward_graph[self.current_timestamp].weighted_out_degrees, dtype="float32"
-            )
-
-        return self._in_degrees_cache[self.current_timestamp]
+    def out_degrees(self):
+        return np.array(self._forward_graph[self.current_timestamp].in_degrees, dtype="int32")
+    
+    # def weighted_in_degrees(self):
+    #     return np.array(self._forward_graph[self.current_timestamp].weighted_out_degrees, dtype="float32")
 
     def _get_graph_csr_ptrs(self, timestamp):
         if self._is_backprop_state:
             bwd_csr_ptrs = self._backward_graph[timestamp]
-            # bwd_csr_ptrs.print_csr_arrays()
             self.bwd_row_offset_ptr = bwd_csr_ptrs.row_offset_ptr
             self.bwd_column_indices_ptr = bwd_csr_ptrs.column_indices_ptr
             self.bwd_eids_ptr = bwd_csr_ptrs.eids_ptr
         else:
             fwd_csr_ptrs = self._forward_graph[timestamp]
-            # fwd_csr_ptrs.print_csr_arrays()
             self.fwd_row_offset_ptr = fwd_csr_ptrs.row_offset_ptr
             self.fwd_column_indices_ptr = fwd_csr_ptrs.column_indices_ptr
             self.fwd_eids_ptr = fwd_csr_ptrs.eids_ptr
-
-            # print(f"(PYTHON) RECEIVED ROW OFFSET PTR: {fwd_csr_ptrs.row_offset_ptr}")
-            # print_dev_array(fwd_csr_ptrs.row_offset_ptr,129)
-            # print("QUITTING")
-            # quit()
 
     def _update_graph_forward(self):
         """Updates the current base graph to the next timestamp"""
