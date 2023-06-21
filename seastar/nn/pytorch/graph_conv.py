@@ -33,14 +33,14 @@ class GraphConv(nn.Module):
                 h = sum([nb.h*nb.norm for nb in v.innbs])
                 h = h * v.norm
                 return h
-            h = nb_compute(g=g, n_feats={'norm': g.ndata['norm'], 'h' : h})
+            h = nb_compute(g=g, n_feats={'norm': g.get_ndata("norm"), 'h' : h})
         else:
             @self.seastar.compile(gnn_module=self)
             def nb_compute(v):
                 h = sum([nb_edge.src.norm * nb_edge.src.h * nb_edge.edge_weight for nb_edge in v.inedges])
                 h = h * v.norm
                 return h
-            h = nb_compute(g=g, n_feats={'norm': g.ndata['norm'], 'h' : h}, e_feats={'edge_weight':edge_weight})
+            h = nb_compute(g=g, n_feats={'norm': g.get_ndata("norm"), 'h' : h}, e_feats={'edge_weight':edge_weight})
 
         # bias
         if self.bias is not None:

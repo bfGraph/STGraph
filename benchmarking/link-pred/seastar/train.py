@@ -135,11 +135,12 @@ def main(args):
                 graph_mem_delta = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
                 graph_mem = graph_mem + graph_mem_delta
 
-            degs = torch.from_numpy(G.in_degrees()).type(torch.float32)
-            norm = torch.pow(degs, -0.5)
-            norm[torch.isinf(norm)] = 0
-            norm = to_default_device(norm)
-            G.ndata["norm"] = norm.unsqueeze(1)
+            if G.get_ndata("norm") is None:
+                degs = torch.from_numpy(G.in_degrees()).type(torch.float32)
+                norm = torch.pow(degs, -0.5)
+                norm[torch.isinf(norm)] = 0
+                norm = to_default_device(norm)
+                G.set_ndata("norm", norm.unsqueeze(1))
             
             # for k in range(backprop_every):
             #     timestamp = index*backprop_every + k

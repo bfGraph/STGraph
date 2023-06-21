@@ -58,6 +58,15 @@ class StaticGraph(SeastarGraph):
     
     def get_num_edges(self):
         return self._num_edges
+    
+    def get_ndata(self, field):
+        if field in self._ndata:
+            return self._ndata[field]
+        else:
+            return None
+
+    def set_ndata(self, field, val):
+        self._ndata[field] = val
         
     def graph_type(self):
         return "csr"

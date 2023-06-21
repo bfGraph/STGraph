@@ -62,6 +62,18 @@ class DynamicGraph(SeastarGraph):
 
     def get_num_edges(self):
         return self.graph_attr[str(self.current_timestamp)][1]
+    
+    def get_ndata(self, field):
+        if str(self.current_timestamp) in self._ndata and field in self._ndata[str(self.current_timestamp)]:
+            return self._ndata[str(self.current_timestamp)][field]
+        else:
+            return None
+
+    def set_ndata(self, field, val):
+        if str(self.current_timestamp) in self._ndata:
+            self._ndata[str(self.current_timestamp)][field] = val
+        else:
+            self._ndata[str(self.current_timestamp)] = {field: val}
 
     @abstractmethod
     def in_degrees(self):

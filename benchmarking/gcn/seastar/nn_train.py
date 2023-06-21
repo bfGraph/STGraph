@@ -127,8 +127,8 @@ def main(args):
     norm[torch.isinf(norm)] = 0
     
     norm = to_default_device(norm)
-    g.ndata['norm'] = norm.unsqueeze(1)
-    print("Norm Shape: ", g.ndata['norm'].shape)
+    g.set_ndata("norm", norm.unsqueeze(1))
+    # print("Norm Shape: ", g.ndata['norm'].shape)
 
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
