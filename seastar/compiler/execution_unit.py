@@ -366,10 +366,6 @@ class Kernel():
             ASSERT_DRV(ret)
         except Exception as e:
             raise e
-        
-        # sync_ret = cudaDeviceSynchronize()
-        # if ret:
-        #     raise Exception('cudaDeviceSynchronize', sync_ret)
 
 class V2Kernel(Kernel):
     def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):

@@ -10,10 +10,10 @@ import argparse
 from seastar.dataset.LinkPredDatasetLoader import LinkPredDatasetLoader
 
 class PyGT_TGCN(torch.nn.Module):
-  def __init__(self, node_features):
+  def __init__(self, node_features, multiplier):
     super(PyGT_TGCN, self).__init__()
-    self.temporal = TGCN(node_features, 2*node_features)
-    self.linear = torch.nn.Linear(2*node_features, node_features)
+    self.temporal = TGCN(node_features, multiplier*node_features)
+    self.linear = torch.nn.Linear(multiplier*node_features, node_features)
 
   def forward(self, g, node_feat, edge_weight, hidden_state):
     h = self.temporal(g, node_feat, edge_weight, hidden_state)
@@ -52,7 +52,7 @@ def main(args):
     pos_neg_edges_lst, pos_neg_targets_lst = dataloader.get_pos_neg_edges()
     print("Features ready", flush=True)
     
-    model = to_default_device(PyGT_TGCN(args.feat_size))
+    model = to_default_device(PyGT_TGCN(args.feat_size, args.multiplier))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     print("Model ready", flush=True)
 
@@ -134,6 +134,8 @@ if __name__ == '__main__':
             help="learning rate")
     parser.add_argument("--feat_size", type=int, default=8,
             help="feature size")
+    parser.add_argument("--multiplier", type=int, default=2,
+            help="multiplier")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
     parser.add_argument("--num_nodes", type=int, default=0,

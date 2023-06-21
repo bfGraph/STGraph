@@ -15,10 +15,10 @@ from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
 import pynvml
 
 class SeastarTGCN(torch.nn.Module):
-    def __init__(self, node_features):
+    def __init__(self, node_features, multiplier):
         super(SeastarTGCN, self).__init__()
-        self.temporal = TGCN(node_features, 2*node_features)
-        self.linear = torch.nn.Linear(2*node_features, node_features)
+        self.temporal = TGCN(node_features, multiplier*node_features)
+        self.linear = torch.nn.Linear(multiplier*node_features, node_features)
 
     def forward(self, g, node_feat, edge_weight, hidden_state):
         h = self.temporal(g, node_feat, edge_weight, hidden_state)
@@ -64,7 +64,7 @@ def main(args):
     edge_weight = None
     print("Features ready", flush=True)
     
-    model = to_default_device(SeastarTGCN(args.feat_size))
+    model = to_default_device(SeastarTGCN(args.feat_size, args.multiplier))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     print("Model ready", flush=True)
 
@@ -116,15 +116,18 @@ def main(args):
         optimizer.zero_grad()
         gpu_mem_arr = []
         y_hat = train_features
+        graph_update_time = 0
+        forward_prop_time = 0
 
         # num_iter = int(len(pos_neg_targets) / backprop_every)
         num_iter = len(pos_neg_targets_lst)
         for index in range(num_iter): 
-
             if args.measure_space:
                 initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
 
+            tGstart = time.time()
             G.get_graph(index)
+            graph_update_time += time.time() - tGstart
 
             if args.measure_space:
                 graph_mem_delta = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
@@ -145,8 +148,9 @@ def main(args):
             y_hat, hidden_state = model(G, y_hat, edge_weight, hidden_state)
             out = model.decode(y_hat, pos_neg_edges_lst[timestamp]).view(-1)
             cost = cost + criterion(out, pos_neg_targets_lst[timestamp])
+
                 
-    
+        forward_prop_time = time.time() - t0
         cost = cost / (num_iter+1)
         cost.backward()
         optimizer.step()
@@ -172,7 +176,7 @@ def main(args):
                 epoch, run_time_this_epoch, cost, (max(gpu_mem_arr) * 1.0 / (1024**2)), ((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))), ((graph_mem * 1.0)/(1024**2))
             ))
         else:
-            print('Epoch {:03d} | Time(s) {:.4f} | BCE {:.2f} '.format(epoch, run_time_this_epoch, cost))
+            print('Epoch {:03d} | Time(s) {:.4f} | Graph Update Time(s) {:.4f} | Forward Prop Time (s) {:.4f} | BCE {:.2f} '.format(epoch, run_time_this_epoch, graph_update_time, forward_prop_time, cost))
 
     print('Average Time taken: {:6f}'.format(np.mean(dur)))
 
@@ -184,6 +188,8 @@ if __name__ == '__main__':
     parser.add_argument("--type", type=str, default="naive", help="Seastar Type")
     parser.add_argument("--feat_size", type=int, default=8,
             help="feature size")
+    parser.add_argument("--multiplier", type=int, default=2,
+            help="multiplier")
     parser.add_argument("--num_epochs", type=int, default=1,
             help="number of training epochs")
     parser.add_argument("--num_nodes", type=int, default=0,
