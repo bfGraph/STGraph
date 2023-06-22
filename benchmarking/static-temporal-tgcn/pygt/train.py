@@ -56,54 +56,62 @@ def main(args):
     dur = []
     table = BenchmarkTable(f"(Static-Temporal) TGCN on {args.dataset} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
 
-    # train
-    print("Training...\n")
-    for epoch in range(args.num_epochs):
-        torch.cuda.synchronize()
-        torch.cuda.reset_peak_memory_stats(0)
-        model.train()
-        
-        t0 = time.time()
-        gpu_mem_arr = []
-        cost_arr = []
-
-        if len(features) % backprop_every == 0:
-            num_iter = int(len(features)/backprop_every)
-        else:
-            num_iter = int(len(features)/backprop_every) + 1
-
-        for index in range(num_iter):
-
-            optimizer.zero_grad()
-            cost = 0
-            hidden_state = None
-            for k in range(backprop_every):
-                t = index * backprop_every + k
-
-                if t >= len(features):
-                    break
-
-                y_hat, hidden_state = model(features[index], edge_list, edge_weight, hidden_state)
-                cost = cost + torch.mean((y_hat-targets[t])**2)
-    
-            cost = cost / (backprop_every+1)
-            cost.backward()
-            optimizer.step()
+    try:
+        # train
+        print("Training...\n")
+        for epoch in range(args.num_epochs):
             torch.cuda.synchronize()
-            cost_arr.append(cost.item())
+            torch.cuda.reset_peak_memory_stats(0)
+            model.train()
+            
+            t0 = time.time()
+            gpu_mem_arr = []
+            cost_arr = []
 
-        used_gpu_mem = torch.cuda.max_memory_allocated(0)
-        gpu_mem_arr.append(used_gpu_mem)
+            if len(features) % backprop_every == 0:
+                num_iter = int(len(features)/backprop_every)
+            else:
+                num_iter = int(len(features)/backprop_every) + 1
 
-        run_time_this_epoch = time.time() - t0
+            for index in range(num_iter):
 
-        if epoch >= 3:
-            dur.append(run_time_this_epoch)
+                optimizer.zero_grad()
+                cost = 0
+                hidden_state = None
+                for k in range(backprop_every):
+                    t = index * backprop_every + k
 
-        table.add_row([epoch, "{:.5f}".format(run_time_this_epoch), "{:.4f}".format(sum(cost_arr)/len(cost_arr)), "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2))),  "{:.4f}".format(((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))))])
+                    if t >= len(features):
+                        break
 
-    table.display()
-    print('Average Time taken: {:6f}'.format(np.mean(dur)))
+                    y_hat, hidden_state = model(features[index], edge_list, edge_weight, hidden_state)
+                    cost = cost + torch.mean((y_hat-targets[t])**2)
+        
+                cost = cost / (backprop_every+1)
+                cost.backward()
+                optimizer.step()
+                torch.cuda.synchronize()
+                cost_arr.append(cost.item())
+
+            used_gpu_mem = torch.cuda.max_memory_allocated(0)
+            gpu_mem_arr.append(used_gpu_mem)
+
+            run_time_this_epoch = time.time() - t0
+
+            if epoch >= 3:
+                dur.append(run_time_this_epoch)
+
+            table.add_row([epoch, "{:.5f}".format(run_time_this_epoch), "{:.4f}".format(sum(cost_arr)/len(cost_arr)), "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2))),  "{:.4f}".format(((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))))])
+
+        table.display()
+        print('Average Time taken: {:6f}'.format(np.mean(dur)))
+
+    except RuntimeError as e:
+        if 'out of memory' in str(e):
+            table.add_row(["OOM", "OOM", "OOM", "OOM",  "OOM"])
+            table.display()
+        else:
+            print("😔 Something went wrong")
 
 
 if __name__ == '__main__':
