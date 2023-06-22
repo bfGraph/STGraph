@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class SeastarGraph(ABC):
     def __init__(self):
-        self.ndata = {}
+        self._ndata = {}
         
         self._forward_graph = None
         self._backward_graph = None
@@ -25,6 +25,14 @@ class SeastarGraph(ABC):
     
     @abstractmethod
     def get_num_edges(self):
+        pass
+
+    @abstractmethod
+    def get_ndata(self, field):
+        pass
+
+    @abstractmethod
+    def set_ndata(self, field, val):
         pass
     
     @property

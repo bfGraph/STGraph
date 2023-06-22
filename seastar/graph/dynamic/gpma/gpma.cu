@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include <tuple>
-// #include <memory>
+#include <chrono>
 #include "stdio.h"
 
 namespace py = pybind11;
@@ -55,29 +55,45 @@ const SIZE_TYPE MAX_BLOCKS_NUM = 96 * 8;
 class GPMA
 {
 public:
-    // NOTE: Assuming that keys holds the column_indices
-    // and values is the column indices (subject to change)
-    DEV_VEC_KEY keys;
-    DEV_VEC_VALUE values;
+    DEV_VEC_SIZE row_offset; // row offset vector
+    DEV_VEC_KEY keys;   // column indices vector
+    DEV_VEC_VALUE values;   // edge IDs vector
 
+    // node and edge metadata
+    SIZE_TYPE row_num; // number of nodes
+    SIZE_TYPE edge_count = 0;
+
+    // node degree vectors
+    DEV_VEC_SIZE in_degree;
+    DEV_VEC_SIZE out_degree;
+    DEV_VEC_SIZE cum_out_degree; // cummulative out degree
+
+    // pointers to pinned node degree vectors
+    SIZE_TYPE* in_degree_host;
+    SIZE_TYPE* out_degree_host;
+
+    // pointers to reverse CSR
+    SIZE_TYPE* bwd_row_offset = NULL;
+    KEY_TYPE* bwd_keys = NULL;
+    VALUE_TYPE* bwd_values = NULL;
+
+    // (add|delete)_updates stores the add/delete updates of every timestamp
+    // (add|delete)_updates_count maintains the number of additions/deletions
+    // in every timestamp
+    std::vector<KEY_TYPE *> add_updates;
+    std::vector<int> add_updates_count;
+    std::vector<KEY_TYPE *> delete_updates;
+    std::vector<int> delete_updates_count;
+
+    // GPMA helper datastructures
     SIZE_TYPE segment_length;
     SIZE_TYPE tree_height;
-
     double density_lower_thres_leaf = 0.08;
     double density_lower_thres_root = 0.42;
     double density_upper_thres_root = 0.84;
     double density_upper_thres_leaf = 0.92;
-
     thrust::host_vector<SIZE_TYPE> lower_element;
     thrust::host_vector<SIZE_TYPE> upper_element;
-
-    // addition for csr
-    SIZE_TYPE row_num; // number of nodes
-    DEV_VEC_SIZE row_offset;
-
-    int edge_count = 0;
-    std::vector<unsigned int> in_degree;
-    std::vector<unsigned int> out_degree;
 
     GPMA();
 
@@ -161,23 +177,25 @@ __host__ void recalculate_density(GPMA &gpma)
 __device__ void cub_sort_key_value(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE size, KEY_TYPE *tmp_keys,
                                    VALUE_TYPE *tmp_values)
 {
+    // Create a set of DoubleBuffers to wrap pairs of device pointers
+    cub::DoubleBuffer<KEY_TYPE> d_keys(keys, tmp_keys);
+    cub::DoubleBuffer<VALUE_TYPE> d_values(values, tmp_values);
 
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
 
-    cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, keys, tmp_keys, values, tmp_values, size));
+    cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_keys, d_values, size));
     cErr(cudaDeviceSynchronize());
     cErr(cudaMalloc(&d_temp_storage, temp_storage_bytes));
     cErr(cudaDeviceSynchronize());
-    cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, keys, tmp_keys, values, tmp_values, size));
+    cErr(cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_keys, d_values, size));
     cErr(cudaDeviceSynchronize());
 
     SIZE_TYPE THREADS_NUM = 128;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, size);
-    memcpy_kernel<KEY_TYPE><<<BLOCKS_NUM, THREADS_NUM>>>(keys, tmp_keys, size);
-    memcpy_kernel<VALUE_TYPE><<<BLOCKS_NUM, THREADS_NUM>>>(values, tmp_values, size);
+    memcpy_kernel<KEY_TYPE><<<BLOCKS_NUM, THREADS_NUM>>>(d_keys.Alternate(), d_keys.Current(), size);
+    memcpy_kernel<VALUE_TYPE><<<BLOCKS_NUM, THREADS_NUM>>>(d_values.Alternate(), d_values.Current(), size);
     cErr(cudaDeviceSynchronize());
-
     cErr(cudaFree(d_temp_storage));
 }
 
@@ -923,10 +941,15 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     gpma.row_num = row_num;
     gpma.row_offset.resize(row_num + 1, 0);
 
-    // initialising in_degree and out_degree arrays
+    // initialising in_degree, out_degree and cum_out_degree arrays
     // with all zero values
     gpma.in_degree.resize(row_num, 0);
     gpma.out_degree.resize(row_num, 0);
+    gpma.cum_out_degree.resize(row_num, 0);
+
+    // allocating pinned memory for node degree vectors
+    cErr(cudaMallocHost(&gpma.in_degree_host, sizeof(SIZE_TYPE) * row_num));
+    cErr(cudaMallocHost(&gpma.out_degree_host, sizeof(SIZE_TYPE) * row_num));
 
     // creates a device vector of size row_num
     DEV_VEC_KEY row_wall(row_num);
@@ -943,7 +966,312 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     cErr(cudaDeviceSynchronize());
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////// GPMA APIs ///////////////////////////////////////////////////////////
+
+void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, std::vector<std::tuple<int, int>>>> updates, bool reverse_edges = false)
+{
+
+    gpma.add_updates.resize(updates.size());
+    gpma.delete_updates.resize(updates.size());
+    gpma.add_updates_count.resize(updates.size());
+    gpma.delete_updates_count.resize(updates.size());
+
+    std::vector<std::tuple<int, int>> update_tup;
+
+    for (int t = 0; t < updates.size(); ++t)
+    {
+        // preparing keys of edges to be added
+        update_tup = updates[std::to_string(t)]["add"];
+        std::vector<KEY_TYPE> add_key(update_tup.size());
+        for (int i = 0; i < update_tup.size(); ++i)
+        {
+            unsigned int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            unsigned int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            add_key[i] = ((KEY_TYPE)src << 32) + dst;
+        }
+
+        // preparing keys of edges to be deleted
+        update_tup = updates[std::to_string(t)]["delete"];
+        std::vector<KEY_TYPE> delete_key(update_tup.size());
+        for (int i = 0; i < update_tup.size(); ++i)
+        {
+            unsigned int src = reverse_edges ? std::get<1>(update_tup[i]) : std::get<0>(update_tup[i]);
+            unsigned int dst = reverse_edges ? std::get<0>(update_tup[i]) : std::get<1>(update_tup[i]);
+            delete_key[i] = ((KEY_TYPE)src << 32) + dst;
+        }
+
+        // allocating and copying to pinned memory
+        KEY_TYPE *pinned_add_key;
+        KEY_TYPE *pinned_delete_key;
+        cErr(cudaMallocHost(&pinned_add_key, sizeof(KEY_TYPE) * add_key.size()));
+        cErr(cudaMallocHost(&pinned_delete_key, sizeof(KEY_TYPE) * delete_key.size()));
+        cErr(cudaMemcpy(pinned_add_key, add_key.data(), sizeof(KEY_TYPE) * add_key.size(), cudaMemcpyHostToHost));
+        cErr(cudaMemcpy(pinned_delete_key, delete_key.data(), sizeof(KEY_TYPE) * delete_key.size(), cudaMemcpyHostToHost));
+
+        // storing the pointers and counts in GPMA object
+        gpma.add_updates[t] = pinned_add_key;
+        gpma.delete_updates[t] = pinned_delete_key;
+        gpma.add_updates_count[t] = updates[std::to_string(t)]["add"].size();
+        gpma.delete_updates_count[t] = updates[std::to_string(t)]["delete"].size();
+    }
+}
+
+__global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* updates, int updates_size, bool is_delete){
+    int index = blockDim.x * blockIdx.x + threadIdx.x;
+    int block_offset = gridDim.x * blockDim.x;
+    for(; index < updates_size; index += block_offset){
+        KEY_TYPE key = updates[index];
+        SIZE_TYPE src = (SIZE_TYPE)(key >> 32);
+        SIZE_TYPE dst = (SIZE_TYPE)(key);
+
+        if(is_delete){
+            atomicSub(&in_degree[dst],1);
+            atomicSub(&out_degree[src],1);
+        }else{
+            atomicAdd(&in_degree[dst],1);
+            atomicAdd(&out_degree[src],1);
+        }
+    }
+}
+
+void update_node_degrees(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* add_keys, int add_key_size, KEY_TYPE* del_keys, int del_key_size){
+    
+    // Updating node degrees associated with added edges
+    SIZE_TYPE THREADS_NUM = 128;
+    SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)add_key_size);
+    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, add_keys, add_key_size,false);
+
+    // Updating node degrees associated with deleted edges
+    BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)del_key_size);
+    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, del_keys, del_key_size, true);
+    cErr(cudaDeviceSynchronize());
+}
+
+std::vector<float> edge_update_t(GPMA &gpma, int timestamp, bool revert_update = false)
+{   
+    // This function performs/reverts the updates of a given timestamp
+    // based on if revert_update is false or true respectively.
+
+    int add_edge_count, delete_edge_count;
+    KEY_TYPE *add_updates_ptr, *delete_updates_ptr;
+    KEY_TYPE *add_key_device, *delete_key_device;
+
+    if (revert_update)
+    {
+        add_edge_count = gpma.delete_updates_count[timestamp];
+        delete_edge_count = gpma.add_updates_count[timestamp];
+        add_updates_ptr = gpma.delete_updates[timestamp];
+        delete_updates_ptr = gpma.add_updates[timestamp];
+    }
+    else
+    {
+        add_edge_count = gpma.add_updates_count[timestamp];
+        delete_edge_count = gpma.delete_updates_count[timestamp];
+        add_updates_ptr = gpma.add_updates[timestamp];
+        delete_updates_ptr = gpma.delete_updates[timestamp];
+    }
+    gpma.edge_count = gpma.edge_count + add_edge_count - delete_edge_count;
+
+    // Preparing data for addition updates
+    cErr(cudaMalloc(&add_key_device, sizeof(KEY_TYPE) * add_edge_count));
+    cErr(cudaMemcpy(add_key_device, add_updates_ptr, sizeof(KEY_TYPE) * add_edge_count, cudaMemcpyHostToDevice));
+    thrust::device_ptr<KEY_TYPE> add_key_thrust_dev_ptr = thrust::device_pointer_cast(add_key_device);
+    DEV_VEC_KEY add_key_thrust_dev(add_key_thrust_dev_ptr, add_key_thrust_dev_ptr + add_edge_count);
+    thrust::device_vector<VALUE_TYPE> add_value_thrust_dev(add_edge_count, 1);
+    cudaDeviceSynchronize();
+
+    // Preparing data for deletion updates
+    cErr(cudaMalloc(&delete_key_device, sizeof(KEY_TYPE) * delete_edge_count));
+    cErr(cudaMemcpy(delete_key_device, delete_updates_ptr, sizeof(KEY_TYPE) * delete_edge_count, cudaMemcpyHostToDevice));
+    thrust::device_ptr<KEY_TYPE> delete_key_thrust_dev_ptr = thrust::device_pointer_cast(delete_key_device);
+    DEV_VEC_KEY delete_key_thrust_dev(delete_key_thrust_dev_ptr, delete_key_thrust_dev_ptr + delete_edge_count);
+    thrust::device_vector<VALUE_TYPE> delete_value_thrust_dev(delete_edge_count, VALUE_NONE);
+    cudaDeviceSynchronize();
+
+    // Performing GPMA update
+    auto start_time_update = std::chrono::high_resolution_clock::now();
+    update_gpma(gpma, add_key_thrust_dev, add_value_thrust_dev);
+    cudaDeviceSynchronize();
+    update_gpma(gpma, delete_key_thrust_dev, delete_value_thrust_dev);
+    cudaDeviceSynchronize();
+    auto end_time_update = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> time_update = (end_time_update - start_time_update);
+
+    // Performing node degree update
+    auto start_time_node_degrees = std::chrono::high_resolution_clock::now();
+    update_node_degrees(RAW_PTR(gpma.in_degree), RAW_PTR(gpma.out_degree), add_key_device, add_edge_count, delete_key_device, delete_edge_count);
+    auto end_time_node_degrees = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> time_node_degree = (end_time_node_degrees - start_time_node_degrees);
+
+    // freeing resources
+    cErr(cudaFree(add_key_device));
+    cErr(cudaFree(delete_key_device));
+
+    std::vector<float> vec;
+    vec.push_back(time_update.count());
+    vec.push_back(time_node_degree.count());
+    return vec;
+}
+
+__global__ void label_edges_kernel(SIZE_TYPE* row_offset, KEY_TYPE* column_indices, VALUE_TYPE* eids, SIZE_TYPE* cum_out_degree, int cum_out_degree_size){
+    
+    int index = blockDim.x * blockIdx.x + threadIdx.x;
+    int block_offset = gridDim.x * blockDim.x;
+    int edge_count = 1;
+    int beg, end;
+
+    for(; index < cum_out_degree_size; index += block_offset){
+        beg = row_offset[index];
+        end = row_offset[index+1];
+
+        if(index > 0){
+            edge_count = cum_out_degree[index-1]+1;
+        }
+        
+        for(int i=beg; i<end; ++i){
+            KEY_TYPE key = column_indices[i];
+            VALUE_TYPE value = eids[i];
+            if (key != KEY_MAX && (key & 0xffffffff) != COL_IDX_NONE && value != VALUE_NONE)
+            {
+                eids[i] = edge_count;
+                ++edge_count;
+            }
+        }
+    }
+}
+
+void label_edges(GPMA &gpma){
+    // Calculating cummulative out degrees
+    void *d_temp_storage = NULL;
+    size_t temp_storage_bytes = 0;
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.out_degree), RAW_PTR(gpma.cum_out_degree), gpma.row_num);
+    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.out_degree), RAW_PTR(gpma.cum_out_degree), gpma.row_num);
+    cErr(cudaDeviceSynchronize());
+    cErr(cudaFree(d_temp_storage));
+
+    // Invoking the label edges kernel
+    SIZE_TYPE THREADS_NUM = 128;
+    SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)gpma.row_num);
+    label_edges_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(RAW_PTR(gpma.row_offset), RAW_PTR(gpma.keys), RAW_PTR(gpma.values), RAW_PTR(gpma.cum_out_degree), gpma.row_num);
+    cErr(cudaDeviceSynchronize());
+}
+
+__global__ void count_sort_kernel(SIZE_TYPE* bwd_row_offset, KEY_TYPE* bwd_column_indices, VALUE_TYPE* bwd_values, SIZE_TYPE* fwd_row_offset, KEY_TYPE* fwd_column_indices, VALUE_TYPE* fwd_values, int row_offset_size){
+    // [WARNING 1] HERE (src,pos) WE ARE INDEXING WITH UNISGNED INT
+    // THERE ARE POTENTIAL ISSUES THAT NEED TO BE CONSIDERED
+    // [WARNING 2] THIS IS NO LONGER A STABLE SORT
+    
+    int index = blockDim.x * blockIdx.x + threadIdx.x;
+    int block_offset = gridDim.x * blockDim.x;
+
+    for(; index < row_offset_size-1; index += block_offset){
+        int beg = fwd_row_offset[index];
+        int end = fwd_row_offset[index+1];
+        for(int i=beg; i<end; ++i){
+            KEY_TYPE key = fwd_column_indices[i];
+            VALUE_TYPE value = fwd_values[i];
+            SIZE_TYPE src = key;
+            if (key != KEY_MAX && src != COL_IDX_NONE && value != VALUE_NONE)
+            {
+                SIZE_TYPE pos = atomicSub(&bwd_row_offset[src],1) - 1;
+                bwd_column_indices[pos] = ((KEY_TYPE)src << 32) + (key >> 32);
+                bwd_values[pos] = value;
+            }
+        }
+    }
+}
+
+std::vector<float> build_backward_csr(GPMA &gpma){
+
+    // Step 1: Allocate space for backward CSR vectors
+    auto start_time_alloc = std::chrono::high_resolution_clock::now();
+    cErr(cudaMalloc(&gpma.bwd_row_offset, (gpma.row_num+1) * sizeof(SIZE_TYPE)));
+    cErr(cudaMalloc(&gpma.bwd_keys, gpma.edge_count * sizeof(KEY_TYPE)));
+    cErr(cudaMalloc(&gpma.bwd_values, gpma.edge_count * sizeof(VALUE_TYPE)));
+    auto end_time_alloc = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> time_alloc = (end_time_alloc - start_time_alloc);
+
+    // Step 2: Find the cummulative sum of the in-degree vector
+    auto start_time_cum = std::chrono::high_resolution_clock::now();
+    void *d_temp_storage = NULL;
+    size_t temp_storage_bytes = 0;
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.in_degree), gpma.bwd_row_offset, gpma.row_num);
+    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, RAW_PTR(gpma.in_degree), gpma.bwd_row_offset, gpma.row_num);
+    cErr(cudaDeviceSynchronize());
+    cErr(cudaFree(d_temp_storage));
+
+    // Step 3: Insert the edge count in the last element slot in bwd_row_offset
+    SIZE_TYPE edge_count = gpma.edge_count;
+    cudaMemcpy(gpma.bwd_row_offset + gpma.row_num, &edge_count, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+    auto end_time_cum = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> time_cum = (end_time_cum - start_time_cum);
+
+    // Step 4: Invoke the count_sort_kernel to perform the sort using the
+    // last 32-bits as key
+    auto start_time_count = std::chrono::high_resolution_clock::now();
+    SIZE_TYPE THREADS_NUM = 128;
+    SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)gpma.keys.size());
+    count_sort_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(gpma.bwd_row_offset, gpma.bwd_keys, gpma.bwd_values, RAW_PTR(gpma.row_offset), RAW_PTR(gpma.keys), RAW_PTR(gpma.values), gpma.row_offset.size());
+    cErr(cudaDeviceSynchronize());
+    auto end_time_count = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> time_count = (end_time_count - start_time_count);
+
+    std::vector<float> res;
+    res.push_back(time_alloc.count());
+    res.push_back(time_cum.count());
+    res.push_back(time_count.count());
+    return res;
+}
+
+void free_backward_csr(GPMA &gpma){
+    cErr(cudaFree(gpma.bwd_row_offset));
+    cErr(cudaFree(gpma.bwd_keys));
+    cErr(cudaFree(gpma.bwd_values));
+}
+
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)
+{
+    // This function returns CSR pointers to forward or backward graph
+    // based on if is_backward is false or true respectively.
+
+    std::tuple<std::size_t, std::size_t, std::size_t> t;
+    if(is_backward){
+        std::get<0>(t) = (std::uintptr_t)gpma.bwd_row_offset;
+        std::get<1>(t) = (std::uintptr_t)gpma.bwd_keys;
+        std::get<2>(t) = (std::uintptr_t)gpma.bwd_values;
+    }else{
+        std::get<0>(t) = (std::uintptr_t)RAW_PTR(gpma.row_offset);
+        std::get<1>(t) = (std::uintptr_t)RAW_PTR(gpma.keys);
+        std::get<2>(t) = (std::uintptr_t)RAW_PTR(gpma.values);
+    }
+    return t;
+}
+
+std::vector<SIZE_TYPE> get_in_degrees(GPMA &gpma){
+    cErr(cudaMemcpy(gpma.in_degree_host, RAW_PTR(gpma.in_degree), sizeof(SIZE_TYPE) * gpma.row_num, cudaMemcpyDeviceToHost));
+    std::vector<SIZE_TYPE> in_degree(gpma.in_degree_host, gpma.in_degree_host + gpma.row_num);
+    return in_degree;
+} 
+
+std::vector<SIZE_TYPE> get_out_degrees(GPMA &gpma){
+    cErr(cudaMemcpy(gpma.out_degree_host, RAW_PTR(gpma.out_degree), sizeof(SIZE_TYPE) * gpma.row_num, cudaMemcpyDeviceToHost));
+    std::vector<SIZE_TYPE> out_degree(gpma.out_degree_host, gpma.out_degree_host + gpma.row_num);
+    return out_degree;
+} 
+
+//////////////////////////////////////// GPMA Logging APIs ///////////////////////////////////////////////////////////
+
+std::tuple<int, int> get_graph_attr(GPMA &gpma)
+{
+    std::tuple<int, int> t;
+
+    // Since row_offset has size num_nodes + 1
+    std::get<0>(t) = gpma.row_offset.size() - 1;
+    std::get<1>(t) = gpma.edge_count;
+    return t;
+}
 
 void print_gpma_info(GPMA &gpma, int node)
 {
@@ -964,374 +1292,140 @@ void print_gpma_info(GPMA &gpma, int node)
     unsigned int end = row_offset[node + 1];
     int print_count = 0;
 
-    std::cout << "\n🌟 Column Indices for node: " << node << "(" << beg << ", " << end << ")"
-              << "\n\n";
-    std::cout << std::setw(6);
+    py::print("\n🌟 Column Indices for node: ", node, "(", beg, ", ", end, ")", "\n\n");
+    // std::cout << std::setw(6);
 
     for (int i = beg; i < end; ++i)
     {
-        KEY_TYPE mask = (KEY_TYPE)node << 32;
-        unsigned int dst = (col_indices[i] - mask);
+        // KEY_TYPE mask = (KEY_TYPE)node << 32;
+        // unsigned int dst = (col_indices[i] - mask);
+        unsigned int dst = (col_indices[i] & 0xffffffff);
         VALUE_TYPE val = edge_values[i];
 
-        if (dst != COL_IDX_NONE && val != VALUE_NONE)
+        if (col_indices[i] != KEY_MAX && (col_indices[i] & COL_IDX_NONE != COL_IDX_NONE) && val != VALUE_NONE)
         {
-            std::cout << dst << "(" << val << ")" << std::setw(6);
+            py::print("[", col_indices[i], "] ", dst, "(", val, ")", "  ");
         }
         else
         {
-            std::cout << "-" << std::setw(6);
+            py::print("[", col_indices[i], "] ", "(-)(", val, ")", "  ");
         }
         print_count += 1;
 
         if (print_count > 10)
         {
-            printf("\n");
+            py::print("\n");
             print_count = 0;
         }
     }
-    printf("\n\n");
+    py::print("\n\n");
 }
 
-void load_data(const char *file_path, thrust::host_vector<int> &host_x, thrust::host_vector<int> &host_y,
-               int &node_size, int &edge_size)
+std::set<std::tuple<unsigned int, unsigned int, unsigned int>> get_gpma_edge_list(GPMA &gpma)
 {
 
-    FILE *fp;
-    fp = fopen(file_path, "r");
-    if (not fp)
-    {
-        printf("Open graph file failed.\n");
-        exit(0);
-    }
+    std::set<std::tuple<unsigned int, unsigned int, unsigned int>> vec;
+    thrust::host_vector<SIZE_TYPE> h_ref_row_offset = gpma.row_offset;
+    thrust::host_vector<KEY_TYPE>
+        h_ref_keys = gpma.keys;
+    thrust::host_vector<VALUE_TYPE> h_ref_values = gpma.values;
 
-    // gets the number of nodes and edges from the first line
-    // [num_nodes] [num_edges]
-    fscanf(fp, "%d %d", &node_size, &edge_size);
-    printf("node_num: %d, edge_num: %d\n", node_size, edge_size);
+    cErr(cudaDeviceSynchronize());
 
-    // dynamic resizing to fit all edges
-    host_x.resize(edge_size);
-    host_y.resize(edge_size);
-
-    // loads the src and dst nodes into x_host
-    // and y_host respectively
-    for (int i = 0; i < edge_size; i++)
-    {
-        int x, y;
-
-        // [src_node] [dst_node]
-        fscanf(fp, "%d %d", &x, &y);
-        host_x[i] = x;
-        host_y[i] = y;
-    }
-
-    printf("Graph file is loaded.\n");
-    fclose(fp);
-}
-
-void load_graph(GPMA &gpma, const char *file_path)
-{
-    // sets the GPU Malloc Heap Size to 1GB
-    // we could change the limit accordingly
-    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
-
-    // controls the maximum nesting depth of a grid at which
-    // a thread can safely call cudaDeviceSynchronize()
-    // cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
-
-    // we are defining two host_vectors on the CPU
-    // host_x will contain the src nodes and
-    // host_y will contain the destination nodes of the edge
-    thrust::host_vector<int> host_x;
-    thrust::host_vector<int> host_y;
-
-    int node_size; // num of nodes
-    int edge_size; // num of edges
-
-    // loads the graph edges
-    load_data(file_path, host_x, host_y, node_size, edge_size);
-
-    // we are starting out with half the number of edges
-    // as the initial graph. After this is done, the other
-    // half of edges are added dynamically to the graph in
-    // batches of 100 edges
-    int half = edge_size / 2;
-
-    // h_base_key is a host_vector to maintain a unique ID
-    // for each edge. KEY_TYPE = unsigned long long.
-    // The unique ID is a 64-bit number, where the first 32 bits
-    // represent the source node and the last 32-bits the
-    // destination node.
-    thrust::host_vector<KEY_TYPE> h_base_keys(half);
-
-    // looping over half the edges to create the unique edge ID.
-    // It shifts the source node ID (64-bit after casting) by 32 bits
-    // to the left and the 32-bit destination node ID is added
-    // to the 32-bits on the left of source node ID
-    for (int i = 0; i < half; i++)
-        h_base_keys[i] = ((KEY_TYPE)host_x[i] << 32) + host_y[i];
-
-    // device_vector<unsigned long long>. The unique edge IDs are
-    // copied into the GPU device through a device_vector
-    DEV_VEC_KEY base_keys = h_base_keys;
-
-    // device_vector<double>. device_vector of size
-    // half = num_edges/2. Contains the value of the edges.
-    // Initialised to 1 and stored in GPU device
-    DEV_VEC_VALUE base_values(half, 1);
-
-    // the base keys and values are being transferred to
-    // GPU device. Host is waiting for that task to complete
-    // before continuing with the rest.
-    cudaDeviceSynchronize();
-
-    init_gpma(gpma, node_size); //
-    cudaDeviceSynchronize();
-
-    update_gpma(gpma, base_keys, base_values);
-    cudaDeviceSynchronize();
-
-    printf("Graph is updated.\n");
-}
-
-void edge_update_list(GPMA &gpma, std::vector<std::tuple<int, int>> edge_list, bool is_delete = false, bool is_reverse_edge = false)
-{
-    // NOTE:: Should we set these limits every single time?
-    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 1024ll * 1024);
-    // cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 5);
-
-    thrust::host_vector<int> host_src;
-    thrust::host_vector<int> host_dst;
-
-    int edge_count = 0;
-
-    // iterating through a vector of tuples
-    // each tuple is of the form (src_node, dst_node)
-
-    for (auto &edge : edge_list)
-    {
-
-        int src = (is_reverse_edge == true) ? std::get<1>(edge) : std::get<0>(edge);
-        int dst = (is_reverse_edge == true) ? std::get<0>(edge) : std::get<1>(edge);
-
-        // updating the in-degree and out-degree of
-        // destination and source node respectively
-        if (is_delete)
-        {
-            gpma.in_degree[dst] -= 1;
-            gpma.out_degree[src] -= 1;
-        }
-        else
-        {
-            gpma.in_degree[dst] += 1;
-            gpma.out_degree[src] += 1;
-        }
-
-        host_src.push_back(src);
-        host_dst.push_back(dst);
-
-        ++edge_count;
-    }
-
-    gpma.edge_count = is_delete ? gpma.edge_count - edge_count : gpma.edge_count + edge_count;
-
-    thrust::host_vector<KEY_TYPE> h_base_keys(edge_count);
-
-    for (int i = 0; i < edge_count; i++)
-        h_base_keys[i] = ((KEY_TYPE)host_src[i] << 32) + host_dst[i];
-
-    DEV_VEC_KEY base_keys = h_base_keys;
-    cudaDeviceSynchronize();
-
-    DEV_VEC_VALUE base_values(edge_count);
-
-    if (is_delete)
-        thrust::fill(base_values.begin(), base_values.end(), VALUE_NONE);
-    else
-        thrust::fill(base_values.begin(), base_values.end(), 1);
-
-    cudaDeviceSynchronize();
-
-    update_gpma(gpma, base_keys, base_values);
-    cudaDeviceSynchronize();
-}
-
-void label_edges(GPMA &gpma)
-{
-    int edge_label_counter = 1;
-
-    thrust::host_vector<SIZE_TYPE> h_row_offset = gpma.row_offset;
-    thrust::host_vector<KEY_TYPE> h_keys = gpma.keys;
-    thrust::host_vector<VALUE_TYPE> h_values = gpma.values;
-
-    for (int node = 0; node < h_row_offset.size() - 1; ++node)
-    {
-        unsigned int beg = h_row_offset[node];
-        unsigned int end = h_row_offset[node + 1];
-
-        for (int i = beg; i < end; ++i)
-        {
-            KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (h_keys[i] - mask);
-            if (dst != COL_IDX_NONE && h_values[i] != VALUE_NONE)
-            {
-                h_values[i] = edge_label_counter;
-                edge_label_counter += 1;
-            }
-        }
-    }
-
-    gpma.row_offset = h_row_offset;
-    gpma.keys = h_keys;
-    gpma.values = h_values;
-}
-
-void copy_label_edges(GPMA &gpma, GPMA &ref_gpma)
-{
-    int edge_counter = 0;
-
-    // creating the host vector version for keys
-    // and values for the new gpma
-    thrust::host_vector<KEY_TYPE> h_new_keys(ref_gpma.edge_count);
-    thrust::host_vector<VALUE_TYPE> h_new_values(ref_gpma.edge_count);
-
-    // creating the host vectors for the CSR arrays of the
-    // reference GPMA from it's device vectors
-    thrust::host_vector<SIZE_TYPE> h_ref_row_offset = ref_gpma.row_offset;
-    thrust::host_vector<KEY_TYPE> h_ref_keys = ref_gpma.keys;
-    thrust::host_vector<VALUE_TYPE> h_ref_values = ref_gpma.values;
-
-    DEV_VEC_KEY d_new_keys(ref_gpma.edge_count);
-    DEV_VEC_VALUE d_new_values(ref_gpma.edge_count);
+    // py::print("ROW_OFFSET: ", h_ref_row_offset.size());
+    // py::print("COL_IDX_SIZE: ", h_ref_keys.size());
+    // py::print("VALUES_SIZE: ", h_ref_values.size());
 
     for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
     {
-        unsigned int beg = h_ref_row_offset[node];
-        unsigned int end = h_ref_row_offset[node + 1];
-
-        for (int i = beg; i < end; ++i)
+        SIZE_TYPE beg = h_ref_row_offset[node];
+        SIZE_TYPE end = h_ref_row_offset[node + 1];
+        for (SIZE_TYPE i = beg; i < end; ++i)
         {
-            KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (h_ref_keys[i] - mask);
-            if (dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
+            // h_ref_keys[i] != KEY_MAX && h_ref_keys[i] != KEY_NONE
+            // KEY_TYPE mask = (KEY_TYPE)node << 32;
+            // unsigned int dst = (h_ref_keys[i] - mask);
+            unsigned int dst = (h_ref_keys[i] & 0xffffffff);
+            if (h_ref_keys[i] != KEY_MAX && dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
             {
-                h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + node;
-                h_new_values[edge_counter] = h_ref_values[i];
-                edge_counter += 1;
+                std::tuple<unsigned int, unsigned int, unsigned int> tup;
+                unsigned int src = (h_ref_keys[i] >> 32);
+                std::get<0>(tup) = src;
+                std::get<1>(tup) = dst;
+                std::get<2>(tup) = h_ref_values[i];
+                vec.insert(tup);
             }
         }
     }
 
-    d_new_keys = h_new_keys;
-    d_new_values = h_new_values;
-
-    // NOTE: Verify if sorting is really required or not
-    thrust::sort_by_key(d_new_keys.begin(), d_new_keys.end(), d_new_values.begin());
-    cudaDeviceSynchronize();
-
-    locate_leaf_batch(RAW_PTR(gpma.keys), RAW_PTR(gpma.values), gpma.keys.size(), gpma.segment_length, gpma.tree_height,
-                      RAW_PTR(d_new_keys), RAW_PTR(d_new_values), d_new_keys.size(), NULL, false);
-
-    cudaDeviceSynchronize();
+    return vec;
 }
 
-void build_reverse_gpma(GPMA &gpma, GPMA &ref_gpma)
+std::set<std::tuple<unsigned int, unsigned int, unsigned int>> get_reverse_csr_edge_list(GPMA &gpma)
 {
-    // This funtion expects an empty initialized GPMA
-    // as first param and the reference GPMA from which
-    // edges are to be added as the second param
+    SIZE_TYPE* h_ref_row_offset = (SIZE_TYPE*) malloc((gpma.row_num+1) * sizeof(SIZE_TYPE));
+    KEY_TYPE* h_ref_keys = (KEY_TYPE*) malloc((gpma.edge_count) * sizeof(KEY_TYPE));
+    VALUE_TYPE* h_ref_values = (VALUE_TYPE*) malloc((gpma.edge_count) * sizeof(VALUE_TYPE));
 
-    int edge_counter = 0;
 
-    // creating host_vectors for the new GPMA
-    thrust::host_vector<KEY_TYPE> h_new_keys(ref_gpma.edge_count);
-    thrust::host_vector<VALUE_TYPE> h_new_values(ref_gpma.edge_count);
+    cErr(cudaMemcpy(h_ref_row_offset, gpma.bwd_row_offset, (gpma.row_num+1) * sizeof(SIZE_TYPE), cudaMemcpyDeviceToHost));
+    cErr(cudaMemcpy(h_ref_keys, gpma.bwd_keys, (gpma.edge_count) * sizeof(KEY_TYPE), cudaMemcpyDeviceToHost));
+    cErr(cudaMemcpy(h_ref_values, gpma.bwd_values, (gpma.edge_count) * sizeof(VALUE_TYPE), cudaMemcpyDeviceToHost));
 
-    // creating the host vectors for the CSR arrays of the
-    // reference GPMA from it's device vectors
-    thrust::host_vector<SIZE_TYPE> h_ref_row_offset = ref_gpma.row_offset;
-    thrust::host_vector<KEY_TYPE> h_ref_keys = ref_gpma.keys;
-    thrust::host_vector<VALUE_TYPE> h_ref_values = ref_gpma.values;
+    std::set<std::tuple<unsigned int, unsigned int, unsigned int>> vec;
 
-    DEV_VEC_KEY d_new_keys(ref_gpma.edge_count);
-    DEV_VEC_VALUE d_new_values(ref_gpma.edge_count);
+    // py::print("ROW_OFFSET: ", h_ref_row_offset.size());
+    // py::print("COL_IDX_SIZE: ", h_ref_keys.size());
+    // py::print("VALUES_SIZE: ", h_ref_values.size());
 
-    for (int node = 0; node < h_ref_row_offset.size() - 1; ++node)
+    for (int node = 0; node < gpma.row_num; ++node)
     {
-        unsigned int beg = h_ref_row_offset[node];
-        unsigned int end = h_ref_row_offset[node + 1];
-
-        for (int i = beg; i < end; ++i)
+        SIZE_TYPE beg = h_ref_row_offset[node];
+        SIZE_TYPE end = h_ref_row_offset[node + 1];
+        for (SIZE_TYPE i = beg; i < end; ++i)
         {
-            KEY_TYPE mask = (KEY_TYPE)node << 32;
-            unsigned int dst = (h_ref_keys[i] - mask);
-            if (dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
+            // h_ref_keys[i] != KEY_MAX && h_ref_keys[i] != KEY_NONE
+            // KEY_TYPE mask = (KEY_TYPE)node << 32;
+            // unsigned int dst = (h_ref_keys[i] - mask);
+            unsigned int dst = (h_ref_keys[i] & 0xffffffff);
+            if (h_ref_keys[i] != KEY_MAX && dst != COL_IDX_NONE && h_ref_values[i] != VALUE_NONE)
             {
-                h_new_keys[edge_counter] = (h_ref_keys[i] << 32) + node;
-                h_new_values[edge_counter] = h_ref_values[i];
-                edge_counter += 1;
+                std::tuple<unsigned int, unsigned int, unsigned int> tup;
+                unsigned int src = (h_ref_keys[i] >> 32);
+                std::get<0>(tup) = src;
+                std::get<1>(tup) = dst;
+                std::get<2>(tup) = h_ref_values[i];
+                vec.insert(tup);
             }
         }
     }
 
-    d_new_keys = h_new_keys;
-    d_new_values = h_new_values;
-
-    update_gpma(gpma, d_new_keys, d_new_values);
-    cudaDeviceSynchronize();
-}
-
-std::tuple<std::size_t, std::size_t, std::size_t> get_csr_ptrs(GPMA &gpma)
-{
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
-    std::get<0>(t) = (std::size_t)RAW_PTR(gpma.row_offset);
-    std::get<1>(t) = (std::size_t)RAW_PTR(gpma.keys);
-    std::get<2>(t) = (std::size_t)RAW_PTR(gpma.values);
-    return t;
-}
-
-std::tuple<int, int> get_graph_attr(GPMA &gpma)
-{
-    std::tuple<int, int> t;
-
-    // Since row_offset has size num_nodes + 1
-    std::get<0>(t) = gpma.row_offset.size() - 1;
-    std::get<1>(t) = gpma.edge_count;
-    return t;
+    return vec;
 }
 
 PYBIND11_MODULE(gpma, m)
 {
     m.doc() = "CPython module for GPMA"; // optional module docstring
 
-    m.def("init_gpma", &init_gpma, "Initialises the CSR arrays using GPMA");
-    m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
-    m.def("load_graph", &load_graph, "Loads a graph data into a GPMA");
-    m.def("edge_update_list", &edge_update_list, "Updates the GPMA by adding/deleting edges from the edge list", py::arg("gpma"), py::arg("edge_list"), py::arg("is_delete") = false, py::arg("is_reverse_edge") = false);
-    m.def("label_edges", &label_edges, "Creates edge labels for the current GPMA");
-    m.def("copy_label_edges", &copy_label_edges, "Label edges of a GPMA based on another GPMA");
-    m.def("build_reverse_gpma", &build_reverse_gpma, "Builds the reverse GPMA based on another GPMA");
-    m.def("get_csr_ptrs", &get_csr_ptrs, "Returns the pointers to row_offset, col_indices and edge_ids");
+    // GPMA APIs
+    m.def("init_gpma", &init_gpma, "Initialises the CSR arrays using GPMA", py::arg("gpma"), py::arg("num_nodes"));
+    m.def("init_graph_updates", &init_graph_updates, "Initialize graph updates", py::arg("gpma"), py::arg("updates"), py::arg("reverse_edges") = false);
+    m.def("edge_update_t", &edge_update_t, "Performs the updates of the given timestamp", py::arg("gpma"), py::arg("timestamp"), py::arg("revert_update") = false);
+    m.def("label_edges", &label_edges, "Labels edges of the given GPMA", py::arg("gpma"));
+    m.def("build_backward_csr", &build_backward_csr, "Build the backward CSR for given GPMA", py::arg("gpma"));
+    m.def("free_backward_csr", &free_backward_csr, "Free backward CSR resources from given GPMA", py::arg("gpma"));
+    m.def("get_csr_ptrs", &get_csr_ptrs, "Returns the pointers to row_offset, col_indices and edge_ids", py::arg("gpma"), py::arg("is_backward") = false);
+    m.def("get_in_degrees", &get_in_degrees, "Returns the in-degrees of all nodes in given GPMA", py::arg("gpma"));
+    m.def("get_out_degrees", &get_out_degrees, "Returns the out-degrees of all nodes in given GPMA", py::arg("gpma"));
+    
+    // GPMA Logging APIs
     m.def("get_graph_attr", &get_graph_attr, "Returns the [num_nodes, num_edges]");
+    m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
+    m.def("get_gpma_edge_list", &get_gpma_edge_list, "To get the edge list");
+    m.def("get_reverse_csr_edge_list", &get_reverse_csr_edge_list, "To get the edge list of reverse");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
-        .def("get_size", &GPMA::get_size)
-        .def_readwrite("keys", &GPMA::keys)
-        .def_readwrite("values", &GPMA::values)
-        .def_readwrite("segment_length", &GPMA::segment_length)
-        .def_readwrite("tree_height", &GPMA::tree_height)
-        .def_readwrite("density_lower_thres_leaf", &GPMA::density_lower_thres_leaf)
-        .def_readwrite("density_lower_thres_root", &GPMA::density_lower_thres_root)
-        .def_readwrite("density_upper_thres_root", &GPMA::density_upper_thres_root)
-        .def_readwrite("density_upper_thres_leaf", &GPMA::density_upper_thres_leaf)
-        .def_readwrite("lower_element", &GPMA::lower_element)
-        .def_readwrite("upper_element", &GPMA::upper_element)
-        .def_readwrite("row_num", &GPMA::row_num)
-        .def_readwrite("row_offset", &GPMA::row_offset)
-        .def_readwrite("in_degree", &GPMA::in_degree)
-        .def_readwrite("out_degree", &GPMA::out_degree)
         .def("__copy__", [](const GPMA &self)
              { return GPMA(self); })
         .def(
@@ -1340,5 +1434,5 @@ PYBIND11_MODULE(gpma, m)
             "memo"_a);
 }
 
-// Command used:
+// Command used for compilation:
 // /usr/local/cuda-11.7/bin/nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC'  -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o gpma.so gpma.cu

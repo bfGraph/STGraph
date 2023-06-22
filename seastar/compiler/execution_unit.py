@@ -270,8 +270,6 @@ class ExecutionUnit(object):
             col_indices_ptr = graph.fwd_column_indices_ptr
             eids_ptr = graph.fwd_eids_ptr
         else:
-            #TODO: Will probably have to change this so that this accesses 
-            #backward row_offset, col_indices, eids
             row_offsets_ptr = graph.bwd_row_offset_ptr
             col_indices_ptr = graph.bwd_column_indices_ptr
             eids_ptr = graph.bwd_eids_ptr
@@ -368,10 +366,6 @@ class Kernel():
             ASSERT_DRV(ret)
         except Exception as e:
             raise e
-        
-        # sync_ret = cudaDeviceSynchronize()
-        # if ret:
-        #     raise Exception('cudaDeviceSynchronize', sync_ret)
 
 class V2Kernel(Kernel):
     def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):

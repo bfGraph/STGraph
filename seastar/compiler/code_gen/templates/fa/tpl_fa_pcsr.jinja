@@ -28,11 +28,8 @@ extern "C" __global__ void {{kernel_name}}
                 {{index_type}} {{col_index}} = __ldg(column_indices + e);
 
                 // PCSR indexes edges starting from 1
-                // Seastar requires edgs to be indexed from 0
-                // {{index_type}} eid = __ldg(eids + e) - 1;
-
-                // New PCSR
-                {{index_type}} eid = __ldg(eids + e);
+                // Seastar requires edges to be indexed from 0
+                {{index_type}} eid = __ldg(eids + e) - 1;
                 
                 {{init_inner_offset}}
                 

@@ -8,8 +8,6 @@ References:
 import math
 import torch
 import torch.nn as nn
-import dgl
-import dgl.function as fn
 from seastar.compiler import Seastar
 from seastar.compiler.backend.pytorch.torch_callback import SeastarBackendTorch
 
@@ -38,10 +36,12 @@ class EglGCNLayer(nn.Module):
         self.seastar = Seastar(SeastarBackendTorch())
 
     def reset_parameters(self):
-        stdv = 1. / math.sqrt(self.weight.size(1))
-        self.weight.data.uniform_(-stdv, stdv)
+        # stdv = 1. / math.sqrt(self.weight.size(1))
+        # self.weight.data.uniform_(-stdv, stdv)
+        nn.init.xavier_uniform_(self.weight)
         if self.bias is not None:
-            self.bias.data.uniform_(-stdv, stdv)
+            # self.bias.data.uniform_(-stdv, stdv)
+            nn.init.zeros_(self.bias)
 
     def forward(self, h):
         if self.dropout:

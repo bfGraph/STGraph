@@ -12,27 +12,25 @@ from rich.console import Console
 
 console = Console()
 
-from rich.traceback import install
-install(show_locals=True)
+# from rich.traceback import install
+# install(show_locals=True)
 
-class EnglandCOVID:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
-        self.name = "EnglandCOVID"
-        self.lags = lags
+class FoorahBase:
+    def __init__(self, folder_name, dataset_name,verbose: bool = False, split=0.75, for_seastar= False) -> None:
+        self.name = dataset_name
         self.split = split
 
         self._graph_attr = {}
         self._graph_updates = {}
         self._max_num_nodes = 0
 
-        self._local_path = "england_covid.json"
-        self._url_path = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
+        self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
 
         self._load_dataset()
         self.total_timestamps = self._dataset["time_periods"]
         self._get_targets_and_features()
-
+        
         if for_seastar:
             self._get_edge_info_seastar()
             self._presort_edge_weights()
@@ -44,14 +42,23 @@ class EnglandCOVID:
 
     def _load_dataset(self) -> None:
         # loading the dataset by downloading them online
-        if self._verbose:
-            console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
-        self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
+        # if self._verbose:
+        #     console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
         
-        # THIS NEEDS TO BE EDITED
-        # with open('../../dataset/eng_covid/eng_covid.json', 'w') as f:
-        #     json.dump(self._dataset,f)
-    
+        # for online download
+        if os.path.exists(self._local_path):
+            dataset_file = open(self._local_path)
+            self._dataset = json.load(dataset_file)
+            if self._verbose:
+                console.log(f'Loading [cyan]{self.name}[/cyan] dataset from dataset/')
+        else:
+            console.log(f'Failed to find [cyan]{self.name}[/cyan] dataset from dataset')
+            quit()
+        
+        # for local
+        # dataset_file = open(self._local_path)
+        # self._dataset = json.load(dataset_file)
+
     def _get_edge_info_seastar(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
@@ -69,7 +76,7 @@ class EnglandCOVID:
 
             self._edge_list.append(time_edge_list)
             self._edge_weights.append(time_edge_weights)
-
+    
     def _get_edge_info_pygt(self):
         self._edge_list  = []
         self._edge_weights = []
@@ -89,12 +96,14 @@ class EnglandCOVID:
         )
 
         self._all_features = [
-            standardized_target[i : i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
+            # standardized_target[i, :].T
+            standardized_target[i, :]
+            for i in range(self._dataset["time_periods"])
         ]
         self._all_targets = [
-            standardized_target[i + self.lags, :].T
-            for i in range(self._dataset["time_periods"] - self.lags)
+            # standardized_target[i, :].T
+            standardized_target[i, :]
+            for i in range(self._dataset["time_periods"])
         ]
 
     def _presort_edge_weights(self):
@@ -134,6 +143,9 @@ class EnglandCOVID:
 
         self._edge_list = final_edges_lst
         self._edge_weights = final_edge_weights_lst
+        
+        # print("🍎🍎🍎 Edge Weights")
+        # print(self._edge_weights)
 
     def get_edges(self):
         return self._edge_list

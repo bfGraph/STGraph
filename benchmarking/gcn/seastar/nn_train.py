@@ -13,10 +13,35 @@ from seastar.dataset.cora import CoraDataset
 
 import snoop
 
-from gcn_spmv import EglGCN
+from seastar.nn.pytorch.graph_conv import GraphConv
 import gc
 import sys
-import nvidia_smi
+import pynvml
+
+class EglGCN(nn.Module):
+    def __init__(self,
+                 g,
+                 in_feats,
+                 n_hidden,
+                 n_classes,
+                 n_layers,
+                 activation):
+        super(EglGCN, self).__init__()
+        self.g = g
+        self.layers = nn.ModuleList()
+        # input layer
+        self.layers.append(GraphConv(in_feats, n_hidden, activation))
+        # hidden layers
+        for i in range(n_layers - 1):
+            self.layers.append(GraphConv(n_hidden, n_hidden, activation))
+        # output layer
+        self.layers.append(GraphConv(n_hidden, n_classes, None))
+
+    def forward(self, g, features):
+        h = features
+        for layer in self.layers:
+            h = layer(g, h)
+        return h
 
 def accuracy(logits, labels):
     _, indices = torch.max(logits, dim=1)
@@ -50,14 +75,13 @@ def to_default_device(data):
 
 def main(args):
 
-    nvidia_smi.nvmlInit()
-    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+
     
     cora = CoraDataset(verbose=True)
 
+    # To account for the initial CUDA Context object for pynvml
     tmp = StaticGraph([(0,0)], [1], 1)
-
-    initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
+    a = torch.tensor([2]).cuda()
     
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())
@@ -80,7 +104,16 @@ def main(args):
 
     print("Features Shape: ", features.shape)
     edge_weight = [1 for _ in range(len(cora.get_edges()))]
+
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
     g = StaticGraph(cora.get_edges(), edge_weight, features.shape[0])
+    graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+
+    # A simple sanity check
+    print("Measuerd Graph Size (pynvml): ", graph_mem, " B")
+    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB")
     
     # add self loop
     # if args.self_loop:
@@ -94,8 +127,8 @@ def main(args):
     norm[torch.isinf(norm)] = 0
     
     norm = to_default_device(norm)
-    g.ndata['norm'] = norm.unsqueeze(1)
-    print("Norm Shape: ", g.ndata['norm'].shape)
+    g.set_ndata("norm", norm.unsqueeze(1))
+    # print("Norm Shape: ", g.ndata['norm'].shape)
 
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
@@ -106,8 +139,7 @@ def main(args):
                 args.num_hidden,
                 n_classes,
                 args.num_layers,
-                F.relu,
-                args.dropout)
+                F.relu)
     
     if cuda:
         model.cuda()
@@ -123,6 +155,7 @@ def main(args):
     Used_memory = 0
 
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -135,7 +168,7 @@ def main(args):
         #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
 
         # forward
-        logits = model(features)
+        logits = model(g, features)
 
         # print(f"------- AFTER MODEL E={epoch} -------\n\n")
         # # gc.collect()
@@ -146,14 +179,16 @@ def main(args):
         loss = loss_fcn(logits[train_mask], labels[train_mask])
         # now_mem = torch.cuda.max_memory_allocated(0)
         # Used_memory = max(now_mem, Used_memory)
-        now_mem = (
-                nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-            )
-        Used_memory = max(now_mem, Used_memory)
+        # now_mem_pynvml = (
+        #         pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+        #     )
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
+        Used_memory = max(now_mem, Used_memory)
 
         if cuda:
             torch.cuda.synchronize()
@@ -164,7 +199,7 @@ def main(args):
             dur.append(run_time_this_epoch)
 
         train_acc = accuracy(logits[train_mask], labels[train_mask])
-        print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb'.format(
+        print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb '.format(
             epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
         ))
 

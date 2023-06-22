@@ -25,17 +25,20 @@ extern "C" __global__ void {{kernel_name}}(
 
             for ({{index_type}} e=beg;e<end;++e) {
 
-                unsigned long long {{col_index}} = __ldg(column_indices + e);
+                unsigned long long col_indices_key = __ldg(column_indices + e);
 
                 // GPMA indexes edges starting from 1
                 // Seastar requires edgs to be indexed from 0
                 unsigned int eid = __ldg(eids + e) - 1;
                 
-                unsigned long long mask = (unsigned long long){{row_offset}} << 32;
-                unsigned int dst_check = ({{col_index}} - mask);
-                {{col_index}} = ({{col_index}} - mask);
+                // UNIMPLEMENTED CHECK: Note if the value of col_index exceeds that 
+                // of an int then during casting of unsigned int to int there 
+                // will be errors
+                unsigned int {{col_index}} = (col_indices_key & 0xffffffff);
 
-                if(dst_check != 0xFFFFFFFF && eid != 0){
+                // KEY_MAX: 0xFFFFFFFFFFFFFFFE
+                // COL_IDX_NONE: 0xFFFFFFFF
+                if(col_indices_key != 0xFFFFFFFFFFFFFFFE && {{col_index}} != 0xFFFFFFFF && eid != 0){
                     {{init_inner_offset}}
 
                     {%for edge_stmt in edges%}

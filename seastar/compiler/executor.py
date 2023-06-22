@@ -3,6 +3,7 @@ import snoop
 from collections import deque
 from ..graph.dynamic.DynamicGraph import DynamicGraph
 from seastar.compiler.debugging.seastar_logger import print_log
+import torch
 
 class Stack:
     def __init__(self, val=None):
@@ -36,10 +37,15 @@ class ExeState(object):
         # contains arg tensors for the current execution of nb_compute only
         self.current_tensor_map = {}
 
+        # contains IDs of args required for backward propagation of the current timestamp
+        self.bwd_common_tensor_list = []
+        self.bunit_arg_ids = []
+
         self.dep_map = {}
         self.executed_bunit = set()
     
     def reset(self, input_map, f_merged_units, bunits):
+        # print("ENTERING RESET")
         self.dep_map = {}
         #for mu in f_merged_units:
         #    if mu.compiled():
@@ -53,6 +59,18 @@ class ExeState(object):
                     self.dep_map[arg.id] += 1
                 else:
                     self.dep_map[arg.id] = 1
+
+        # Initializing bwd_common_tensor_list
+        # print("BACKWARD KERNEL ARGS: ", [bu.kernel_args() for bu in bunits])
+        self.bwd_common_tensor_list = []
+        self.bunit_arg_ids = []
+        for bu in bunits:
+            for arg in bu.kernel_args():
+                self.bunit_arg_ids.append(arg.id)
+                if arg.id in input_map.keys():
+                    self.bwd_common_tensor_list.append(arg.id)
+        # print("End of initializing bwd_common_tensor_list\n")
+
         #print('dependency map', self.dep_map)
         self.num_bunits = len(bunits)
         # deletes all tensors that were previously stored here (verified)
@@ -69,8 +87,12 @@ class ExeState(object):
         return len(self.executed_bunit) == self.num_bunits
     
     def track_tensor(self, key, val):
-            self.current_tensor_map[key] = val
+        self.current_tensor_map[key] = val
+        if key in self.bunit_arg_ids:
+            self.bwd_common_tensor_list.append(key)
     
+    def clear_current_tensor_state(self):
+        self.current_tensor_map = {}
     # def clear_cache(self):
     #     rmv_list = []
     #     for k in self.tensor_map:
@@ -204,6 +226,7 @@ class Executor(object):
         return grouped_unit
   
     def restart(self, input_map, graph=None):
+        # print("ENTERING RESTART")
         self.ts.reset(input_map, self.forward_exec_units, self.bulist)
         if graph != None:
             
@@ -265,15 +288,16 @@ class Executor(object):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
-                                               requires_grad=var.requires_grad) for var in var_list if var.id not in self.ts.current_tensor_map}
-        self.ts.current_tensor_map = {**self.ts.current_tensor_map, **ret_tensors}
+                                               requires_grad=False) for var in var_list if var.id not in self.ts.current_tensor_map}
+        
+        for key, val in ret_tensors.items():
+            self.ts.track_tensor(key,val)
 
-    @snoop
     def create_tensor_for_grad_vars(self, var_list, tensor_map):
         ret_tensors = {var.id : self.new_zeros(size=[self.num_edges if var.is_edgevar() else self.num_nodes] + list(var.var_shape),
                                                dtype=var.var_dtype,
                                                device=var.device,
-                                               requires_grad=var.requires_grad) for var in var_list if var.id not in tensor_map}
+                                               requires_grad=False) for var in var_list if var.id not in tensor_map}
         tensor_map = {**tensor_map, **ret_tensors}
         return tensor_map
 
@@ -295,23 +319,27 @@ class Executor(object):
         for i,ret in enumerate(rets):
             self.ts.track_tensor(ret.id, ret_tensors[i])
     
-    @snoop
     def forward_cb(self, uid, kernel_args, rets, tensor_list):
         '''FuncWrapper will call this function in forward pass'''
         units = self.forward_exec_units[uid]
         for i,unit in enumerate(units):
             self.execute_unit(unit, [tensor_list[tidx] for tidx in kernel_args[i]])
-            
-        self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
+        
+        self.ts.tensor_map_stack.push({key: self.ts.current_tensor_map[key] for key in self.ts.bwd_common_tensor_list})
+        # self.ts.tensor_map_stack.push(self.ts.current_tensor_map)
         
         if isinstance(self.graph,DynamicGraph):
             self.ts.graph_timestamp_stack.push(self.graph.current_timestamp)
+        
+        ret = tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
+        self.ts.clear_current_tensor_state()
+        return ret
 
-        return tuple([self.ts.current_tensor_map[ret.id] for ret in rets])
-
-    @snoop
     def backward_cb(self, kid, grad_list):
         '''FuncWrapper will call this function in backward pass'''
+
+        # print("BACKWARD CALLED")
+
         # which backward kernel to call? un-executed kernel that has all dependency satisfied. 
         # We need to get the grad_map in order to properly set the variables in compiled kernels.
         funits = self.forward_exec_units[kid]
@@ -358,6 +386,8 @@ class Executor(object):
         return ret
 
     def execute_prog(self, units):
+        current_tensor_map = self.ts.current_tensor_map
+        self.ts.clear_current_tensor_state()
         for unit in  units:
             for stmt in unit.program:
-                self.ts.track_tensor(stmt.ret.id, stmt.execute([self.ts.current_tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))
+                self.ts.track_tensor(stmt.ret.id, stmt.execute([current_tensor_map[arg.id] if not is_const_scalar(arg) else arg for arg in stmt.args]))

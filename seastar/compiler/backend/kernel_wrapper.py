@@ -3,10 +3,15 @@ class KernelWrapper():
         pass
     
     @staticmethod
-    def forward(ctx, executor, kid, kernel_args, rets, *args):
-        ctx.backward_cache = executor, kid
+    def forward(executor, kid, kernel_args, rets, *args):
         ret = executor.forward_cb(kid, kernel_args, rets, args)
         return ret
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        # Saving executor and kid in backward cache
+        ctx.backward_cache = inputs[0], inputs[1]
+        ctx.set_materialize_grads(False)
 
     @staticmethod
     def backward(ctx, *gradout):

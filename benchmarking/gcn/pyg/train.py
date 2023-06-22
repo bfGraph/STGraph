@@ -1,22 +1,12 @@
 import argparse, time
 import numpy as np
-import networkx as nx
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from rich import inspect
-from rich.pretty import pprint
-
-from seastar.graph.static.StaticGraph import StaticGraph
 from seastar.dataset.cora import CoraDataset
 
-import snoop
+# from torch_geometric_temporal.nn.recurrent import TGCN
+from gcn import PyG_GCN
 
-from gcn_spmv import EglGCN
-import gc
-import sys
-import nvidia_smi
+import snoop
 
 def accuracy(logits, labels):
     _, indices = torch.max(logits, dim=1)
@@ -49,15 +39,8 @@ def to_default_device(data):
     return data.to(get_default_device(),non_blocking = True)
 
 def main(args):
-
-    nvidia_smi.nvmlInit()
-    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
     
     cora = CoraDataset(verbose=True)
-
-    tmp = StaticGraph([(0,0)], [1], 1)
-
-    initial_used_gpu_mem = nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used
     
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())
@@ -78,36 +61,36 @@ def main(args):
         train_mask = train_mask.cuda()
         test_mask = test_mask.cuda()
 
-    print("Features Shape: ", features.shape)
-    edge_weight = [1 for _ in range(len(cora.get_edges()))]
-    g = StaticGraph(cora.get_edges(), edge_weight, features.shape[0])
-    
-    # add self loop
-    # if args.self_loop:
-    #     g = dgl.add_self_loop(g)
-    
-    # g = g.to(features.device)
+    # g = StaticGraph(cora.get_edges())
 
     # normalization
-    degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)
-    norm = torch.pow(degs, -0.5)
-    norm[torch.isinf(norm)] = 0
+    # degs = torch.from_numpy(g.in_degrees()).type(torch.int32)
+    # norm = torch.pow(degs, -0.5)
+    # norm[torch.isinf(norm)] = 0
     
-    norm = to_default_device(norm)
-    g.ndata['norm'] = norm.unsqueeze(1)
-    print("Norm Shape: ", g.ndata['norm'].shape)
+    # norm = to_default_device(norm)
+    # g.ndata['norm'] = norm.unsqueeze(1)
 
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
-    print("Num Classes: ",n_classes)
+    train_edges = to_default_device(torch.from_numpy(np.array(cora.get_edges()).T)).type(torch.int64)
 
-    model = EglGCN(g,
-                num_feats,
+    # print("SHAPE")
+    # print(train_edges.shape)
+    # print(train_edges.dtype)
+
+    # model = EglGCN(g,
+    #             num_feats,
+    #             args.num_hidden,
+    #             n_classes,
+    #             args.num_layers,
+    #             F.relu,
+    #             args.dropout)
+
+    model = PyG_GCN(num_feats,
                 args.num_hidden,
                 n_classes,
-                args.num_layers,
-                F.relu,
-                args.dropout)
+                args.num_layers)
     
     if cuda:
         model.cuda()
@@ -123,37 +106,21 @@ def main(args):
     Used_memory = 0
 
     for epoch in range(args.num_epochs):
+        torch.cuda.reset_peak_memory_stats(0)
         model.train()
         if cuda:
             torch.cuda.synchronize()
         t0 = time.time()
-
-        # print(f"\n\n------- BEFORE MODEL E={epoch} ----------")
-        # # gc.collect()
-        # for obj in gc.get_objects():
-        #     if torch.is_tensor(obj):
-        #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
-
         # forward
-        logits = model(features)
-
-        # print(f"------- AFTER MODEL E={epoch} -------\n\n")
-        # # gc.collect()
-        # for obj in gc.get_objects():
-        #     if torch.is_tensor(obj):
-        #         print(type(obj), obj.size(), obj.device, sys.getrefcount(obj))
-
+        logits = model(features, train_edges)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
-        # now_mem = torch.cuda.max_memory_allocated(0)
-        # Used_memory = max(now_mem, Used_memory)
-        now_mem = (
-                nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
-            )
-        Used_memory = max(now_mem, Used_memory)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        now_mem = torch.cuda.max_memory_allocated(0)
+        Used_memory = max(now_mem, Used_memory)
 
         if cuda:
             torch.cuda.synchronize()

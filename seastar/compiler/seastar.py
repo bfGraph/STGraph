@@ -11,6 +11,8 @@ from .autodiff import diff
 from .code_gen import code_gen 
 from .executor import Executor
 from .utils import var_prefix, cen_attr_postfix, inb_attr_postfix
+import gc
+import torch
 
 from seastar.compiler.backend.callback import SeastarBackend
 from seastar.compiler.utils import ValType
@@ -53,13 +55,12 @@ class Context():
             # print('TracedProgram' + str(fprog), 'Ret value:', ret)
             # pretty_print_GIR(fprog,"TGCN GIR")
             self._executor_cache = self._diff_then_compile(ret, fprog, graph)
+        
         for k, v in node_feats.items():
             self._input_cache[var_prefix + k + cen_attr_postfix] = v
             self._input_cache[var_prefix + k + inb_attr_postfix] = v
         for k, v in edge_feats.items():
             self._input_cache[var_prefix+k] = v
-        # print("🔴 Input Cache")
-        # print(self._input_cache)
         self._executor_cache.restart(self._input_cache, graph)
         self._entry_count += 1
         return self._executor_cache
@@ -72,6 +73,8 @@ class Context():
         self._monkey_patch_namespace(old_libs, input_cache, fprog, backend)
         ret = self._f(central_node)
         self._remove_patch(old_libs, backend)
+        self._destroy_central_node(central_node, nfeats, efeats)
+
         if ret == None:
             raise NameError('Ret is none. Execution is aborted')
         return [ret.var] if not isinstance(ret, Iterable) else ret.var
@@ -108,6 +111,17 @@ class Context():
                     edge_val = self.val_factory.create(ValType.EDGE, v, backend, id=k, fprog=fprog, reduce_dim=True)
                     setattr(e, k, edge_val)
         return cen
+
+    def _destroy_central_node(self, cen, nfeats, efeats):
+        if nfeats:
+            for k, _ in nfeats.items():
+                delattr(cen, k)
+                for n in cen.innbs:
+                    delattr(n, k)
+        if efeats:
+            for k, _ in efeats.items():
+                for e in cen.inedges:
+                    delattr(e, k)
     
     def _monkey_patch_namespace(self, old_libs, input_cache, fprog, backend):
         """Symbolizing central node and its innbs and inedges""" 
