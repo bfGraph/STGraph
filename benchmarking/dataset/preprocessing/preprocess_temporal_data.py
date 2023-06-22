@@ -39,8 +39,8 @@ def preprocess_graph(edges, num_nodes):
 	# delete_delta = 50000
 
 	base = 100000
-	add_delta = 10000
-	delete_delta = 10000
+	add_delta = 5000
+	delete_delta = 1000
 
 	graphs = {}
 

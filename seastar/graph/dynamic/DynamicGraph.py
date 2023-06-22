@@ -23,11 +23,19 @@ class DynamicGraph(SeastarGraph):
             edge_dict[str(i)] = edge_set
 
         self.graph_updates = {}
-        self.graph_updates["0"] = {"add": list(edge_dict["0"]), "delete": []}
+
+        # Presorting additions and deletions (is a manadatory step for GPMA)
+        additions = list(edge_dict["0"])
+        additions.sort(key=lambda x: (x[1], x[0]))
+        self.graph_updates["0"] = {"add": additions, "delete": []}
         for i in range(1, len(edge_list)):
+            additions = list(edge_dict[str(i)].difference(edge_dict[str(i - 1)]))
+            additions.sort(key=lambda x: (x[1], x[0]))
+            deletions = list(edge_dict[str(i - 1)].difference(edge_dict[str(i)]))
+            deletions.sort(key=lambda x: (x[1], x[0]))
             self.graph_updates[str(i)] = {
-                "add": list(edge_dict[str(i)].difference(edge_dict[str(i - 1)])),
-                "delete": list(edge_dict[str(i - 1)].difference(edge_dict[str(i)])),
+                "add": additions,
+                "delete": deletions,
             }
 
     def get_graph(self, timestamp: int):

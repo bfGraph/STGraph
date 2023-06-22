@@ -829,8 +829,9 @@ __host__ void update_gpma(GPMA &gpma, DEV_VEC_KEY &update_keys, DEV_VEC_VALUE &u
     SIZE_TYPE ous = update_keys.size();
 
     // step1: sort update keys with values
-    thrust::sort_by_key(update_keys.begin(), update_keys.end(), update_values.begin());
-    cErr(cudaDeviceSynchronize());
+    // COMMENTING THIS OUT SINCE WE ARE PASSING IN SORTED INPUT, UNCOMMENT OTHERWISE
+    // thrust::sort_by_key(update_keys.begin(), update_keys.end(), update_values.begin());
+    // cErr(cudaDeviceSynchronize());
 
     // step2: get leaf node of each update (execute del and mod)
     DEV_VEC_SIZE update_nodes(update_keys.size());
