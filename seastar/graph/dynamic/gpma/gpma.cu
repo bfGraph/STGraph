@@ -1001,17 +1001,17 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
             delete_key[i] = ((KEY_TYPE)src << 32) + dst;
         }
 
-        // allocating and copying to pinned memory
-        KEY_TYPE *pinned_add_key;
-        KEY_TYPE *pinned_delete_key;
-        cErr(cudaMallocHost(&pinned_add_key, sizeof(KEY_TYPE) * add_key.size()));
-        cErr(cudaMallocHost(&pinned_delete_key, sizeof(KEY_TYPE) * delete_key.size()));
-        cErr(cudaMemcpy(pinned_add_key, add_key.data(), sizeof(KEY_TYPE) * add_key.size(), cudaMemcpyHostToHost));
-        cErr(cudaMemcpy(pinned_delete_key, delete_key.data(), sizeof(KEY_TYPE) * delete_key.size(), cudaMemcpyHostToHost));
+        // allocating and copying to GPU memory
+        KEY_TYPE *gpu_add_key;
+        KEY_TYPE *gpu_delete_key;
+        cErr(cudaMalloc(&gpu_add_key, sizeof(KEY_TYPE) * add_key.size()));
+        cErr(cudaMalloc(&gpu_delete_key, sizeof(KEY_TYPE) * delete_key.size()));
+        cErr(cudaMemcpy(gpu_add_key, add_key.data(), sizeof(KEY_TYPE) * add_key.size(), cudaMemcpyHostToDevice));
+        cErr(cudaMemcpy(gpu_delete_key, delete_key.data(), sizeof(KEY_TYPE) * delete_key.size(), cudaMemcpyHostToDevice));
 
         // storing the pointers and counts in GPMA object
-        gpma.add_updates[t] = pinned_add_key;
-        gpma.delete_updates[t] = pinned_delete_key;
+        gpma.add_updates[t] = gpu_add_key;
+        gpma.delete_updates[t] = gpu_delete_key;
         gpma.add_updates_count[t] = updates[std::to_string(t)]["add"].size();
         gpma.delete_updates_count[t] = updates[std::to_string(t)]["delete"].size();
     }
@@ -1055,7 +1055,6 @@ std::vector<float> edge_update_t(GPMA &gpma, int timestamp, bool revert_update =
 
     int add_edge_count, delete_edge_count;
     KEY_TYPE *add_updates_ptr, *delete_updates_ptr;
-    KEY_TYPE *add_key_device, *delete_key_device;
 
     if (revert_update)
     {
@@ -1074,17 +1073,13 @@ std::vector<float> edge_update_t(GPMA &gpma, int timestamp, bool revert_update =
     gpma.edge_count = gpma.edge_count + add_edge_count - delete_edge_count;
 
     // Preparing data for addition updates
-    cErr(cudaMalloc(&add_key_device, sizeof(KEY_TYPE) * add_edge_count));
-    cErr(cudaMemcpy(add_key_device, add_updates_ptr, sizeof(KEY_TYPE) * add_edge_count, cudaMemcpyHostToDevice));
-    thrust::device_ptr<KEY_TYPE> add_key_thrust_dev_ptr = thrust::device_pointer_cast(add_key_device);
+    thrust::device_ptr<KEY_TYPE> add_key_thrust_dev_ptr = thrust::device_pointer_cast(add_updates_ptr);
     DEV_VEC_KEY add_key_thrust_dev(add_key_thrust_dev_ptr, add_key_thrust_dev_ptr + add_edge_count);
     thrust::device_vector<VALUE_TYPE> add_value_thrust_dev(add_edge_count, 1);
     cudaDeviceSynchronize();
 
     // Preparing data for deletion updates
-    cErr(cudaMalloc(&delete_key_device, sizeof(KEY_TYPE) * delete_edge_count));
-    cErr(cudaMemcpy(delete_key_device, delete_updates_ptr, sizeof(KEY_TYPE) * delete_edge_count, cudaMemcpyHostToDevice));
-    thrust::device_ptr<KEY_TYPE> delete_key_thrust_dev_ptr = thrust::device_pointer_cast(delete_key_device);
+    thrust::device_ptr<KEY_TYPE> delete_key_thrust_dev_ptr = thrust::device_pointer_cast(delete_updates_ptr);
     DEV_VEC_KEY delete_key_thrust_dev(delete_key_thrust_dev_ptr, delete_key_thrust_dev_ptr + delete_edge_count);
     thrust::device_vector<VALUE_TYPE> delete_value_thrust_dev(delete_edge_count, VALUE_NONE);
     cudaDeviceSynchronize();
@@ -1100,13 +1095,9 @@ std::vector<float> edge_update_t(GPMA &gpma, int timestamp, bool revert_update =
 
     // Performing node degree update
     auto start_time_node_degrees = std::chrono::high_resolution_clock::now();
-    update_node_degrees(RAW_PTR(gpma.in_degree), RAW_PTR(gpma.out_degree), add_key_device, add_edge_count, delete_key_device, delete_edge_count);
+    update_node_degrees(RAW_PTR(gpma.in_degree), RAW_PTR(gpma.out_degree), add_updates_ptr, add_edge_count, delete_updates_ptr, delete_edge_count);
     auto end_time_node_degrees = std::chrono::high_resolution_clock::now();
     std::chrono::duration<float> time_node_degree = (end_time_node_degrees - start_time_node_degrees);
-
-    // freeing resources
-    cErr(cudaFree(add_key_device));
-    cErr(cudaFree(delete_key_device));
 
     std::vector<float> vec;
     vec.push_back(time_update.count());
