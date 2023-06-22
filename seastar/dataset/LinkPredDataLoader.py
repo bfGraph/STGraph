@@ -17,7 +17,7 @@ console = Console()
 # from rich.traceback import install
 # install(show_locals=True)
 
-class LinkPredDatasetLoader:
+class LinkPredDataLoader:
     def __init__(self, folder_name, dataset_name, max_num_nodes, verbose: bool = False, for_seastar= False) -> None:
         self.name = dataset_name
 

@@ -13,7 +13,7 @@ from rich.console import Console
 
 console = Console()
 
-class CoraDataset:
+class CoraDataLoader:
     def __init__(self, verbose:bool = False, split=0.75) -> None:
         self.name = "Cora"
         self.num_nodes = 0

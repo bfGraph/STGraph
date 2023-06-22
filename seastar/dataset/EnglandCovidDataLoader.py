@@ -15,7 +15,7 @@ console = Console()
 from rich.traceback import install
 install(show_locals=True)
 
-class EnglandCOVID:
+class EnglandCovidDataLoader:
     def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
         self.name = "EnglandCOVID"
         self.lags = lags
