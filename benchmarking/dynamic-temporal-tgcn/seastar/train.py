@@ -31,7 +31,9 @@ def main(args):
         Graph = GPMAGraph([[(0,0)]],1)
     
     if args.dataset == "math":
-        dataloader = LinkPredDataLoader('dynamic-temporal', 'sx-mathoverflow-data', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "wikitalk":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -79,7 +81,7 @@ def main(args):
 
     # metrics
     dur = []
-    table = BenchmarkTable(f"(PyGT Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
+    table = BenchmarkTable(f"(Seastar Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
 
     try:
         # train
@@ -99,6 +101,7 @@ def main(args):
                 cost = 0
                 hidden_state = None
                 y_hat = torch.randn((dataloader.max_num_nodes, args.feat_size), device=get_default_device())
+                G.get_graph(index * backprop_every)
                 for k in range(backprop_every):
                     t = index * backprop_every + k
 
@@ -153,7 +156,9 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
-            help="Name of the Dataset (math)")
+            help="Name of the Dataset (math, wikitalk)")
+    parser.add_argument("--slide-size", type=str, default="1.0",
+            help="Slide Size")
     parser.add_argument("--type", type=str, default="naive", 
             help="Seastar Type")
     parser.add_argument("--backprop-every", type=int, default=0,
@@ -165,7 +170,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
     parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,
-        help="learning rate")
+        help="cutoff time")
     parser.add_argument("--num-epochs", type=int, default=1,
             help="number of training epochs")
     args = parser.parse_args()

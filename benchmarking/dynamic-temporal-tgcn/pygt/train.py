@@ -19,7 +19,9 @@ def main(args):
         quit()
     
     if args.dataset == "math":
-        dataloader = LinkPredDataLoader('dynamic-temporal', 'sx-mathoverflow-data', args.cutoff_time, verbose=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True)
+    elif args.dataset == "wikitalk":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -113,7 +115,9 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
-            help="Name of the Dataset (math)")
+            help="Name of the Dataset (math, wikitalk)")
+    parser.add_argument("--slide-size", type=str, default="1.0",
+            help="Slide Size")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,
