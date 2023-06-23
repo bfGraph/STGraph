@@ -6,7 +6,7 @@ from seastar.compiler.backend.pytorch_backend import backend_cb
 from seastar.compiler import Seastar
 
 # pylint: enable=W0235
-class EglGATConv(nn.Module):
+class GATConv(nn.Module):
     def __init__(self,
                  in_feats,
                  out_feats,
@@ -16,7 +16,7 @@ class EglGATConv(nn.Module):
                  negative_slope=0.2,
                  residual=False,
                  activation=None):
-        super(EglGATConv, self).__init__()
+        super(GATConv, self).__init__()
         self._num_heads = num_heads
         self._in_feats = in_feats
         self._out_feats = out_feats
