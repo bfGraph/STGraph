@@ -1,15 +1,22 @@
 import json
 import random
 import argparse
+import sys
 
 
-def parse_txt_lines(lines):
+def parse_txt_lines(lines, cutoff_time):
 	id_to_pid_map = {}   # ID to processed ID
 	node_counter = 0
 
 	node_set = set()
 	edges = []
+
+	time = 0
 	for line in lines:
+
+		if time >= cutoff_time:
+			break
+
 		parsed_line = line.split(' ')
 
 		src = int(parsed_line[0])
@@ -26,6 +33,8 @@ def parse_txt_lines(lines):
 		edges.append((id_to_pid_map[src], id_to_pid_map[dst]))
 		node_set.add(id_to_pid_map[src])
 		node_set.add(id_to_pid_map[dst])
+
+		time += 1
 
 	expected_node_set = set([i for i in range(len(node_set))])
 	assert node_set == expected_node_set, "Node labelling is not continuous"
@@ -119,9 +128,12 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 def main(args):
 	file1 = open(f'{args.dataset}.txt', 'r')
 	lines = file1.readlines()
-	edges, num_nodes = parse_txt_lines(lines)
-	graph_json = preprocess_graph(edges, num_nodes, args.base, args.add_delta, args.delete_delta)
-	out_file = open(f"{args.dataset}-data.json", "w")
+	edges, num_nodes = parse_txt_lines(lines, args.cutoff_time)
+
+	add_delta = int(args.base * (args.percent_change/200))
+	delete_delta = int(args.base * (args.percent_change/200))
+	graph_json = preprocess_graph(edges, num_nodes, args.base, add_delta, delete_delta)
+	out_file = open(f"{args.dataset}-data-{str(args.percent_change)}.json", "w")
 	json.dump(graph_json, out_file)
 	out_file.close()
 
@@ -132,10 +144,10 @@ if __name__ == '__main__':
             help="Name of the Dataset")
     parser.add_argument("--base", type=int, default=0,
             help="Num of edges in Base Graph")
-    parser.add_argument("--add-delta", type=int, default=0,
-            help="Num of edges to be added in each update")
-    parser.add_argument("--delete-delta", type=int, default=0,
-            help="Num of edges to be deleted in each update")
+    parser.add_argument("--percent-change", type=float, default=5,
+            help="Percentage of change from base graph, this change is by sliding along the timestamps")
+    parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,
+            help="Cuttoff time")
     args = parser.parse_args()
     
     print(args)

@@ -55,7 +55,7 @@ class LinkPredDataLoader:
         if self.for_seastar:
             self._edge_list = edge_list
         else:
-            self._edge_list = [np.array([[edge[0], edge[1]] for edge in edge_lst_t]).T for edge_lst_t in edge_list]
+            self._edge_list = [np.array(edge_lst_t).T for edge_lst_t in edge_list]
     
     def _preprocess_pos_neg_edges(self):
         updates = self._dataset["edge_mapping"]["edge_index"]
