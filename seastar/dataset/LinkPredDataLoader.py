@@ -1,44 +1,24 @@
 import os
 import json
-import urllib.request
-import time
-
 import numpy as np
-import random
-
-from rich import inspect
-from rich.pretty import pprint
-from rich.progress import track
 from rich.console import Console
-import copy
 
 console = Console()
 
-# from rich.traceback import install
-# install(show_locals=True)
-
 class LinkPredDataLoader:
-    def __init__(self, folder_name, dataset_name, max_num_nodes, verbose: bool = False, for_seastar= False) -> None:
+    def __init__(self, folder_name, dataset_name, cutoff_time, verbose: bool = False, for_seastar= False):
         self.name = dataset_name
-
-        self._max_num_nodes = max_num_nodes
-
         self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
+        self.for_seastar = for_seastar
 
         self._load_dataset()
-        self.total_timestamps = self._dataset["time_periods"]
-        self.for_seastar = for_seastar
-        
+        self._get_max_num_nodes()
+        self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
         self._get_edge_info()
         self._preprocess_pos_neg_edges()
 
     def _load_dataset(self) -> None:
-        # loading the dataset by downloading them online
-        # if self._verbose:
-        #     console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
-        
-        # for online download
         if os.path.exists(self._local_path):
             dataset_file = open(self._local_path)
             self._dataset = json.load(dataset_file)
@@ -47,10 +27,19 @@ class LinkPredDataLoader:
         else:
             console.log(f'Failed to find [cyan]{self.name}[/cyan] dataset from dataset')
             quit()
+    
+    def _get_max_num_nodes(self):
+        node_set = set()
+        max_node_id = 0
+
+        for i in range(len(self._dataset["edge_mapping"]["edge_index"])):
+            for edge in self._dataset["edge_mapping"]["edge_index"][str(i)]["add"]:
+                node_set.add(edge[0])
+                node_set.add(edge[1])
+                max_node_id = max(max_node_id, edge[0], edge[1])
         
-        # for local
-        # dataset_file = open(self._local_path)
-        # self._dataset = json.load(dataset_file)
+        assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
+        self.max_num_nodes = len(node_set)
 
     def _get_edge_info(self):
         # getting the edge_list and edge_weights

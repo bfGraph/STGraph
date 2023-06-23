@@ -5,12 +5,10 @@ import torch
 import snoop
 import pynvml
 import sys
-from model import SeastarTGCN
-from seastar.graph.static.StaticGraph import StaticGraph
-from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
-from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
+from model import PyGT_TGCN
+from seastar.dataset.LinkPredDataLoader import LinkPredDataLoader
 from seastar.benchmark_tools.table import BenchmarkTable
-from utils import to_default_device
+from utils import to_default_device, get_default_device
 
 def main(args):
 
@@ -19,67 +17,46 @@ def main(args):
     else:
         print("😔 CUDA is not available")
         quit()
-
-    # Dummy object to account for CUDA context object
-    Graph = StaticGraph([(0,0)], [1], 1)
     
-    if args.dataset == "wiki":
-        dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
-    elif args.dataset == "windmill":
-        dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+    if args.dataset == "math":
+        dataloader = LinkPredDataLoader('dynamic-temporal', 'sx-mathoverflow-data', args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
 
-    edge_list = dataloader.get_edges()
-    edge_weight_list = dataloader.get_edge_weights()
-    features = dataloader.get_all_features()
-    targets = dataloader.get_all_targets()
-    
-    pynvml.nvmlInit()
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
-    G = StaticGraph(edge_list, edge_weight_list, dataloader.num_nodes)
-    graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+    edge_lists = dataloader.get_edges()
+    pos_neg_edges_lists, pos_neg_targets_lists = dataloader.get_pos_neg_edges()
 
-    edge_weight = to_default_device(torch.unsqueeze(torch.FloatTensor(edge_weight_list), 1))
-    features = to_default_device(torch.FloatTensor(np.array(features)))
-    targets = to_default_device(torch.FloatTensor(np.array(targets)))
+    edge_lists = [to_default_device(torch.from_numpy(edge_list_t)) for edge_list_t in edge_lists]
+    pos_neg_edges_lists = [to_default_device(torch.from_numpy(pos_neg_edges)) for pos_neg_edges in pos_neg_edges_lists]
+    pos_neg_targets_lists = [to_default_device(torch.from_numpy(pos_neg_targets).type(torch.float32)) for pos_neg_targets in pos_neg_targets_lists]
 
+    total_timestamps = dataloader.total_timestamps
     num_hidden_units = args.num_hidden
-    num_outputs = 1
-    model = to_default_device(SeastarTGCN(args.feat_size, num_hidden_units, num_outputs))
+    model = to_default_device(PyGT_TGCN(args.feat_size, num_hidden_units))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    criterion = torch.nn.BCEWithLogitsLoss()
 
-    # Logging Output
+    # Logging Graph Details
     print("Dataset: ", args.dataset)
-    print("Num Nodes: ", dataloader.num_nodes)
-    print("Num Edges: ", len(edge_list))
-    print("Num Timestamps: ", dataloader.total_timestamps)
+    print("Num Timestamps: ", total_timestamps)
 
     backprop_every = args.backprop_every
     if backprop_every == 0:
-        backprop_every = len(features)
+        backprop_every = total_timestamps
     
-    if len(features) % backprop_every == 0:
-                num_iter = int(len(features)/backprop_every)
+    if total_timestamps % backprop_every == 0:
+        num_iter = int(total_timestamps/backprop_every)
     else:
-        num_iter = int(len(features)/backprop_every) + 1
+        num_iter = int(total_timestamps/backprop_every) + 1
 
     # metrics
     dur = []
-    table = BenchmarkTable(f"(Seastar Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
-    
-    # normalization
-    degs = torch.from_numpy(G.in_degrees()).type(torch.int32)
-    norm = torch.pow(degs, -0.5)
-    norm[torch.isinf(norm)] = 0
-    norm = to_default_device(norm)
-    G.set_ndata('norm', norm.unsqueeze(1))
+    table = BenchmarkTable(f"(PyGT Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
 
-    # train
-    print("Training...\n")
     try:
+        # train
+        print("Training...\n")
         for epoch in range(args.num_epochs):
             torch.cuda.synchronize()
             torch.cuda.reset_peak_memory_stats(0)
@@ -93,14 +70,17 @@ def main(args):
                 optimizer.zero_grad()
                 cost = 0
                 hidden_state = None
+                y_hat = torch.randn((dataloader.max_num_nodes, args.feat_size), device=get_default_device())
                 for k in range(backprop_every):
                     t = index * backprop_every + k
 
-                    if t >= len(features):
+                    # Since last timestamp does not have a prediction following it
+                    if t >= total_timestamps - 1:
                         break
 
-                    y_hat, hidden_state = model(G, features[t], edge_weight, hidden_state)
-                    cost = cost + torch.mean((y_hat-targets[t])**2)
+                    y_hat, hidden_state = model(y_hat, edge_lists[t], None, hidden_state)
+                    out = model.decode(y_hat, pos_neg_edges_lists[t]).view(-1)
+                    cost = cost + criterion(out, pos_neg_targets_lists[t])
         
                 cost = cost / (backprop_every+1)
                 cost.backward()
@@ -108,9 +88,8 @@ def main(args):
                 torch.cuda.synchronize()
                 cost_arr.append(cost.item())
 
-            used_gpu_mem = torch.cuda.max_memory_allocated(0) + graph_mem
+            used_gpu_mem = torch.cuda.max_memory_allocated(0)
             gpu_mem_arr.append(used_gpu_mem)
-
             run_time_this_epoch = time.time() - t0
 
             if epoch >= 3:
@@ -120,6 +99,7 @@ def main(args):
 
         table.display()
         print('Average Time taken: {:6f}'.format(np.mean(dur)))
+
     except RuntimeError as e:
         if 'out of memory' in str(e):
             table.add_row(["OOM", "OOM", "OOM", "OOM",  "OOM"])
@@ -132,8 +112,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Seastar Static TGCN')
     snoop.install(enabled=False)
 
-    parser.add_argument("--dataset", type=str, default="wiki",
-            help="Name of the Dataset (wiki, windmill)")
+    parser.add_argument("--dataset", type=str, default="math",
+            help="Name of the Dataset (math)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,
@@ -143,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
     parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,
-            help="learning rate")
+        help="learning rate")
     parser.add_argument("--num-epochs", type=int, default=1,
             help="number of training epochs")
     args = parser.parse_args()

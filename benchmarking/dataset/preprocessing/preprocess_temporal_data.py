@@ -1,8 +1,9 @@
 import json
 import random
+import argparse
 
 
-def parse_txt_lines(lines, num_nodes):
+def parse_txt_lines(lines):
 	id_to_pid_map = {}   # ID to processed ID
 	node_counter = 0
 
@@ -26,21 +27,21 @@ def parse_txt_lines(lines, num_nodes):
 		node_set.add(id_to_pid_map[src])
 		node_set.add(id_to_pid_map[dst])
 
-	expected_node_set = set([i for i in range(num_nodes)])
+	expected_node_set = set([i for i in range(len(node_set))])
 	assert node_set == expected_node_set, "Node labelling is not continuous"
 	# print(node_set.difference(expected_node_set))
 	# quit()
-	return edges
+	return edges, len(node_set)
 
 
-def preprocess_graph(edges, num_nodes):
+def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 	# base = 2000000
 	# add_delta = 50000
 	# delete_delta = 50000
 
-	base = 100000
-	add_delta = 5000
-	delete_delta = 1000
+	# base = 100000
+	# add_delta = 5000
+	# delete_delta = 1000
 
 	graphs = {}
 
@@ -115,14 +116,29 @@ def preprocess_graph(edges, num_nodes):
 
 	return graph_json
 
+def main(args):
+	file1 = open(f'{args.dataset}.txt', 'r')
+	lines = file1.readlines()
+	edges, num_nodes = parse_txt_lines(lines)
+	graph_json = preprocess_graph(edges, num_nodes, args.base, args.add_delta, args.delete_delta)
+	out_file = open(f"{args.dataset}-data.json", "w")
+	json.dump(graph_json, out_file)
+	out_file.close()
 
-file1 = open('sx-mathoverflow.txt', 'r')
-lines = file1.readlines()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Preprocess Temporal Data')
 
-num_nodes = 24818
-edges = parse_txt_lines(lines, num_nodes)
+    parser.add_argument("--dataset", type=str, default="",
+            help="Name of the Dataset")
+    parser.add_argument("--base", type=int, default=0,
+            help="Num of edges in Base Graph")
+    parser.add_argument("--add-delta", type=int, default=0,
+            help="Num of edges to be added in each update")
+    parser.add_argument("--delete-delta", type=int, default=0,
+            help="Num of edges to be deleted in each update")
+    args = parser.parse_args()
+    
+    print(args)
+    main(args)
 
-graph_json = preprocess_graph(edges, num_nodes)
-out_file = open("sx-mathoverflow-data.json", "w")
-json.dump(graph_json, out_file)
-out_file.close()
+

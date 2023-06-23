@@ -37,7 +37,7 @@ def main(args):
     features = to_default_device(torch.FloatTensor(np.array(features)))
     targets = to_default_device(torch.FloatTensor(np.array(targets)))
 
-    num_hidden_units = 100
+    num_hidden_units = args.num_hidden
     num_outputs = 1
     model = to_default_device(PyGT_TGCN(args.feat_size, num_hidden_units, num_outputs))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -51,10 +51,15 @@ def main(args):
     backprop_every = args.backprop_every
     if backprop_every == 0:
         backprop_every = len(features)
+    
+    if len(features) % backprop_every == 0:
+        num_iter = int(len(features)/backprop_every)
+    else:
+        num_iter = int(len(features)/backprop_every) + 1
 
     # metrics
     dur = []
-    table = BenchmarkTable(f"(Static-Temporal) TGCN on {args.dataset} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
+    table = BenchmarkTable(f"(PyGT Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
 
     try:
         # train
@@ -68,13 +73,7 @@ def main(args):
             gpu_mem_arr = []
             cost_arr = []
 
-            if len(features) % backprop_every == 0:
-                num_iter = int(len(features)/backprop_every)
-            else:
-                num_iter = int(len(features)/backprop_every) + 1
-
             for index in range(num_iter):
-
                 optimizer.zero_grad()
                 cost = 0
                 hidden_state = None
@@ -118,12 +117,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Seastar Static TGCN')
     snoop.install(enabled=False)
 
-    parser.add_argument("--dataset", type=str, default="windmill_output",
+    parser.add_argument("--dataset", type=str, default="wiki",
             help="Name of the Dataset (wiki, windmill)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,
             help="Feature size of nodes")
+    parser.add_argument("--num-hidden", type=int, default=100,
+            help="Number of hidden units")
     parser.add_argument("--lr", type=float, default=1e-2,
             help="learning rate")
     parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,

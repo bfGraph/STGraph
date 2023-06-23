@@ -32,19 +32,30 @@ class GPMAGraph(DynamicGraph):
         edge_update_t(self._forward_graph, 0)
         label_edges(self._forward_graph)
 
-        # Cacheing node degrees
-        self._in_degrees_cache = {}
-        self._out_degrees_cache = {}
-
-        # for benchmarking purposes
-        self._update_count = 0
-        self._total_update_time = 0
-        self._gpu_move_time = 0
-
         self._get_graph_csr_ptrs()
+
+        self.graph_cache = {}
+        self.graph_cache["base"] = copy.deepcopy(self._forward_graph)
 
     def graph_type(self):
         return "gpma"
+
+    def _cache_graph(self):
+        self.graph_cache[str(self.current_timestamp)] = copy.deepcopy(self._forward_graph)
+
+    def _get_cached_graph(self, timestamp):
+        if timestamp == "base":
+            self._forward_graph = copy.deepcopy(self.graph_cache["base"])
+            self._get_graph_csr_ptrs()
+            return True
+        else:
+            if str(timestamp) in self.graph_cache:
+                self._forward_graph = self.graph_cache[str(timestamp)]
+                del self.graph_cache[str(timestamp)]
+                self._get_graph_csr_ptrs()
+                return True
+            else:
+                return False
     
     def in_degrees(self):
         return np.array(get_out_degrees(self._forward_graph), dtype="int32")
@@ -72,33 +83,15 @@ class GPMAGraph(DynamicGraph):
                 "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
             )
 
-        self._update_count += len(
-            self.graph_updates[str(self.current_timestamp + 1)]["add"]
-        )
-        self._update_count += len(
-            self.graph_updates[str(self.current_timestamp + 1)]["delete"]
-        )
-
-        update_time_0 = time.time()
-
         edge_update_t(self._forward_graph, self.current_timestamp + 1)
         label_edges(self._forward_graph)
-
-        update_time_1 = time.time()
-        self._total_update_time += update_time_1 - update_time_0
-
         self._get_graph_csr_ptrs()
 
     def _init_reverse_graph(self):
         """Generates the reverse of the base graph"""
-        update_time_0 = time.time()
-
         free_backward_csr(self._forward_graph)
         build_backward_csr(self._forward_graph)
         self._get_graph_csr_ptrs()
-
-        update_time_1 = time.time()
-        self._total_update_time += update_time_1 - update_time_0
 
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
@@ -106,25 +99,11 @@ class GPMAGraph(DynamicGraph):
                 "⏰ Invalid timestamp during SeastarGraph.update_graph_backward()"
             )
 
-        self._update_count += len(
-            self.graph_updates[str(self.current_timestamp)]["delete"]
-        )
-        self._update_count += len(
-            self.graph_updates[str(self.current_timestamp)]["add"]
-        )
-
-        update_time_0 = time.time()
-
         # Freeing resources from previous CSR
         free_backward_csr(self._forward_graph)
-
         edge_update_t(
             self._forward_graph, self.current_timestamp, revert_update=True
         )
         label_edges(self._forward_graph)
         build_backward_csr(self._forward_graph)
-
-        update_time_1 = time.time()
-        self._total_update_time += update_time_1 - update_time_0
-
         self._get_graph_csr_ptrs()
