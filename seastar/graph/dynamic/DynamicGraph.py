@@ -23,12 +23,24 @@ class DynamicGraph(SeastarGraph):
             edge_dict[str(i)] = edge_set
 
         self.graph_updates = {}
-        self.graph_updates["0"] = {"add": list(edge_dict["0"]), "delete": []}
+
+        # Presorting additions and deletions (is a manadatory step for GPMA)
+        additions = list(edge_dict["0"])
+        additions.sort(key=lambda x: (x[1], x[0]))
+        self.graph_updates["0"] = {"add": additions, "delete": []}
         for i in range(1, len(edge_list)):
+            additions = list(edge_dict[str(i)].difference(edge_dict[str(i - 1)]))
+            additions.sort(key=lambda x: (x[1], x[0]))
+            deletions = list(edge_dict[str(i - 1)].difference(edge_dict[str(i)]))
+            deletions.sort(key=lambda x: (x[1], x[0]))
             self.graph_updates[str(i)] = {
-                "add": list(edge_dict[str(i)].difference(edge_dict[str(i - 1)])),
-                "delete": list(edge_dict[str(i - 1)].difference(edge_dict[str(i)])),
+                "add": additions,
+                "delete": deletions,
             }
+    
+    def reset_graph(self):
+        self._get_cached_graph("base")
+        self.current_timestamp = 0
 
     def get_graph(self, timestamp: int):
         self._is_backprop_state = False
@@ -37,6 +49,9 @@ class DynamicGraph(SeastarGraph):
             raise Exception(
                 "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
             )
+        
+        if self._get_cached_graph(timestamp - 1):
+            self.current_timestamp = timestamp - 1
 
         while self.current_timestamp < timestamp:
             self._update_graph_forward()
@@ -44,6 +59,7 @@ class DynamicGraph(SeastarGraph):
 
     def get_backward_graph(self, timestamp: int):
         if not self._is_backprop_state:
+            self._cache_graph()
             self._is_backprop_state = True
             self._init_reverse_graph()
 
@@ -80,6 +96,14 @@ class DynamicGraph(SeastarGraph):
 
     @abstractmethod
     def out_degrees(self):
+        pass
+
+    @abstractmethod
+    def _cache_graph(self):
+        pass
+
+    @abstractmethod
+    def _get_cached_graph(self, timestamp):
         pass
 
     @abstractmethod

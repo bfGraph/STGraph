@@ -18,6 +18,9 @@ class PCSRGraph(DynamicGraph):
         self._forward_graph.label_edges()   
         self._forward_graph.build_csr()
         self._get_graph_csr_ptrs()
+
+        self.graph_cache = {}
+        self.graph_cache["base"] = copy.deepcopy(self._forward_graph)
     
     def _get_max_num_edges(self):
         updates = self.graph_updates
@@ -29,6 +32,23 @@ class PCSRGraph(DynamicGraph):
                 
     def graph_type(self):
         return "pcsr"
+    
+    def _cache_graph(self):
+        self.graph_cache[str(self.current_timestamp)] = copy.deepcopy(self._forward_graph)
+
+    def _get_cached_graph(self, timestamp):
+        if timestamp == "base":
+            self._forward_graph = copy.deepcopy(self.graph_cache["base"])
+            self._get_graph_csr_ptrs()
+            return True
+        else:
+            if str(timestamp) in self.graph_cache:
+                self._forward_graph = self.graph_cache[str(timestamp)]
+                del self.graph_cache[str(timestamp)]
+                self._get_graph_csr_ptrs()
+                return True
+            else:
+                return False
         
     def in_degrees(self):
         return np.array(self._forward_graph.out_degrees, dtype='int32')

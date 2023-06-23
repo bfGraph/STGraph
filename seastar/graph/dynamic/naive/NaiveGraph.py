@@ -59,6 +59,12 @@ class NaiveGraph(DynamicGraph):
 
     def graph_type(self):
         return "csr"
+    
+    def _cache_graph(self):
+        pass
+
+    def _get_cached_graph(self, timestamp):
+        return False
 
     def in_degrees(self):
         return np.array(self._forward_graph[self.current_timestamp].out_degrees, dtype="int32")

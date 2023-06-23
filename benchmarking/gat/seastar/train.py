@@ -12,59 +12,37 @@ import argparse
 import time
 import torch
 import torch.nn.functional as F
+import pynvml
 from seastar.graph.static.StaticGraph import StaticGraph
-from seastar.dataset.cora import CoraDataset
-from egl_gat import EglGAT
-from utils import EarlyStopping
+from seastar.dataset.CoraDataLoader import CoraDataLoader
+from utils import EarlyStopping, accuracy
 import snoop
 import numpy as np
-
-
-def accuracy(logits, labels):
-    _, indices = torch.max(logits, dim=1)
-    correct = torch.sum(indices == labels)
-    return correct.item() * 1.0 / len(labels)
-
-
-def evaluate(model, features, labels, mask):
-    model.eval()
-    with torch.no_grad():
-        logits = model(features)
-        logits = logits[mask]
-        labels = labels[mask]
-        return accuracy(logits, labels)
+from model import GAT
 
 
 def train(args):
-    # load and preprocess dataset
-    path = '../../dataset/' + 'cora' + '/'
-    '''
-    edges = np.loadtxt(path + 'edges.txt')
-    edges = edges.astype(int)
+    cora = CoraDataLoader(verbose=True)
 
-    features = np.loadtxt(path + 'features.txt')
+    # To account for the initial CUDA Context object for pynvml
+    tmp = StaticGraph([(0,0)], [1], 1)
+    
+    features = torch.FloatTensor(cora.get_all_features())
+    labels = torch.LongTensor(cora.get_all_targets())
+    train_mask = cora.get_train_mask()
+    test_mask = cora.get_test_mask()
+    train_mask = torch.BoolTensor(train_mask)
+    test_mask = torch.BoolTensor(test_mask)
+    edges = cora.get_edges()
+    edge_weight = [1 for _ in range(len(cora.get_edges()))]
 
-    train_mask = np.loadtxt(path + 'train_mask.txt')
-    train_mask = train_mask.astype(int)
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
+    g = StaticGraph(edges, edge_weight, features.shape[0])
+    graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
 
-    labels = np.loadtxt(path + 'labels.txt')
-    labels = labels.astype(int)
-    '''
-    # cora = CoraDataset(verbose=True)
-    # features = torch.FloatTensor(cora.get_all_features())
-    # labels = torch.LongTensor(cora.get_all_targets())
-    # train_mask = cora.get_train_mask()
-    # test_mask = cora.get_test_mask()
-    # train_mask = torch.BoolTensor(train_mask)
-    # test_mask = torch.BoolTensor(test_mask)
-    # num_edges = len(cora.get_edges())
-
-    edges = np.load(path + 'edges.npy')
-    features = np.load(path + 'features.npy')
-    train_mask = np.load(path + 'train_mask.npy')
-    labels = np.load(path + 'labels.npy')
-
-    num_edges = edges.shape[0]
+    num_edges = len(edges)
     num_nodes = features.shape[0]
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
@@ -94,14 +72,9 @@ def train(args):
         labels = labels.cuda()
         train_mask = train_mask.cuda()
 
-    print(edges.shape)
-    edges_lst = [(edge[0],edge[1]) for edge in edges]
-    # print(edges_lst)
-    g = StaticGraph(edges_lst, num_nodes)
-
     # create model
     heads = ([args.num_heads] * args.num_layers) + [args.num_out_heads]
-    model = EglGAT(g,
+    model = GAT(g,
                 args.num_layers,
                 num_feats,
                 args.num_hidden,
@@ -140,14 +113,11 @@ def train(args):
         # forward
         logits = model(features)
         loss = loss_fcn(logits[train_mask], labels[train_mask])
-        now_mem = torch.cuda.max_memory_allocated(0)
-        print('now_mem : ', now_mem)
+        now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
         Used_memory = max(now_mem, Used_memory)
-        tf1 =time.time()
 
         optimizer.zero_grad()
         torch.cuda.synchronize()
-        t1 =time.time()
         loss.backward()
         optimizer.step()
         t2 =time.time()
@@ -165,22 +135,6 @@ def train(args):
         print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb'.format(
             epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
         ))
-        '''
-        if args.fastmode:
-            val_acc = accuracy(logits[val_mask], labels[val_mask])
-        else:
-            val_acc = evaluate(model, features, labels, val_mask)
-            if args.early_stop:
-                if stopper.step(val_acc, model):   
-                    break
-
-        print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f} | TrainAcc {:.4f} |"
-              " ValAcc /{:.4f} | ETputs(KTEPS) {:.2f}".
-              format(epoch, np.mean(dur), loss.item(), train_acc,
-                     val_acc, n_edges / np.mean(dur) / 1000))
-        
-        '''
-    
 
     if args.early_stop:
         model.load_state_dict(torch.load('es_checkpoint.pt'))
@@ -193,7 +147,6 @@ def train(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='GAT')
-    # register_data_args(parser)
 
     # COMMENT IF SNOOP IS TO BE ENABLED
     snoop.install(enabled=False)
