@@ -83,7 +83,10 @@ def main(args):
                     y_hat, hidden_state = model(y_hat, edge_lists[t], None, hidden_state)
                     out = model.decode(y_hat, pos_neg_edges_lists[t]).view(-1)
                     cost = cost + criterion(out, pos_neg_targets_lists[t])
-        
+
+                if cost == 0:
+                    break
+
                 cost = cost / (backprop_every+1)
                 cost.backward()
                 optimizer.step()
