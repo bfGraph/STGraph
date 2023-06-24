@@ -2,7 +2,7 @@
 
 cd dataset/static-temporal
 wget https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/wikivital_mathematics.json
-wget https://graphmining.ai/temporal_datasets/windmill_output.json
+wget --no-check-certificate https://graphmining.ai/temporal_datasets/windmill_output.json
 
 cd ../dynamic-temporal
 wget http://snap.stanford.edu/data/sx-mathoverflow.txt.gz && gzip -d sx-mathoverflow.txt.gz
