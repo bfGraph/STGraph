@@ -62,7 +62,7 @@ def main(args):
         backprop_every = len(features)
     
     if len(features) % backprop_every == 0:
-                num_iter = int(len(features)/backprop_every)
+        num_iter = int(len(features)/backprop_every)
     else:
         num_iter = int(len(features)/backprop_every) + 1
 
@@ -101,6 +101,9 @@ def main(args):
 
                     y_hat, hidden_state = model(G, features[t], edge_weight, hidden_state)
                     cost = cost + torch.mean((y_hat-targets[t])**2)
+                
+                if cost == 0:
+                    break
         
                 cost = cost / (backprop_every+1)
                 cost.backward()

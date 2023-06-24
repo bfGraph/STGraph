@@ -85,6 +85,9 @@ def main(args):
 
                     y_hat, hidden_state = model(features[index], edge_list, edge_weight, hidden_state)
                     cost = cost + torch.mean((y_hat-targets[t])**2)
+                
+                if cost == 0:
+                    break
         
                 cost = cost / (backprop_every+1)
                 cost.backward()
