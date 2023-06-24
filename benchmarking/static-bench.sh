@@ -13,7 +13,7 @@ echo "Starting PyG-T Wikimaths script for different feature sizes"
 for i in {8..80..8}
 do
         hidden_units=$((i*2))
-        python3 train.py --dataset wiki --num-epochs 10 --feat-size $i --num-hidden $hidden_units --backprop-every 1000 > ../../results/static-temporal/pygt_wikimaths_Twhole_Bwhole_H$hidden_units\_F$i.txt
+        python3 train.py --dataset wiki --num-epochs 10 --feat-size $i --num-hidden $hidden_units --backprop-every 500 > ../../results/static-temporal/pygt_wikimaths_Twhole_B500_H$hidden_units\_F$i.txt
         echo "Finished executing PyG-T Wikimaths script for F=$i"
 done
 
@@ -56,7 +56,7 @@ echo "Starting Seastar Wikimaths script for different feature sizes"
 for i in {8..80..8}
 do
         hidden_units=$((i*2))
-        python3 train.py --dataset wiki --num-epochs 10 --feat-size $i --num-hidden $hidden_units --backprop-every 1000 > ../../results/static-temporal/seastar_wikimaths_Twhole_Bwhole_H$hidden_units\_F$i.txt
+        python3 train.py --dataset wiki --num-epochs 10 --feat-size $i --num-hidden $hidden_units --backprop-every 500 > ../../results/static-temporal/seastar_wikimaths_Twhole_B500_H$hidden_units\_F$i.txt
         echo "Finished executing Seastar Wikimaths script for F=$i"
 done
 
