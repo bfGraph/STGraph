@@ -32,6 +32,8 @@ def main(args):
     
     if args.dataset == "math":
         dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "superuser":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "wikitalk":
         dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
     else:
@@ -159,7 +161,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
-            help="Name of the Dataset (math, wikitalk)")
+            help="Name of the Dataset (math, wikitalk, superuser)")
     parser.add_argument("--slide-size", type=str, default="1.0",
             help="Slide Size")
     parser.add_argument("--type", type=str, default="naive", 

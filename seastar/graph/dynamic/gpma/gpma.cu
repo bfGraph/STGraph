@@ -219,7 +219,7 @@ __device__ SIZE_TYPE handle_del_mod(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYP
 
 __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                    SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                   SIZE_TYPE *leaf, bool return_leaf_loc = true)
+                                   SIZE_TYPE *leaf)
 {
 
     SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -240,22 +240,20 @@ __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE
         }
 
         prefix = handle_del_mod(keys + prefix, values + prefix, seg_length, key, value, prefix);
-
-        if (return_leaf_loc)
-            leaf[i] = prefix;
+        leaf[i] = prefix;
     }
 }
 
 __host__ void locate_leaf_batch(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                 SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                SIZE_TYPE *leaf, bool return_leaf_loc = true)
+                                SIZE_TYPE *leaf)
 {
 
     SIZE_TYPE THREADS_NUM = 32;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, update_size);
 
     locate_leaf_kernel<<<BLOCKS_NUM, THREADS_NUM>>>(keys, values, tree_size, seg_length, tree_height, update_keys,
-                                                    update_values, update_size, leaf, return_leaf_loc);
+                                                    update_values, update_size, leaf);
     cErr(cudaDeviceSynchronize());
 }
 
