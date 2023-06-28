@@ -548,7 +548,7 @@ __global__ void redispatch_kernel(KEY_TYPE *tmp_keys, VALUE_TYPE *tmp_values, KE
 __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_length, SIZE_TYPE level, KEY_TYPE *keys,
                                    VALUE_TYPE *values, SIZE_TYPE *update_nodes, KEY_TYPE *update_keys, VALUE_TYPE *update_values,
                                    SIZE_TYPE *unique_update_nodes, SIZE_TYPE *update_offset, SIZE_TYPE lower_bound, SIZE_TYPE upper_bound,
-                                   SIZE_TYPE *row_offset)
+                                   SIZE_TYPE *row_offset, KEY_TYPE* tmp_keys, VALUE_TYPE* tmp_values, SIZE_TYPE* tmp_exscan, SIZE_TYPE* tmp_label)
 {
 
     SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -559,16 +559,10 @@ __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_l
     cErr(cudaMalloc(&compacted_size, sizeof(SIZE_TYPE)));
     cErr(cudaDeviceSynchronize());
 
-    KEY_TYPE *tmp_keys;
-    VALUE_TYPE *tmp_values;
-    SIZE_TYPE *tmp_exscan;
-    SIZE_TYPE *tmp_label;
-
-    cErr(cudaMalloc(&tmp_keys, update_width * sizeof(KEY_TYPE)));
-    cErr(cudaMalloc(&tmp_values, update_width * sizeof(VALUE_TYPE)));
-    cErr(cudaMalloc(&tmp_exscan, update_width * sizeof(SIZE_TYPE)));
-    cErr(cudaMalloc(&tmp_label, update_width * sizeof(SIZE_TYPE)));
-    cErr(cudaDeviceSynchronize());
+    tmp_keys = tmp_keys + (blockIdx.x * update_width);
+    tmp_values = tmp_values + (blockIdx.x * update_width);
+    tmp_exscan = tmp_exscan + (blockIdx.x * update_width);
+    tmp_label = tmp_label + (blockIdx.x * update_width);
 
     for (SIZE_TYPE i = global_thread_id; i < unique_update_size; i += block_offset)
     {
@@ -620,10 +614,6 @@ __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_l
     }
 
     cErr(cudaFree(compacted_size));
-    cErr(cudaFree(tmp_keys));
-    cErr(cudaFree(tmp_values));
-    cErr(cudaFree(tmp_exscan));
-    cErr(cudaFree(tmp_label));
 }
 
 __host__ void rebalance_batch(SIZE_TYPE level, SIZE_TYPE seg_length, KEY_TYPE *keys, VALUE_TYPE *values,
@@ -656,15 +646,34 @@ __host__ void rebalance_batch(SIZE_TYPE level, SIZE_TYPE seg_length, KEY_TYPE *k
 
         func_arr[fls(update_width) - 2]<<<BLOCKS_NUM, THREADS_NUM>>>(seg_length, level, keys, values, update_nodes,
                                                                      update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset);
+        
+        cErr(cudaDeviceSynchronize());
     }
     else
     {
         // operate each tree node by cub-kernel (dynamic parallelsim)
         SIZE_TYPE BLOCKS_NUM = min(2048, unique_update_size);
+
+        KEY_TYPE *tmp_keys;
+        VALUE_TYPE *tmp_values;
+        SIZE_TYPE *tmp_exscan;
+        SIZE_TYPE *tmp_label;
+        cErr(cudaMalloc(&tmp_keys, BLOCKS_NUM * update_width * sizeof(KEY_TYPE)));
+        cErr(cudaMalloc(&tmp_values, BLOCKS_NUM * update_width * sizeof(VALUE_TYPE)));
+        cErr(cudaMalloc(&tmp_exscan, BLOCKS_NUM * update_width * sizeof(SIZE_TYPE)));
+        cErr(cudaMalloc(&tmp_label, BLOCKS_NUM * update_width * sizeof(SIZE_TYPE)));
+        cErr(cudaDeviceSynchronize());
+
         rebalancing_kernel<<<BLOCKS_NUM, 1>>>(unique_update_size, seg_length, level, keys, values, update_nodes,
-                                              update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset);
+                                              update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset, tmp_keys, tmp_values, tmp_exscan, tmp_label);
+        
+        cErr(cudaDeviceSynchronize());
+        cErr(cudaFree(tmp_keys));
+        cErr(cudaFree(tmp_values));
+        cErr(cudaFree(tmp_exscan));
+        cErr(cudaFree(tmp_label));
     }
-    cErr(cudaDeviceSynchronize());
+    
 }
 
 struct three_tuple_first_none
