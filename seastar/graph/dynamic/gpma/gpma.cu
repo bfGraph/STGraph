@@ -41,6 +41,8 @@ typedef thrust::device_vector<SIZE_TYPE> DEV_VEC_SIZE;
 typedef KEY_TYPE *KEY_PTR;
 typedef VALUE_TYPE *VALUE_PTR;
 
+enum UpdateActionKind { UAK_INSERT , UAK_DELETE };
+
 #define RAW_PTR(x) thrust::raw_pointer_cast((x).data())
 
 const KEY_TYPE KEY_NONE = 0xFFFFFFFFFFFFFFFF;
@@ -1024,7 +1026,8 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
     }
 }
 
-__global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* updates, int updates_size, bool is_delete){
+template <UpdateActionKind Action>
+__global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* updates, int updates_size){
     int index = blockDim.x * blockIdx.x + threadIdx.x;
     int block_offset = gridDim.x * blockDim.x;
     for(; index < updates_size; index += block_offset){
@@ -1032,12 +1035,12 @@ __global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_
         SIZE_TYPE src = (SIZE_TYPE)(key >> 32);
         SIZE_TYPE dst = (SIZE_TYPE)(key);
 
-        if(is_delete){
-            atomicSub(&in_degree[dst],1);
-            atomicSub(&out_degree[src],1);
-        }else{
+        if(Action == UAK_INSERT){
             atomicAdd(&in_degree[dst],1);
             atomicAdd(&out_degree[src],1);
+        } else if (Action == UAK_DELETE) {
+            atomicSub(&in_degree[dst],1);
+            atomicSub(&out_degree[src],1);
         }
     }
 }
@@ -1047,11 +1050,11 @@ void update_node_degrees(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* 
     // Updating node degrees associated with added edges
     SIZE_TYPE THREADS_NUM = 128;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)add_key_size);
-    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, add_keys, add_key_size,false);
+    update_node_degrees_kernel<UAK_INSERT> <<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, add_keys, add_key_size);
 
     // Updating node degrees associated with deleted edges
     BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)del_key_size);
-    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, del_keys, del_key_size, true);
+    update_node_degrees_kernel<UAK_DELETE> <<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, del_keys, del_key_size);
     cErr(cudaDeviceSynchronize());
 }
 
