@@ -2,6 +2,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/remove.h>
 #include <thrust/sort.h>
+#include <thrust/sequence.h>
 #include <cub/cub.cuh>
 
 #include <pybind11/pybind11.h>
@@ -60,6 +61,7 @@ public:
     DEV_VEC_SIZE row_offset; // row offset vector
     DEV_VEC_KEY keys;   // column indices vector
     DEV_VEC_VALUE values;   // edge IDs vector
+    DEV_VEC_SIZE node_ids;   // node IDs vector
 
     // node and edge metadata
     SIZE_TYPE row_num; // number of nodes
@@ -950,6 +952,7 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     // initialising the row_offset vector with all 0 value
     gpma.row_num = row_num;
     gpma.row_offset.resize(row_num + 1, 0);
+    gpma.node_ids.resize(row_num, 0);
 
     // initialising in_degree, out_degree and cum_out_degree arrays
     // with all zero values
@@ -1233,20 +1236,35 @@ void free_backward_csr(GPMA &gpma){
     cErr(cudaFree(gpma.bwd_values));
 }
 
-std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)
 {
     // This function returns CSR pointers to forward or backward graph
     // based on if is_backward is false or true respectively.
 
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    thrust::sequence(gpma.node_ids.begin(), gpma.node_ids.end());
+    DEV_VEC_SIZE tmp(gpma.row_num);
+
     if(is_backward){
+        thrust::copy(gpma.in_degree.begin(), gpma.in_degree.end(), tmp.begin());
+        cErr(cudaDeviceSynchronize());
+        thrust::sort_by_key(tmp.begin(), tmp.end(), gpma.node_ids.begin(), thrust::greater<int>());
+        cErr(cudaDeviceSynchronize());
+
         std::get<0>(t) = (std::uintptr_t)gpma.bwd_row_offset;
         std::get<1>(t) = (std::uintptr_t)gpma.bwd_keys;
         std::get<2>(t) = (std::uintptr_t)gpma.bwd_values;
+        std::get<3>(t) = (std::uintptr_t)RAW_PTR(gpma.node_ids);
     }else{
+        thrust::copy(gpma.out_degree.begin(), gpma.out_degree.end(), tmp.begin());
+        cErr(cudaDeviceSynchronize());
+        thrust::sort_by_key(tmp.begin(), tmp.end(), gpma.node_ids.begin(), thrust::greater<int>());
+        cErr(cudaDeviceSynchronize());
+
         std::get<0>(t) = (std::uintptr_t)RAW_PTR(gpma.row_offset);
         std::get<1>(t) = (std::uintptr_t)RAW_PTR(gpma.keys);
         std::get<2>(t) = (std::uintptr_t)RAW_PTR(gpma.values);
+        std::get<3>(t) = (std::uintptr_t)RAW_PTR(gpma.node_ids);
     }
     return t;
 }
@@ -1321,6 +1339,15 @@ void print_gpma_info(GPMA &gpma, int node)
         }
     }
     py::print("\n\n");
+}
+
+std::vector<unsigned int> get_node_ids(GPMA &gpma){
+    thrust::host_vector<SIZE_TYPE> h_node_ids = gpma.node_ids;
+    std::vector<unsigned int> node_ids(h_node_ids.size());
+    for(int i=0; i<h_node_ids.size(); ++i){
+        node_ids[i] = h_node_ids[i];
+    }
+    return node_ids;
 }
 
 std::set<std::tuple<unsigned int, unsigned int, unsigned int>> get_gpma_edge_list(GPMA &gpma)
@@ -1425,6 +1452,7 @@ PYBIND11_MODULE(gpma, m)
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
     m.def("get_gpma_edge_list", &get_gpma_edge_list, "To get the edge list");
     m.def("get_reverse_csr_edge_list", &get_reverse_csr_edge_list, "To get the edge list of reverse");
+    m.def("get_node_ids", &get_node_ids, "To get the node ids");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())

@@ -3,19 +3,18 @@ extern "C" __global__ void {{kernel_name}}(
   unsigned int *row_offsets,
   unsigned int *eids,
   unsigned long long *column_indices,
-  unsigned int *node_ids,
+  {{index_type}} *node_ids,
   {{index_type}} num_nodes,
   {{index_type}} max_dimx,
   {{index_type}} max_dimy,
   {{index_type}} thrs_per_group,
   {{index_type}} nodes_per_block) {
 
-    {{index_type}} node_id_index = nodes_per_block*blockIdx.x + threadIdx.x/thrs_per_group;
+    {{index_type}} {{row_offset}} = nodes_per_block*blockIdx.x + threadIdx.x/thrs_per_group;
 
-    if (node_id_index < num_nodes) {
+    if ({{row_offset}} < num_nodes) {
 
         {{index_type}} feat_len = max_dimx * max_dimy;
-        {{index_type}} {{row_offset}} = __ldg(node_ids + node_id_index);
         unsigned int beg = __ldg(row_offsets + {{row_offset}});
         unsigned int end = __ldg(row_offsets + {{row_offset}} + 1);
         {{index_type}} tx = threadIdx.x % thrs_per_group;
