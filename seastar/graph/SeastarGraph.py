@@ -10,10 +10,12 @@ class SeastarGraph(ABC):
         self.fwd_row_offset_ptr = None
         self.fwd_column_indices_ptr = None
         self.fwd_eids_ptr = None
+        self.fwd_node_ids_ptr = None
         
         self.bwd_row_offset_ptr = None
         self.bwd_column_indices_ptr = None
         self.bwd_eids_ptr = None
+        self.bwd_node_ids_ptr = None
     
     @abstractmethod
     def _get_graph_csr_ptrs(self):

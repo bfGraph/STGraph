@@ -95,6 +95,8 @@ def gen_cuda(configs):
         if config['template_name'] == 'fa':
             if config['graph_type'] == 'csr':
                 rendered_tpl = render_template(config, "tpl_fa_csr")
+            elif config['graph_type'] == 'csr_unsorted':
+                rendered_tpl = render_template(config, "tpl_fa_csr_unsorted")
             elif config['graph_type'] == 'pcsr': 
                 rendered_tpl = render_template(config, "tpl_fa_pcsr")
             elif config['graph_type'] == 'gpma':   
