@@ -62,10 +62,12 @@ class PCSRGraph(DynamicGraph):
             self.bwd_row_offset_ptr = csr_ptrs[0]
             self.bwd_column_indices_ptr = csr_ptrs[1]
             self.bwd_eids_ptr = csr_ptrs[2]
+            self.bwd_node_ids_ptr = csr_ptrs[3]
         else:
             self.fwd_row_offset_ptr = csr_ptrs[0]
             self.fwd_column_indices_ptr = csr_ptrs[1]
             self.fwd_eids_ptr = csr_ptrs[2]
+            self.fwd_node_ids_ptr = csr_ptrs[3]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp

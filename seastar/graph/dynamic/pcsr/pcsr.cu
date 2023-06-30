@@ -285,11 +285,13 @@ public:
     uint32_t *row_offset_pinned;
     uint32_t *column_indices_pinned;
     uint32_t *eids_pinned;
+    uint32_t *node_ids_pinned;
 
     // replacing device vectors
     uint32_t *row_offset_device;
     uint32_t *column_indices_device;
     uint32_t *eids_device;
+    uint32_t *node_ids_device;
 
     // member functions
     PCSR(uint32_t init_n, uint32_t max_edge_count);
@@ -313,7 +315,7 @@ public:
     void label_edges();
     void build_csr();
     void build_reverse_csr();
-    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void move_pinned_to_gpu();
 };
@@ -348,10 +350,12 @@ PCSR::PCSR(uint32_t init_n, uint32_t max_num_edges)
         cErr(cudaMallocHost(&row_offset_pinned, sizeof(uint32_t) * (init_n + 1)));
         cErr(cudaMallocHost(&column_indices_pinned, sizeof(uint32_t) * max_num_edges));
         cErr(cudaMallocHost(&eids_pinned, sizeof(uint32_t) * max_num_edges));
+        cErr(cudaMallocHost(&node_ids_pinned, sizeof(uint32_t) * init_n));
 
         cErr(cudaMalloc(&row_offset_device, sizeof(uint32_t) * (init_n + 1)));
         cErr(cudaMalloc(&column_indices_device, sizeof(uint32_t) * max_num_edges));
         cErr(cudaMalloc(&eids_device, sizeof(uint32_t) * max_num_edges));
+        cErr(cudaMalloc(&node_ids_device, sizeof(uint32_t) * init_n));
     }
 }
 
@@ -804,6 +808,20 @@ void PCSR::build_reverse_csr()
         }
     }
 
+    // Obtaining the sorted order of node ids (in descending order of in-degrees)
+    std::vector<std::pair<uint32_t, uint32_t>> degree_id_pairs = std::vector<std::pair<uint32_t, uint32_t>>();
+    for(int i=0; i<in_degrees.size(); ++i){
+        degree_id_pairs.push_back(std::make_pair(in_degrees[i],i));
+    }
+
+    std::sort(degree_id_pairs.begin(), degree_id_pairs.end(), [ ](const std::pair<int, int>& lhs, const std::pair<int, int>& rhs ) {
+        return lhs.first > rhs.first;
+    });
+
+    for(int i=0; i<degree_id_pairs.size(); ++i){
+        node_ids_pinned[i] = degree_id_pairs[i].second;
+    }
+
     move_pinned_to_gpu();
 }
 
@@ -832,6 +850,20 @@ void PCSR::build_csr()
         }
     }
 
+    // Obtaining the sorted order of node ids (in descending order of out-degrees)
+    std::vector<std::pair<uint32_t, uint32_t>> degree_id_pairs = std::vector<std::pair<uint32_t, uint32_t>>();
+    for(int i=0; i<out_degrees.size(); ++i){
+        degree_id_pairs.push_back(std::make_pair(out_degrees[i],i));
+    }
+
+    std::sort(degree_id_pairs.begin(), degree_id_pairs.end(), [ ](const std::pair<int, int>& lhs, const std::pair<int, int>& rhs ) {
+        return lhs.first > rhs.first;
+    });
+
+    for(int i=0; i<degree_id_pairs.size(); ++i){
+        node_ids_pinned[i] = degree_id_pairs[i].second;
+    }
+
     move_pinned_to_gpu();
 }
 
@@ -839,13 +871,15 @@ void PCSR::move_pinned_to_gpu(){
     cErr(cudaMemcpy(row_offset_device, row_offset_pinned, sizeof(uint32_t) * (get_n() + 1), cudaMemcpyHostToDevice));
     cErr(cudaMemcpy(column_indices_device, column_indices_pinned, sizeof(uint32_t) * edge_count, cudaMemcpyHostToDevice));
     cErr(cudaMemcpy(eids_device, eids_pinned, sizeof(uint32_t) * edge_count, cudaMemcpyHostToDevice));
+    cErr(cudaMemcpy(node_ids_device, node_ids_pinned, sizeof(uint32_t) * get_n(), cudaMemcpyHostToDevice));
 }
 
-std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(){
-    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> PCSR::get_csr_ptrs(){
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
     std::get<0>(t) = (std::uintptr_t)row_offset_device;
     std::get<1>(t) = (std::uintptr_t)column_indices_device;
     std::get<2>(t) = (std::uintptr_t)eids_device;
+    std::get<3>(t) = (std::uintptr_t)node_ids_device;
     return t;
 }
 
@@ -853,15 +887,18 @@ std::vector<std::vector<uint32_t>> read_gpu_csr(PCSR &pcsr){
     std::vector<uint32_t> row_offset(pcsr.get_n() + 1);
     std::vector<uint32_t> column_indices(pcsr.edge_count);
     std::vector<uint32_t> eids(pcsr.edge_count);
+    std::vector<uint32_t> node_ids(pcsr.get_n());
 
     cErr(cudaMemcpy(row_offset.data(), pcsr.row_offset_device, sizeof(uint32_t) * (pcsr.get_n() + 1), cudaMemcpyDeviceToHost));
     cErr(cudaMemcpy(column_indices.data(), pcsr.column_indices_device, sizeof(uint32_t) * pcsr.edge_count, cudaMemcpyDeviceToHost));
     cErr(cudaMemcpy(eids.data(), pcsr.eids_device, sizeof(uint32_t) * pcsr.edge_count, cudaMemcpyDeviceToHost));
+    cErr(cudaMemcpy(node_ids.data(), pcsr.node_ids_device, sizeof(uint32_t) * pcsr.get_n(), cudaMemcpyDeviceToHost));
 
     std::vector<std::vector<uint32_t>> res;
     res.push_back(row_offset);
     res.push_back(column_indices);
     res.push_back(eids);
+    res.push_back(node_ids);
     return res;
 }
 

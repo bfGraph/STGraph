@@ -99,8 +99,12 @@ def gen_cuda(configs):
                 rendered_tpl = render_template(config, "tpl_fa_csr_unsorted")
             elif config['graph_type'] == 'pcsr': 
                 rendered_tpl = render_template(config, "tpl_fa_pcsr")
+            elif config['graph_type'] == 'pcsr_unsorted': 
+                rendered_tpl = render_template(config, "tpl_fa_pcsr_unsorted")
             elif config['graph_type'] == 'gpma':   
                 rendered_tpl = render_template(config, "tpl_fa_gpma")
+            elif config['graph_type'] == 'gpma_unsorted':   
+                rendered_tpl = render_template(config, "tpl_fa_gpma_unsorted")
             else:
                 raise NotImplementedError('{} Template for {} is not supported'.format(config['template_name'],config['graph_type']))
         elif config['template_name'] == 'v2':
