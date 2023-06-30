@@ -3,7 +3,7 @@ import numpy as np
 from rich import inspect
 
 from seastar.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.static.csr import CSR, print_dev_array
+from seastar.graph.static.csr import CSR
 from collections import deque
 import time
 
@@ -81,11 +81,13 @@ class NaiveGraph(DynamicGraph):
             self.bwd_row_offset_ptr = bwd_csr_ptrs.row_offset_ptr
             self.bwd_column_indices_ptr = bwd_csr_ptrs.column_indices_ptr
             self.bwd_eids_ptr = bwd_csr_ptrs.eids_ptr
+            self.bwd_node_ids_ptr = bwd_csr_ptrs.node_ids_ptr
         else:
             fwd_csr_ptrs = self._forward_graph[timestamp]
             self.fwd_row_offset_ptr = fwd_csr_ptrs.row_offset_ptr
             self.fwd_column_indices_ptr = fwd_csr_ptrs.column_indices_ptr
             self.fwd_eids_ptr = fwd_csr_ptrs.eids_ptr
+            self.fwd_node_ids_ptr = fwd_csr_ptrs.node_ids_ptr
 
     def _update_graph_forward(self):
         """Updates the current base graph to the next timestamp"""
