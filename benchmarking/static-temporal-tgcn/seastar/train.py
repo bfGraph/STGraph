@@ -1,10 +1,12 @@
 import argparse
 import time
 import numpy as np
+import pandas as pd
 import torch
 import snoop
 import pynvml
 import sys
+import os
 from model import SeastarTGCN
 from seastar.graph.static.StaticGraph import StaticGraph
 from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
@@ -62,13 +64,14 @@ def main(args):
         backprop_every = len(features)
     
     if len(features) % backprop_every == 0:
-                num_iter = int(len(features)/backprop_every)
+        num_iter = int(len(features)/backprop_every)
     else:
         num_iter = int(len(features)/backprop_every) + 1
 
     # metrics
     dur = []
-    table = BenchmarkTable(f"(Seastar Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Used GPU Memory (Avg MB)"])
+    max_gpu = []
+    table = BenchmarkTable(f"(Seastar Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
     
     # normalization
     degs = torch.from_numpy(G.in_degrees()).type(torch.int32)
@@ -101,6 +104,9 @@ def main(args):
 
                     y_hat, hidden_state = model(G, features[t], edge_weight, hidden_state)
                     cost = cost + torch.mean((y_hat-targets[t])**2)
+                
+                if cost == 0:
+                    break
         
                 cost = cost / (backprop_every+1)
                 cost.backward()
@@ -115,17 +121,36 @@ def main(args):
 
             if epoch >= 3:
                 dur.append(run_time_this_epoch)
+                max_gpu.append(max(gpu_mem_arr))
 
-            table.add_row([epoch, "{:.5f}".format(run_time_this_epoch), "{:.4f}".format(sum(cost_arr)/len(cost_arr)), "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2))),  "{:.4f}".format(((sum(gpu_mem_arr) * 1.0) / ((1024**2) * len(gpu_mem_arr))))])
+            table.add_row([epoch, "{:.5f}".format(run_time_this_epoch), "{:.4f}".format(sum(cost_arr)/len(cost_arr)), "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2)))])
 
         table.display()
         print('Average Time taken: {:6f}'.format(np.mean(dur)))
+        return np.mean(dur), (max(max_gpu) * 1.0 / (1024**2))
+    
     except RuntimeError as e:
         if 'out of memory' in str(e):
-            table.add_row(["OOM", "OOM", "OOM", "OOM",  "OOM"])
+            table.add_row(["OOM", "OOM", "OOM", "OOM"])
             table.display()
         else:
             print("😔 Something went wrong")
+        return "OOM", "OOM"
+
+def write_results(args, time_taken, max_gpu):
+    cutoff = "whole"
+    if args.cutoff_time < sys.maxsize:
+        cutoff = str(args.cutoff_time)
+    file_name = f"seastar_{args.dataset}_T{cutoff}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
+    df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu}])
+    
+    if os.path.exists('../../results/static-temporal.csv'):
+        df = pd.read_csv('../../results/static-temporal.csv')
+        df = pd.concat([df, df_data])
+    else:
+        df = df_data
+    
+    df.to_csv('../../results/static-temporal.csv', sep=',', index=False, encoding='utf-8')
 
 
 if __name__ == '__main__':
@@ -149,4 +174,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     print(args)
-    main(args)
+    time_taken, max_gpu = main(args)
+    write_results(args, time_taken, max_gpu)

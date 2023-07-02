@@ -62,10 +62,12 @@ class PCSRGraph(DynamicGraph):
             self.bwd_row_offset_ptr = csr_ptrs[0]
             self.bwd_column_indices_ptr = csr_ptrs[1]
             self.bwd_eids_ptr = csr_ptrs[2]
+            self.bwd_node_ids_ptr = csr_ptrs[3]
         else:
             self.fwd_row_offset_ptr = csr_ptrs[0]
             self.fwd_column_indices_ptr = csr_ptrs[1]
             self.fwd_eids_ptr = csr_ptrs[2]
+            self.fwd_node_ids_ptr = csr_ptrs[3]
     
     def _update_graph_forward(self):
         ''' Updates the current base graph to the next timestamp
@@ -79,12 +81,14 @@ class PCSRGraph(DynamicGraph):
         self._forward_graph.edge_update_list(graph_additions, is_reverse_edge=True)
         self._forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
         self._forward_graph.label_edges()   
-        self._forward_graph.build_csr()
+        move_to_gpu_time = self._forward_graph.build_csr()
+        self.move_to_gpu_time += move_to_gpu_time
         self._get_graph_csr_ptrs()
         
     def _init_reverse_graph(self):
         ''' Generates the reverse of the base graph'''
-        self._forward_graph.build_reverse_csr()
+        move_to_gpu_time = self._forward_graph.build_reverse_csr()
+        self.move_to_gpu_time += move_to_gpu_time
         self._get_graph_csr_ptrs()
 
     def _update_graph_backward(self):
@@ -96,6 +100,8 @@ class PCSRGraph(DynamicGraph):
 
         self._forward_graph.edge_update_list(graph_additions, is_reverse_edge=True)   
         self._forward_graph.edge_update_list(graph_deletions, is_delete=True, is_reverse_edge=True)
-        self._forward_graph.label_edges() 
-        self._forward_graph.build_reverse_csr()
+        self._forward_graph.label_edges()
+        move_to_gpu_time = self._forward_graph.build_reverse_csr()
+        self.move_to_gpu_time += move_to_gpu_time
         self._get_graph_csr_ptrs()
+        

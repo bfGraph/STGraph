@@ -14,3 +14,4 @@ tqdm==4.64.1
 pybind11==2.10.4
 build==0.10.0 
 pynvml==11.5.0
+gdown==4.6.6

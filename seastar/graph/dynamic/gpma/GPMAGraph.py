@@ -69,12 +69,14 @@ class GPMAGraph(DynamicGraph):
         self.fwd_row_offset_ptr = forward_csr_ptrs[0]
         self.fwd_column_indices_ptr = forward_csr_ptrs[1]
         self.fwd_eids_ptr = forward_csr_ptrs[2]
+        self.fwd_node_ids_ptr = forward_csr_ptrs[3]
 
         if self._is_backprop_state:
-          backward_csr_ptrs = get_csr_ptrs(self._forward_graph, is_backward=True)
-          self.bwd_row_offset_ptr = backward_csr_ptrs[0]
-          self.bwd_column_indices_ptr = backward_csr_ptrs[1]
-          self.bwd_eids_ptr = backward_csr_ptrs[2]
+            backward_csr_ptrs = get_csr_ptrs(self._forward_graph, is_backward=True)
+            self.bwd_row_offset_ptr = backward_csr_ptrs[0]
+            self.bwd_column_indices_ptr = backward_csr_ptrs[1]
+            self.bwd_eids_ptr = backward_csr_ptrs[2]
+            self.bwd_node_ids_ptr = backward_csr_ptrs[3]
 
     def _update_graph_forward(self):
         # if we went through the entire time-stamps

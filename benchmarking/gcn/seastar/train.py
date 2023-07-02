@@ -36,7 +36,7 @@ def main(args):
         train_mask = train_mask.cuda()
         test_mask = test_mask.cuda()
 
-    print("Features Shape: ", features.shape)
+    print("Features Shape: ", features.shape, flush=True)
     edge_weight = [1 for _ in range(len(cora.get_edges()))]
 
     pynvml.nvmlInit()
@@ -46,8 +46,8 @@ def main(args):
     graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
 
     # A simple sanity check
-    print("Measuerd Graph Size (pynvml): ", graph_mem, " B")
-    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB")
+    print("Measuerd Graph Size (pynvml): ", graph_mem, " B", flush=True)
+    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB", flush=True)
 
     # normalization
     degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)

@@ -43,15 +43,15 @@ class StaticGraph(SeastarGraph):
         self.bwd_edge_list = edge_list_for_t
         
     def _get_graph_csr_ptrs(self):
-        fwd_csr_ptrs = self._forward_graph
-        self.fwd_row_offset_ptr = fwd_csr_ptrs.row_offset_ptr
-        self.fwd_column_indices_ptr = fwd_csr_ptrs.column_indices_ptr
-        self.fwd_eids_ptr = fwd_csr_ptrs.eids_ptr
-        
-        bwd_csr_ptrs = self._backward_graph
-        self.bwd_row_offset_ptr = bwd_csr_ptrs.row_offset_ptr
-        self.bwd_column_indices_ptr = bwd_csr_ptrs.column_indices_ptr
-        self.bwd_eids_ptr = bwd_csr_ptrs.eids_ptr
+        self.fwd_row_offset_ptr = self._forward_graph.row_offset_ptr
+        self.fwd_column_indices_ptr = self._forward_graph.column_indices_ptr
+        self.fwd_eids_ptr = self._forward_graph.eids_ptr
+        self.fwd_node_ids_ptr = self._forward_graph.node_ids_ptr
+
+        self.bwd_row_offset_ptr = self._backward_graph.row_offset_ptr
+        self.bwd_column_indices_ptr = self._backward_graph.column_indices_ptr
+        self.bwd_eids_ptr = self._backward_graph.eids_ptr
+        self.bwd_node_ids_ptr = self._backward_graph.node_ids_ptr
             
     def get_num_nodes(self):
         return self._num_nodes
@@ -69,7 +69,8 @@ class StaticGraph(SeastarGraph):
         self._ndata[field] = val
         
     def graph_type(self):
-        return "csr"
+        # return "csr"
+        return "csr_unsorted"
     
     def in_degrees(self):
         return np.array(self._forward_graph.out_degrees, dtype='int32')

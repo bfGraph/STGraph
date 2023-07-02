@@ -2,6 +2,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/remove.h>
 #include <thrust/sort.h>
+#include <thrust/sequence.h>
 #include <cub/cub.cuh>
 
 #include <pybind11/pybind11.h>
@@ -41,6 +42,8 @@ typedef thrust::device_vector<SIZE_TYPE> DEV_VEC_SIZE;
 typedef KEY_TYPE *KEY_PTR;
 typedef VALUE_TYPE *VALUE_PTR;
 
+enum UpdateActionKind { UAK_INSERT , UAK_DELETE };
+
 #define RAW_PTR(x) thrust::raw_pointer_cast((x).data())
 
 const KEY_TYPE KEY_NONE = 0xFFFFFFFFFFFFFFFF;
@@ -58,6 +61,7 @@ public:
     DEV_VEC_SIZE row_offset; // row offset vector
     DEV_VEC_KEY keys;   // column indices vector
     DEV_VEC_VALUE values;   // edge IDs vector
+    DEV_VEC_SIZE node_ids;   // node IDs vector
 
     // node and edge metadata
     SIZE_TYPE row_num; // number of nodes
@@ -219,7 +223,7 @@ __device__ SIZE_TYPE handle_del_mod(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYP
 
 __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                    SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                   SIZE_TYPE *leaf, bool return_leaf_loc = true)
+                                   SIZE_TYPE *leaf)
 {
 
     SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -240,22 +244,20 @@ __global__ void locate_leaf_kernel(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE
         }
 
         prefix = handle_del_mod(keys + prefix, values + prefix, seg_length, key, value, prefix);
-
-        if (return_leaf_loc)
-            leaf[i] = prefix;
+        leaf[i] = prefix;
     }
 }
 
 __host__ void locate_leaf_batch(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE tree_size, SIZE_TYPE seg_length,
                                 SIZE_TYPE tree_height, KEY_TYPE *update_keys, VALUE_TYPE *update_values, SIZE_TYPE update_size,
-                                SIZE_TYPE *leaf, bool return_leaf_loc = true)
+                                SIZE_TYPE *leaf)
 {
 
     SIZE_TYPE THREADS_NUM = 32;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, update_size);
 
     locate_leaf_kernel<<<BLOCKS_NUM, THREADS_NUM>>>(keys, values, tree_size, seg_length, tree_height, update_keys,
-                                                    update_values, update_size, leaf, return_leaf_loc);
+                                                    update_values, update_size, leaf);
     cErr(cudaDeviceSynchronize());
 }
 
@@ -550,7 +552,7 @@ __global__ void redispatch_kernel(KEY_TYPE *tmp_keys, VALUE_TYPE *tmp_values, KE
 __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_length, SIZE_TYPE level, KEY_TYPE *keys,
                                    VALUE_TYPE *values, SIZE_TYPE *update_nodes, KEY_TYPE *update_keys, VALUE_TYPE *update_values,
                                    SIZE_TYPE *unique_update_nodes, SIZE_TYPE *update_offset, SIZE_TYPE lower_bound, SIZE_TYPE upper_bound,
-                                   SIZE_TYPE *row_offset)
+                                   SIZE_TYPE *row_offset, KEY_TYPE* tmp_keys, VALUE_TYPE* tmp_values, SIZE_TYPE* tmp_exscan, SIZE_TYPE* tmp_label)
 {
 
     SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -561,16 +563,10 @@ __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_l
     cErr(cudaMalloc(&compacted_size, sizeof(SIZE_TYPE)));
     cErr(cudaDeviceSynchronize());
 
-    KEY_TYPE *tmp_keys;
-    VALUE_TYPE *tmp_values;
-    SIZE_TYPE *tmp_exscan;
-    SIZE_TYPE *tmp_label;
-
-    cErr(cudaMalloc(&tmp_keys, update_width * sizeof(KEY_TYPE)));
-    cErr(cudaMalloc(&tmp_values, update_width * sizeof(VALUE_TYPE)));
-    cErr(cudaMalloc(&tmp_exscan, update_width * sizeof(SIZE_TYPE)));
-    cErr(cudaMalloc(&tmp_label, update_width * sizeof(SIZE_TYPE)));
-    cErr(cudaDeviceSynchronize());
+    tmp_keys = tmp_keys + (blockIdx.x * update_width);
+    tmp_values = tmp_values + (blockIdx.x * update_width);
+    tmp_exscan = tmp_exscan + (blockIdx.x * update_width);
+    tmp_label = tmp_label + (blockIdx.x * update_width);
 
     for (SIZE_TYPE i = global_thread_id; i < unique_update_size; i += block_offset)
     {
@@ -622,10 +618,6 @@ __global__ void rebalancing_kernel(SIZE_TYPE unique_update_size, SIZE_TYPE seg_l
     }
 
     cErr(cudaFree(compacted_size));
-    cErr(cudaFree(tmp_keys));
-    cErr(cudaFree(tmp_values));
-    cErr(cudaFree(tmp_exscan));
-    cErr(cudaFree(tmp_label));
 }
 
 __host__ void rebalance_batch(SIZE_TYPE level, SIZE_TYPE seg_length, KEY_TYPE *keys, VALUE_TYPE *values,
@@ -658,15 +650,34 @@ __host__ void rebalance_batch(SIZE_TYPE level, SIZE_TYPE seg_length, KEY_TYPE *k
 
         func_arr[fls(update_width) - 2]<<<BLOCKS_NUM, THREADS_NUM>>>(seg_length, level, keys, values, update_nodes,
                                                                      update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset);
+        
+        cErr(cudaDeviceSynchronize());
     }
     else
     {
         // operate each tree node by cub-kernel (dynamic parallelsim)
         SIZE_TYPE BLOCKS_NUM = min(2048, unique_update_size);
+
+        KEY_TYPE *tmp_keys;
+        VALUE_TYPE *tmp_values;
+        SIZE_TYPE *tmp_exscan;
+        SIZE_TYPE *tmp_label;
+        cErr(cudaMalloc(&tmp_keys, BLOCKS_NUM * update_width * sizeof(KEY_TYPE)));
+        cErr(cudaMalloc(&tmp_values, BLOCKS_NUM * update_width * sizeof(VALUE_TYPE)));
+        cErr(cudaMalloc(&tmp_exscan, BLOCKS_NUM * update_width * sizeof(SIZE_TYPE)));
+        cErr(cudaMalloc(&tmp_label, BLOCKS_NUM * update_width * sizeof(SIZE_TYPE)));
+        cErr(cudaDeviceSynchronize());
+
         rebalancing_kernel<<<BLOCKS_NUM, 1>>>(unique_update_size, seg_length, level, keys, values, update_nodes,
-                                              update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset);
+                                              update_keys, update_values, unique_update_nodes, update_offset, lower_bound, upper_bound, row_offset, tmp_keys, tmp_values, tmp_exscan, tmp_label);
+        
+        cErr(cudaDeviceSynchronize());
+        cErr(cudaFree(tmp_keys));
+        cErr(cudaFree(tmp_values));
+        cErr(cudaFree(tmp_exscan));
+        cErr(cudaFree(tmp_label));
     }
-    cErr(cudaDeviceSynchronize());
+    
 }
 
 struct three_tuple_first_none
@@ -941,6 +952,7 @@ __host__ void init_gpma(GPMA &gpma, SIZE_TYPE row_num)
     // initialising the row_offset vector with all 0 value
     gpma.row_num = row_num;
     gpma.row_offset.resize(row_num + 1, 0);
+    gpma.node_ids.resize(row_num, 0);
 
     // initialising in_degree, out_degree and cum_out_degree arrays
     // with all zero values
@@ -1017,7 +1029,8 @@ void init_graph_updates(GPMA &gpma, std::map<std::string, std::map<std::string, 
     }
 }
 
-__global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* updates, int updates_size, bool is_delete){
+template <UpdateActionKind Action>
+__global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* updates, int updates_size){
     int index = blockDim.x * blockIdx.x + threadIdx.x;
     int block_offset = gridDim.x * blockDim.x;
     for(; index < updates_size; index += block_offset){
@@ -1025,12 +1038,12 @@ __global__ void update_node_degrees_kernel(SIZE_TYPE* in_degree, SIZE_TYPE* out_
         SIZE_TYPE src = (SIZE_TYPE)(key >> 32);
         SIZE_TYPE dst = (SIZE_TYPE)(key);
 
-        if(is_delete){
-            atomicSub(&in_degree[dst],1);
-            atomicSub(&out_degree[src],1);
-        }else{
+        if(Action == UAK_INSERT){
             atomicAdd(&in_degree[dst],1);
             atomicAdd(&out_degree[src],1);
+        } else if (Action == UAK_DELETE) {
+            atomicSub(&in_degree[dst],1);
+            atomicSub(&out_degree[src],1);
         }
     }
 }
@@ -1040,11 +1053,11 @@ void update_node_degrees(SIZE_TYPE* in_degree, SIZE_TYPE* out_degree, KEY_TYPE* 
     // Updating node degrees associated with added edges
     SIZE_TYPE THREADS_NUM = 128;
     SIZE_TYPE BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)add_key_size);
-    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, add_keys, add_key_size,false);
+    update_node_degrees_kernel<UAK_INSERT> <<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, add_keys, add_key_size);
 
     // Updating node degrees associated with deleted edges
     BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, (SIZE_TYPE)del_key_size);
-    update_node_degrees_kernel<<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, del_keys, del_key_size, true);
+    update_node_degrees_kernel<UAK_DELETE> <<<BLOCKS_NUM,THREADS_NUM>>>(in_degree, out_degree, del_keys, del_key_size);
     cErr(cudaDeviceSynchronize());
 }
 
@@ -1223,20 +1236,35 @@ void free_backward_csr(GPMA &gpma){
     cErr(cudaFree(gpma.bwd_values));
 }
 
-std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)
+std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs(GPMA &gpma, bool is_backward = false)
 {
     // This function returns CSR pointers to forward or backward graph
     // based on if is_backward is false or true respectively.
 
-    std::tuple<std::size_t, std::size_t, std::size_t> t;
+    std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> t;
+    thrust::sequence(gpma.node_ids.begin(), gpma.node_ids.end());
+    DEV_VEC_SIZE tmp(gpma.row_num);
+
     if(is_backward){
+        thrust::copy(gpma.in_degree.begin(), gpma.in_degree.end(), tmp.begin());
+        cErr(cudaDeviceSynchronize());
+        thrust::sort_by_key(tmp.begin(), tmp.end(), gpma.node_ids.begin(), thrust::greater<int>());
+        cErr(cudaDeviceSynchronize());
+
         std::get<0>(t) = (std::uintptr_t)gpma.bwd_row_offset;
         std::get<1>(t) = (std::uintptr_t)gpma.bwd_keys;
         std::get<2>(t) = (std::uintptr_t)gpma.bwd_values;
+        std::get<3>(t) = (std::uintptr_t)RAW_PTR(gpma.node_ids);
     }else{
+        thrust::copy(gpma.out_degree.begin(), gpma.out_degree.end(), tmp.begin());
+        cErr(cudaDeviceSynchronize());
+        thrust::sort_by_key(tmp.begin(), tmp.end(), gpma.node_ids.begin(), thrust::greater<int>());
+        cErr(cudaDeviceSynchronize());
+
         std::get<0>(t) = (std::uintptr_t)RAW_PTR(gpma.row_offset);
         std::get<1>(t) = (std::uintptr_t)RAW_PTR(gpma.keys);
         std::get<2>(t) = (std::uintptr_t)RAW_PTR(gpma.values);
+        std::get<3>(t) = (std::uintptr_t)RAW_PTR(gpma.node_ids);
     }
     return t;
 }
@@ -1311,6 +1339,15 @@ void print_gpma_info(GPMA &gpma, int node)
         }
     }
     py::print("\n\n");
+}
+
+std::vector<unsigned int> get_node_ids(GPMA &gpma){
+    thrust::host_vector<SIZE_TYPE> h_node_ids = gpma.node_ids;
+    std::vector<unsigned int> node_ids(h_node_ids.size());
+    for(int i=0; i<h_node_ids.size(); ++i){
+        node_ids[i] = h_node_ids[i];
+    }
+    return node_ids;
 }
 
 std::set<std::tuple<unsigned int, unsigned int, unsigned int>> get_gpma_edge_list(GPMA &gpma)
@@ -1415,6 +1452,7 @@ PYBIND11_MODULE(gpma, m)
     m.def("print_gpma_info", &print_gpma_info, "Prints row_offset and col_indices for a given node");
     m.def("get_gpma_edge_list", &get_gpma_edge_list, "To get the edge list");
     m.def("get_reverse_csr_edge_list", &get_reverse_csr_edge_list, "To get the edge list of reverse");
+    m.def("get_node_ids", &get_node_ids, "To get the node ids");
 
     py::class_<GPMA>(m, "GPMA")
         .def(py::init<>())
