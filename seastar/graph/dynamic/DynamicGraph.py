@@ -1,5 +1,6 @@
 from seastar.graph.SeastarGraph import SeastarGraph
 from abc import abstractmethod
+import time
 
 class DynamicGraph(SeastarGraph):
     def __init__(self, edge_list, max_num_nodes):
@@ -11,6 +12,11 @@ class DynamicGraph(SeastarGraph):
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
         self.current_timestamp = 0
+
+        # Measuring time for operations
+        self.get_fwd_graph_time = 0
+        self.get_bwd_graph_time = 0
+        self.move_to_gpu_time = 0
 
         self._preprocess_graph_structure(edge_list)
 
@@ -42,7 +48,13 @@ class DynamicGraph(SeastarGraph):
         self._get_cached_graph("base")
         self.current_timestamp = 0
 
+        self.get_fwd_graph_time = 0
+        self.get_bwd_graph_time = 0
+        self.move_to_gpu_time = 0
+
     def get_graph(self, timestamp: int):
+        t0 = time.time()
+
         self._is_backprop_state = False
 
         if timestamp < self.current_timestamp:
@@ -56,8 +68,12 @@ class DynamicGraph(SeastarGraph):
         while self.current_timestamp < timestamp:
             self._update_graph_forward()
             self.current_timestamp += 1
+        
+        self.get_fwd_graph_time += time.time() - t0
 
     def get_backward_graph(self, timestamp: int):
+        t0 = time.time()
+
         if not self._is_backprop_state:
             self._cache_graph()
             self._is_backprop_state = True
@@ -71,6 +87,8 @@ class DynamicGraph(SeastarGraph):
         while self.current_timestamp > timestamp:
             self._update_graph_backward()
             self.current_timestamp -= 1
+        
+        self.get_bwd_graph_time += time.time() - t0
 
     def get_num_nodes(self):
         return self.graph_attr[str(self.current_timestamp)][0]

@@ -313,8 +313,8 @@ public:
     // exposed APIs
     void edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_list, bool is_delete, bool is_reverse_edge);
     void label_edges();
-    void build_csr();
-    void build_reverse_csr();
+    float build_csr();
+    float build_reverse_csr();
     std::tuple<std::uintptr_t, std::uintptr_t, std::uintptr_t, std::uintptr_t> get_csr_ptrs();
     vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
     void move_pinned_to_gpu();
@@ -781,7 +781,7 @@ void PCSR::edge_update_list(std::vector<std::tuple<uint32_t, uint32_t>> edge_lis
     }
 }
 
-void PCSR::build_reverse_csr()
+float PCSR::build_reverse_csr()
 {
     uint64_t n = get_n();
     // computing the bwd row offsets
@@ -822,10 +822,14 @@ void PCSR::build_reverse_csr()
         node_ids_pinned[i] = degree_id_pairs[i].second;
     }
 
+    auto start_time = std::chrono::high_resolution_clock::now();
     move_pinned_to_gpu();
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> move_to_gpu_time = (end_time - start_time);
+    return move_to_gpu_time.count();
 }
 
-void PCSR::build_csr()
+float PCSR::build_csr()
 {
     // computing the bwd row offsets
     uint64_t n = get_n();
@@ -864,7 +868,11 @@ void PCSR::build_csr()
         node_ids_pinned[i] = degree_id_pairs[i].second;
     }
 
+    auto start_time = std::chrono::high_resolution_clock::now();
     move_pinned_to_gpu();
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<float> move_to_gpu_time = (end_time - start_time);
+    return move_to_gpu_time.count();
 }
 
 void PCSR::move_pinned_to_gpu(){
