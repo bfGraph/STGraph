@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from rich import inspect
 from torch_geometric.utils import dense_to_sparse
+import networkx as nx
+import matplotlib.pyplot as plt
 
 adj_mat = np.load('adj_mat.npy')
 adj_mat = torch.from_numpy(adj_mat)
@@ -9,6 +11,14 @@ adj_mat = torch.from_numpy(adj_mat)
 edge_indices, values = dense_to_sparse(adj_mat)
 edge_indices = edge_indices.numpy()
 values = values.numpy()
+
+edges = edge_indices
+edge_weights = values
+edge_list = []
+
+
+for edge_index in range(len(edges[0])):
+    edge_list.append((edges[0][edge_index], edges[1][edge_index]))
 
 X = np.load("node_values.npy").transpose((1, 2, 0))
 X = X.astype(np.float32)
@@ -22,6 +32,7 @@ X = X / stds.reshape(1, -1, 1)
 X = torch.from_numpy(X)
 
 inspect(X)
+quit()
 
 num_timesteps_in = 12
 num_timesteps_out = 12
