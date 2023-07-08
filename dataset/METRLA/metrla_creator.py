@@ -30,18 +30,22 @@ for edge_weight in edge_weights:
     
 metrla_json["edges"] = edge_list
 metrla_json["weights"] = edge_weight_list
-metrla_json["time_periods"] = 34272
+metrla_json["time_periods"] = 10000
 
 node_features = np.load('node_values.npy')
 inspect(node_features)
 
 for time_period in range(len(node_features)):
+    
+    if time_period == 10000:
+        break
+    
     time_node_feat_list = []
+    
     for node_feats in node_features[time_period]:
         time_node_feat_list.append(list(node_feats))
+    
     metrla_json[str(time_period)] = time_node_feat_list
-
-inspect(metrla_json)
 
 with open('METRLA.json', 'w') as fp:
     json.dump(metrla_json, fp)

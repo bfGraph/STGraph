@@ -20,6 +20,9 @@ edge_list = []
 for edge_index in range(len(edges[0])):
     edge_list.append((edges[0][edge_index], edges[1][edge_index]))
 
+X = np.load("node_values.npy")
+
+
 X = np.load("node_values.npy").transpose((1, 2, 0))
 X = X.astype(np.float32)
 
