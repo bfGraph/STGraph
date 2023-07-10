@@ -5,12 +5,10 @@ import numpy as np
 console = Console()
 import torch
 
-from rich import inspect
-
 class METRLADataLoader:
-    def __init__(self ,num_timesteps_in:int = 12, num_timesteps_out:int = 12,verbose: bool = False, for_seastar: bool = False):
-        self.name = "METRLA"
-        self._local_path = f'../../dataset/{self.name}/METRLA.json'
+    def __init__(self , folder_name, dataset_name, num_timesteps_in, num_timesteps_out, cutoff_time, verbose: bool = False, for_seastar: bool = False):
+        self.name = dataset_name
+        self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
         self.for_seastar = for_seastar
         
@@ -18,10 +16,11 @@ class METRLADataLoader:
         self.num_timesteps_out = num_timesteps_out
         
         self._load_dataset()
-        self.total_timestamps = 10000
+        self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
 
         self._get_num_nodes()
         self._get_edges()
+        self._get_edge_weights()
         self._get_targets_and_features()
         
     def _load_dataset(self):

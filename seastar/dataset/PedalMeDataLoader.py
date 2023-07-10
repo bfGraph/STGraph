@@ -4,27 +4,22 @@ from rich.console import Console
 import numpy as np
 console = Console()
 
-from rich import inspect
-
 class PedalMeDataLoader:
-    def __init__(self, cutoff_time=None, lags: int = 4, verbose: bool = False, for_seastar: bool = False):
-        self.name = "PedalMe"
-        self._local_path =  f'../../dataset/PedalMe/{self.name}.json'
+    def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_seastar: bool = False):
+        self.name = dataset_name
+        self._local_path =  f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
         self.for_seastar = for_seastar
         self.lags = lags
     
         self._load_dataset()
-        
-        if cutoff_time:
-            self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
-        else:
-            self.total_timestamps = self._dataset["time_periods"]
+        self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
     
         self._get_num_nodes()
         self._get_num_edges()
         self._get_edges()
         self._get_edge_weights()
+        self._get_targets_and_features()
     
     def _load_dataset(self):
         if os.path.exists(self._local_path):
@@ -103,7 +98,3 @@ class PedalMeDataLoader:
     
     def get_all_features(self):
         return self._all_features
-    
-pm = PedalMeDataLoader(verbose=True, for_seastar=True)
-
-inspect(pm)
