@@ -7,7 +7,7 @@ import torch
 
 from rich import inspect
 
-class METRLADatasetLoader:
+class METRLADataLoader:
     def __init__(self ,num_timesteps_in:int = 12, num_timesteps_out:int = 12,verbose: bool = False, for_seastar: bool = False):
         self.name = "METRLA"
         self._local_path = f'../../dataset/{self.name}/METRLA.json'
@@ -110,5 +110,3 @@ class METRLADatasetLoader:
     
     def get_all_features(self):
         return self._all_features
-            
-m = METRLADatasetLoader(verbose=True)
