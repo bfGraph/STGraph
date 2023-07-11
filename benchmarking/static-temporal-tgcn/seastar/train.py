@@ -7,12 +7,16 @@ import snoop
 import pynvml
 import sys
 import os
+
 from model import SeastarTGCN
 from seastar.graph.static.StaticGraph import StaticGraph
+
 from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
 from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
 from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
 from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
+from seastar.dataset.METRLADataLoader import METRLADataLoader
+
 from seastar.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device
 
@@ -37,6 +41,8 @@ def main(args):
         dataloader = HungaryCPDataLoader('static-temporal', 'hungary_chicken_pox', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "pedalme":
         dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "metrla":
+        dataloader = METRLADataLoader('static-temporal', 'metrla', args.feat_size, args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -166,7 +172,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",
-            help="Name of the Dataset (wiki, windmill, hungary_cp, pedalme)")
+            help="Name of the Dataset (wiki, windmill, hungary_cp, pedalme, metrla)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,
