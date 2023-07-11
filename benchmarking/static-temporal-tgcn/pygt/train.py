@@ -30,11 +30,11 @@ def main(args):
     elif args.dataset == "windmill":
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "hungary_cp":
-        dataloader = HungaryCPDataLoader('static-temporal', 'hungary_chicken_pox', args.feat_size, args.cutoff_time, verbose=True)
+        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "pedalme":
         dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "metrla":
-        dataloader = METRLADataLoader('static-temporal', 'metrla', args.feat_size, args.feat_size, args.cutoff_time, verbose=True)
+        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
