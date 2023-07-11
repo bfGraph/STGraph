@@ -12,8 +12,11 @@ from seastar.graph.static.StaticGraph import StaticGraph
 from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
 from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
 from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
+from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
 from seastar.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device
+
+from rich import inspect
 
 def main(args):
 
@@ -32,6 +35,8 @@ def main(args):
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "hungary_cp":
         dataloader = HungaryCPDataLoader('static-temporal', 'hungary_chicken_pox', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "pedalme":
+        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -161,7 +166,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",
-            help="Name of the Dataset (wiki, windmill)")
+            help="Name of the Dataset (wiki, windmill, hungary_cp, pedalme)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,

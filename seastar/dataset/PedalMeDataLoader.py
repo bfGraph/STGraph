@@ -4,6 +4,8 @@ from rich.console import Console
 import numpy as np
 console = Console()
 
+from rich import inspect
+
 class PedalMeDataLoader:
     def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_seastar: bool = False):
         self.name = dataset_name
@@ -69,21 +71,16 @@ class PedalMeDataLoader:
         
         stacked_target = np.stack(targets)
         
-        # NOTE: Applying standardization which is not done in the original
-        # dataset present in PyG-T 
-        standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
-            np.std(stacked_target, axis=0) + 10 ** -10
-        )
         self._all_features = np.array(
             [
-                standardized_target[i: i + self.lags, :].T
-                for i in range(len(targets) - self.lags)
+                stacked_target[i : i + self.lags, :].T
+                for i in range(stacked_target.shape[0] - self.lags)
             ]
         )
         self._all_targets = np.array(
             [
-                standardized_target[i + self.lags, :].T
-                for i in range(len(targets) - self.lags)
+                stacked_target[i + self.lags, :].T
+                for i in range(stacked_target.shape[0] - self.lags)
             ]
         )
                 
