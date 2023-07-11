@@ -10,6 +10,7 @@ import os
 from model import PyGT_TGCN
 from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
 from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
+from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
 from seastar.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device
 
@@ -25,6 +26,8 @@ def main(args):
         dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "windmill":
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "hungary_cp":
+        dataloader = HungaryCPDataLoader('static-temporal', 'hungary_chicken_pox', args.feat_size, args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()

@@ -5,8 +5,8 @@ import numpy as np
 console = Console()
 
 class HungaryCPDataLoader:
-    def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_seastar: bool = False):
-        self.name = "HungaryCP"
+    def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_seastar = False) -> None:
+        self.name = dataset_name
         self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
         self.for_seastar = for_seastar
