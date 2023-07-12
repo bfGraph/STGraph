@@ -76,8 +76,6 @@ chmod u+x dynamic-bench.sh && ./dynamic-bench.sh
 
 The following datasets were added for the following benchmarking categories. 
 
-**Note**: Make sure to download the new datasets first by running the `build-dataset.sh` file
-
 ### Spatio-temporal Datasets
 
 1. Hungary Chickenpox
@@ -87,6 +85,11 @@ The following datasets were added for the following benchmarking categories.
 ### Dynamic Datasets
 
 TODO: Add the new datasets
+
+Make sure to download the new datasets first by running the `build-dataset-new.sh` file
+```bash
+chmod u+x build-dataset-new.sh && ./build-dataset-new.sh
+```
 
 ## Running the new benchmarking scripts
 
