@@ -9,7 +9,7 @@ for dataset in math wikitalk askubuntu superuser stackoverflow reddit_title redd
 do
     for slide_size in 2.0 4.0 6.0 8.0 10.0
     do
-        python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$i\_B5_H64_F32.txt
+        python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H64_F32.txt
         echo "Finished executing PyG-T $dataset script for S=$slide_size"
     done
 done
@@ -22,7 +22,7 @@ do
         for feat_size in {8..80..8}
         do
             hidden_units=$((feat_size*2))
-            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
             echo "Finished executing PyG-T $dataset for F=$feat_size"
         done
     done
@@ -36,7 +36,7 @@ do
         for feat_size in {50..500..50}
         do
             hidden_units=$((feat_size*2))
-            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
             echo "Finished executing PyG-T $dataset for F=$feat_size"
         done
     done
@@ -50,7 +50,7 @@ do
         for feat_size in {200..2000..200}
         do
             hidden_units=$((feat_size*2))
-            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+            python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
             echo "Finished executing PyG-T $dataset for F=$feat_size"
         done
     done
@@ -69,7 +69,7 @@ do
     do
         for slide_size in 2.0 4.0 6.0 8.0 10.0
         do
-            python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$i\_B5_H64_F32.txt
+            python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H64_F32.txt
             echo "Finished executing Seastar $dataset for type $type script for S=$slide_size"
         done
     done
@@ -85,7 +85,7 @@ do
             for feat_size in {8..80..8}
             do
                 hidden_units=$((feat_size*2))
-                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
                 echo "Finished executing Seastar $dataset for type $type for F=$feat_size"
             done
         done
@@ -102,7 +102,7 @@ do
             for feat_size in {50..500..50}
             do
                 hidden_units=$((feat_size*2))
-                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
                 echo "Finished executing PyG-T $dataset for F=$feat_size"
             done
         done
@@ -119,7 +119,7 @@ do
             for feat_size in {200..2000..200}
             do
                 hidden_units=$((feat_size*2))
-                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$i\_B5_H$hidden_units\_F$feat_size.txt
+                python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
                 echo "Finished executing PyG-T $dataset for F=$feat_size"
             done
         done
