@@ -36,20 +36,20 @@ do
         echo "Finished executing PyG-T PedalMe script for seq_len=$i"
 done
 
-# ---- (PYGT) METRLA ----
-echo "Starting PyG-T METRLA script for different feature sizes"
+# ---- (PYGT) Monte ----
+echo "Starting PyG-T Montevideo Bus script for different feature sizes"
 for i in {8..80..8}
 do
         hidden_units=$((i*2))
-        python3 train.py --dataset metrla --num-epochs 10 --feat-size $i --num-hidden $hidden_units > ../../results/static-temporal/metrla_Twhole_Bwhole_H$hidden_units\_F$i.txt
-        echo "Finished executing PyG-T METRLA script for F=$i"
+        python3 train.py --dataset monte --num-epochs 10 --feat-size $i --num-hidden $hidden_units > ../../results/static-temporal/monte_Twhole_Bwhole_H$hidden_units\_F$i.txt
+        echo "Finished executing PyG-T monte script for F=$i"
 done
 
-echo "Starting PyG-T METRLA script for different sequence lengths"
+echo "Starting PyG-T Montevideo Bus script for different sequence lengths"
 for i in {100..700..100}
 do
-        python3 train.py --dataset metrla --num-epochs 10 --feat-size 8 --num-hidden 16 --backprop-every $i  > ../../results/static-temporal/metrla_Twhole_B$i\_H16_F8.txt
-        echo "Finished executing PyG-T METRLA script for seq_len=$i"
+        python3 train.py --dataset monte --num-epochs 10 --feat-size 8 --num-hidden 16 --backprop-every $i  > ../../results/static-temporal/monte_Twhole_B$i\_H16_F8.txt
+        echo "Finished executing PyG-T monte script for seq_len=$i"
 done
 
 cd ../..
@@ -89,18 +89,18 @@ do
         echo "Finished executing Seastar PedalMe script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) METRLA ----
-echo "Starting Seastar METRLA script for different feature sizes"
+#  ---- (SEASTAR) Montevideo Bus ----
+echo "Starting Seastar Montevideo Bus script for different feature sizes"
 for i in {8..80..8}
 do
         hidden_units=$((i*2))
-        python3 train.py --dataset metrla --num-epochs 10 --feat-size $i --num-hidden $hidden_units > ../../results/static-temporal/seastar_metrla_Twhole_Bwhole_H$hidden_units\_F$i.txt
-        echo "Finished executing Seastar METRLA script for F=$i"
+        python3 train.py --dataset monte --num-epochs 10 --feat-size $i --num-hidden $hidden_units > ../../results/static-temporal/seastar_monte_Twhole_Bwhole_H$hidden_units\_F$i.txt
+        echo "Finished executing Seastar monte script for F=$i"
 done
 
-echo "Starting Seastar METRLA script for different sequence lengths"
+echo "Starting Seastar Montevideo Bus script for different sequence lengths"
 for i in {100..700..100}
 do
-        python3 train.py --dataset metrla --num-epochs 10 --feat-size 8 --num-hidden 16 --backprop-every $i  > ../../results/static-temporal/seastar_metrla_Twhole_B$i\_H16_F8.txt
-        echo "Finished executing Seastar METRLA script for seq_len=$i"
+        python3 train.py --dataset monte --num-epochs 10 --feat-size 8 --num-hidden 16 --backprop-every $i > ../../results/static-temporal/seastar_monte_Twhole_B$i\_H16_F8.txt
+        echo "Finished executing Seastar Monte script for seq_len=$i"
 done

@@ -13,6 +13,7 @@ from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
 from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
 from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
 from seastar.dataset.METRLADataLoader import METRLADataLoader
+from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
 from seastar.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device
@@ -35,6 +36,8 @@ def main(args):
         dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "metrla":
         dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "monte":
+        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()

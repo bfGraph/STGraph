@@ -5,6 +5,8 @@ import numpy as np
 console = Console()
 import torch
 
+from rich import inspect
+
 class METRLADataLoader:
     def __init__(self , folder_name, dataset_name, num_timesteps_in, num_timesteps_out, cutoff_time, verbose: bool = False, for_seastar: bool = False):
         self.name = dataset_name
@@ -19,6 +21,7 @@ class METRLADataLoader:
         self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
 
         self._get_num_nodes()
+        self._get_num_edges()
         self._get_edges()
         self._get_edge_weights()
         self._get_targets_and_features()
@@ -44,6 +47,9 @@ class METRLADataLoader:
         
         assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
         self.num_nodes = len(node_set)
+            
+    def _get_num_edges(self):
+        self.num_edges = len(self._dataset["edges"])
             
     def _get_edges(self):
         if self.for_seastar:
@@ -84,6 +90,8 @@ class METRLADataLoader:
 
         X = torch.from_numpy(X)
             
+        inspect(X)
+            
         indices = [
             (i, i + (self.num_timesteps_in + self.num_timesteps_out))
             for i in range(X.shape[2] - (self.num_timesteps_in + self.num_timesteps_out) + 1)
@@ -94,6 +102,11 @@ class METRLADataLoader:
         for i, j in indices:
             features.append((X[:, :, i : i + self.num_timesteps_in]).numpy())
             target.append((X[:, 0, i + self.num_timesteps_in : j]).numpy())
+
+        # inspect(indices)
+        # inspect(features)
+        # inspect(target)
+        # quit()
 
         self._all_features = np.array(features)
         self._all_targets = np.array(target)
