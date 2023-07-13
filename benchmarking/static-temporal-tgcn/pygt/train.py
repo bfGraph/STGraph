@@ -10,6 +10,11 @@ import os
 from model import PyGT_TGCN
 from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
 from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
+from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
+from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
+from seastar.dataset.METRLADataLoader import METRLADataLoader
+from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
+
 from seastar.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device
 
@@ -25,6 +30,14 @@ def main(args):
         dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "windmill":
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "hungarycp":
+        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "pedalme":
+        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "metrla":
+        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True)
+    elif args.dataset == "monte":
+        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -47,7 +60,7 @@ def main(args):
     # Logging Output
     print("Dataset: ", args.dataset)
     print("Num Nodes: ", dataloader.num_nodes)
-    print("Num Edges: ", len(edge_list))
+    print("Num Edges: ", dataloader.num_edges)
     print("Num Timestamps: ", dataloader.total_timestamps)
 
     backprop_every = args.backprop_every
@@ -142,7 +155,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",
-            help="Name of the Dataset (wiki, windmill)")
+            help="Name of the Dataset (wiki, windmill, hungarycp, pedalme, metrla)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,

@@ -71,3 +71,32 @@ chmod u+x dynamic-bench.sh && ./dynamic-bench.sh
 ```
 
 **Note:** Each of these tests could take upto an hour or more.
+
+## New benchmarking datasets
+
+The following datasets were added for the following benchmarking categories. 
+
+### Spatio-temporal Datasets
+
+1. Hungary Chickenpox
+2. PedalMe
+3. METRLA
+
+### Dynamic Datasets
+
+TODO: Add the new datasets
+
+Make sure to download the new datasets first by running the `build-dataset-new.sh` file
+```bash
+chmod u+x build-dataset-new.sh && ./build-dataset-new.sh
+```
+
+## Running the new benchmarking scripts
+
+The benchmark scripts will execute a series of scripts with a variation of parameters. The logs of all these can be found in the `results/` folder at the end of the benchmarking.
+
+1. To run the new static-temporal graphs tests
+
+```
+chmod u+x static-bench-new.sh && ./static-bench-new.sh
+```
