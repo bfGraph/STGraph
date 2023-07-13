@@ -38,8 +38,8 @@ def main(args):
         dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "windmill":
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
-    elif args.dataset == "hungary_cp":
-        dataloader = HungaryCPDataLoader('static-temporal', 'hungary_chicken_pox', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "hungarycp":
+        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "pedalme":
         dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "metrla":

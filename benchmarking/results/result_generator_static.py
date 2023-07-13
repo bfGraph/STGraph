@@ -63,7 +63,8 @@ for dataset in dataset_names:
 
     if len(pygt_results_table_1) != 0 and len(seastar_results_table_1):
         for hidden_dim in range(16, 160+1, 16):
-            table_1.add_row([hidden_dim, pygt_results_table_1[str(hidden_dim)], seastar_results_table_1[str(hidden_dim)]])
+            if str(hidden_dim) in pygt_results_table_1 and str(hidden_dim) in seastar_results_table_1:
+                table_1.add_row([hidden_dim, pygt_results_table_1[str(hidden_dim)], seastar_results_table_1[str(hidden_dim)]])
             
         table_1.display()
 
@@ -91,7 +92,8 @@ for dataset in dataset_names:
                 
     if len(pygt_results_table_2) != 0 and len(seastar_results_table_2) != 0:
         for hidden_dim in range(16, 160+1, 16):
-            table_2.add_row([hidden_dim, pygt_results_table_2[str(hidden_dim)], seastar_results_table_2[str(hidden_dim)]])
+            if str(hidden_dim) in pygt_results_table_2 and str(hidden_dim) in seastar_results_table_2:
+                table_2.add_row([hidden_dim, pygt_results_table_2[str(hidden_dim)], seastar_results_table_2[str(hidden_dim)]])
             
         table_2.display()
 
