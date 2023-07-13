@@ -36,6 +36,20 @@ def main(args):
         dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
     elif args.dataset == "wikitalk":
         dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "askubuntu":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-askubuntu-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "superuser":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "stackoverflow":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-stackoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "reddit_title":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-title-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "reddit_body":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-body-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "email":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'email-eu-core-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+    elif args.dataset == "bitcoin_otc":
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'bitcoin-otc-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -179,7 +193,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
-            help="Name of the Dataset (math, wikitalk)")
+            help="Name of the Dataset (math, wikitalk, askubuntu, superuser, stackoverflow, email, bitcoin_otc, reddit_title, reddit_body)")
     parser.add_argument("--slide-size", type=str, default="1.0",
             help="Slide Size")
     parser.add_argument("--type", type=str, default="naive", 
