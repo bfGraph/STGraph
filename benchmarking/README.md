@@ -72,23 +72,31 @@ chmod u+x dynamic-bench.sh && ./dynamic-bench.sh
 
 **Note:** Each of these tests could take upto an hour or more.
 
-## New benchmarking datasets
+# Benchmarking Extension
 
 The following datasets were added for the following benchmarking categories. 
 
-### Spatio-temporal Datasets
+### Spatio-Temporal Datasets
 
 1. Hungary Chickenpox
 2. PedalMe
-3. METRLA
+3. MonteVideoBus
 
 ### Dynamic Datasets
 
-TODO: Add the new datasets
+1. sx-mathoverflow
+2. sx-stackoverflow
+3. sx-askubuntu
+4. soc-reddit-hyperlink-title
+5. soc-reddit-hyperlink-body
+6. wiki-talk-temporal
+7. email-eu-core-temporal
+8. sx-superuser
+9. bitcoin OTC
 
-Make sure to download the new datasets first by running the `build-dataset-new.sh` file
+Make sure to download the new datasets first by running the `ext-build-dataset.sh` file
 ```bash
-chmod u+x build-dataset-new.sh && ./build-dataset-new.sh
+chmod u+x ext-build-dataset.sh && ./ext-build-dataset.sh
 ```
 
 ## Running the new benchmarking scripts
@@ -98,5 +106,11 @@ The benchmark scripts will execute a series of scripts with a variation of param
 1. To run the new static-temporal graphs tests
 
 ```
-chmod u+x static-bench-new.sh && ./static-bench-new.sh
+chmod u+x ext-static-bench.sh && ./ext-static-bench.sh
+```
+
+2. To run the new dynamic graphs tests
+
+```
+chmod u+x ext-dynamic-bench.sh && ./ext-dynamic-bench.sh
 ```
