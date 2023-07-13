@@ -109,7 +109,7 @@ do
     done
 done
 
-echo "Running PyG-T (bitcoin_otc, email) script for different feature sizes"
+echo "Running Seastar (bitcoin_otc, email) script for different feature sizes"
 for dataset in bitcoin_otc email
 do
     for type in naive pcsr gpma
