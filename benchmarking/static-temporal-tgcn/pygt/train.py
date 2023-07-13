@@ -30,7 +30,7 @@ def main(args):
         dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "windmill":
         dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True)
-    elif args.dataset == "hungary_cp":
+    elif args.dataset == "hungarycp":
         dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True)
     elif args.dataset == "pedalme":
         dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True)
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",
-            help="Name of the Dataset (wiki, windmill, hungary_cp, pedalme, metrla)")
+            help="Name of the Dataset (wiki, windmill, hungarycp, pedalme, metrla)")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,
