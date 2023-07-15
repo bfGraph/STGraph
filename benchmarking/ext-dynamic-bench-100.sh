@@ -19,7 +19,7 @@ do
 done
 
 echo "Running PyG-T (math, reddit_body, reddit_title) script for different feature sizes"
-for dataset in math reddit_body reddit_title
+for dataset in math reddit_title
 do
     for slide_size in 5.0
     do
@@ -54,7 +54,23 @@ cd dynamic-temporal-tgcn/seastar
 echo "Running Seastar (wikitalk, askubuntu, superuser, stackoverflow) script for different feature sizes"
 for dataset in wikitalk askubuntu superuser stackoverflow
 do
-    for type in naive pcsr gpma
+    for type in naive gpma
+    do
+        for slide_size in 5.0
+        do
+            for feat_size in 8
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size\_E100.txt
+                echo "Finished executing Seastar $dataset for type $type for F=$feat_size"
+            done
+        done
+    done
+done
+
+for dataset in askubuntu
+do
+    for type in pcsr
     do
         for slide_size in 5.0
         do
@@ -69,9 +85,25 @@ do
 done
 
 echo "Running Seastar (math, reddit_body, reddit_title) script for different feature sizes"
-for dataset in math reddit_body reddit_title
+for dataset in math reddit_title
 do
-    for type in naive pcsr gpma
+    for type in naive gpma
+    do
+        for slide_size in 5.0
+        do
+            for feat_size in 50
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size\_E100.txt
+                echo "Finished executing PyG-T $dataset for F=$feat_size"
+            done
+        done
+    done
+done
+
+for dataset in reddit_title
+do
+    for type in pcsr
     do
         for slide_size in 5.0
         do
@@ -88,7 +120,23 @@ done
 echo "Running Seastar (bitcoin_otc, email) script for different feature sizes"
 for dataset in bitcoin_otc email
 do
-    for type in naive pcsr gpma
+    for type in naive gpma
+    do
+        for slide_size in 5.0
+        do
+            for feat_size in 200
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/seastar_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size\_E100.txt
+                echo "Finished executing PyG-T $dataset for F=$feat_size"
+            done
+        done
+    done
+done
+
+for dataset in email
+do
+    for type in pcsr
     do
         for slide_size in 5.0
         do
