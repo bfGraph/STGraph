@@ -19,7 +19,7 @@ from seastar.dataset.METRLADataLoader import METRLADataLoader
 from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
 from seastar.benchmark_tools.table import BenchmarkTable
-from utils import to_default_device
+from utils import to_default_device, get_default_device
 
 from rich import inspect
 
@@ -52,7 +52,6 @@ def main(args):
 
     edge_list = dataloader.get_edges()
     edge_weight_list = dataloader.get_edge_weights()
-    features = dataloader.get_all_features()
     targets = dataloader.get_all_targets()
     
     pynvml.nvmlInit()
@@ -62,7 +61,6 @@ def main(args):
     graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
 
     edge_weight = to_default_device(torch.unsqueeze(torch.FloatTensor(edge_weight_list), 1))
-    features = to_default_device(torch.FloatTensor(np.array(features)))
     targets = to_default_device(torch.FloatTensor(np.array(targets)))
 
     num_hidden_units = args.num_hidden
@@ -71,6 +69,7 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # Logging Output
+    total_timestamps = dataloader.total_timestamps
     print("Dataset: ", args.dataset)
     print("Num Nodes: ", dataloader.num_nodes)
     print("Num Edges: ", len(edge_list))
@@ -78,12 +77,12 @@ def main(args):
 
     backprop_every = args.backprop_every
     if backprop_every == 0:
-        backprop_every = len(features)
+        backprop_every = total_timestamps
     
-    if len(features) % backprop_every == 0:
-        num_iter = int(len(features)/backprop_every)
+    if total_timestamps % backprop_every == 0:
+        num_iter = int(total_timestamps/backprop_every)
     else:
-        num_iter = int(len(features)/backprop_every) + 1
+        num_iter = int(total_timestamps/backprop_every) + 1
 
     # metrics
     dur = []
@@ -113,14 +112,15 @@ def main(args):
                 optimizer.zero_grad()
                 cost = 0
                 hidden_state = None
+                y_hat = torch.randn((dataloader.num_nodes, args.feat_size), device=get_default_device())
                 for k in range(backprop_every):
                     t = index * backprop_every + k
 
-                    if t >= len(features):
+                    if t >= total_timestamps:
                         break
 
-                    y_hat, hidden_state = model(G, features[t], edge_weight, hidden_state)
-                    cost = cost + torch.mean((y_hat-targets[t])**2)
+                    y_out, y_hat, hidden_state = model(G, y_hat, edge_weight, hidden_state)
+                    cost = cost + torch.mean((y_out-targets[t])**2)
                 
                 if cost == 0:
                     break

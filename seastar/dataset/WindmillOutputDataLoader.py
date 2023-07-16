@@ -16,6 +16,7 @@ class WindmillOutputDataLoader:
         self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
 
         self._get_num_nodes()
+        self._get_num_edges()
         self._get_edges()
         self._get_edge_weights()
         self._get_targets_and_features()
@@ -41,6 +42,9 @@ class WindmillOutputDataLoader:
         assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
         self.num_nodes = len(node_set)
     
+    def _get_num_edges(self):
+        self.num_edges = len(self._dataset["edges"])
+    
     def _get_edges(self):
         if self.for_seastar:
             self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
@@ -62,13 +66,9 @@ class WindmillOutputDataLoader:
         standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
             np.std(stacked_target, axis=0) + 10 ** -10
         )
-        self._all_features = [
-            standardized_target[i : i + self.lags, :].T
-            for i in range(self.total_timestamps - self.lags)
-        ]
         self._all_targets = [
-            standardized_target[i + self.lags, :].T
-            for i in range(self.total_timestamps - self.lags)
+            standardized_target[i, :].T
+            for i in range(self.total_timestamps)
         ]
 
     def get_edges(self):
@@ -76,9 +76,6 @@ class WindmillOutputDataLoader:
 
     def get_edge_weights(self):
         return self._edge_weights
-    
-    def get_all_features(self):
-        return self._all_features
 
     def get_all_targets(self):
         return self._all_targets

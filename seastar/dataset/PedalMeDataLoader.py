@@ -70,17 +70,11 @@ class PedalMeDataLoader:
             targets.append(np.array(self._dataset[str(time)]))
         
         stacked_target = np.stack(targets)
-        
-        self._all_features = np.array(
-            [
-                stacked_target[i : i + self.lags, :].T
-                for i in range(stacked_target.shape[0] - self.lags)
-            ]
-        )
+
         self._all_targets = np.array(
             [
-                stacked_target[i + self.lags, :].T
-                for i in range(stacked_target.shape[0] - self.lags)
+                stacked_target[i, :].T
+                for i in range(stacked_target.shape[0])
             ]
         )
                 
@@ -92,6 +86,3 @@ class PedalMeDataLoader:
 
     def get_all_targets(self):
         return self._all_targets
-    
-    def get_all_features(self):
-        return self._all_features
