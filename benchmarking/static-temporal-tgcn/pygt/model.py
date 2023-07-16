@@ -7,7 +7,7 @@ class PyGT_TGCN(torch.nn.Module):
     super(PyGT_TGCN, self).__init__()
     self.temporal = TGCN(node_features, num_hidden_units)
     self.linear = torch.nn.Linear(num_hidden_units, node_features)
-    self.linear2 = torch.nn.Linear(num_hidden_units, out_features)
+    self.linear2 = torch.nn.Linear(node_features, out_features)
 
   def forward(self, g, node_feat, edge_weight, hidden_state):
     h = self.temporal(g, node_feat, edge_weight, hidden_state)
