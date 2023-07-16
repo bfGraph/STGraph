@@ -19,7 +19,6 @@ class MontevideoBusDataLoader:
         self._get_num_edges()
         self._get_edges()
         self._get_edge_weights()
-        self._get_features()
         self._get_targets()
         
     def _load_dataset(self):
@@ -61,21 +60,6 @@ class MontevideoBusDataLoader:
             self._edge_weights = np.array([edge_det[2] for edge_det in comb_edge_list])
         else:
             self._edge_weights = np.array(self._dataset["weights"])
-            
-    def _get_features(self, feature_vars: list[str] = ["y"]):
-        features = []
-        for node in self._dataset["nodes"]:
-            X = node.get("X")
-            for feature_var in feature_vars:
-                features.append(np.array(X.get(feature_var)))
-        stacked_features = np.stack(features).T
-        standardized_features = (
-            stacked_features - np.mean(stacked_features, axis=0)
-        ) / np.std(stacked_features, axis=0)
-        self._all_features = np.array([
-            standardized_features[i : i + self.lags, :].T
-            for i in range(len(standardized_features) - self.lags)
-        ])
         
     def _get_targets(self, target_var: str = "y"):
         targets = []
@@ -87,8 +71,8 @@ class MontevideoBusDataLoader:
             stacked_targets - np.mean(stacked_targets, axis=0)
         ) / np.std(stacked_targets, axis=0)
         self._all_targets = np.array([
-            standardized_targets[i + self.lags, :].T
-            for i in range(len(standardized_targets) - self.lags)
+            standardized_targets[i, :].T
+            for i in range(len(standardized_targets))
         ])
         
     def get_edges(self):
@@ -99,6 +83,3 @@ class MontevideoBusDataLoader:
 
     def get_all_targets(self):
         return self._all_targets
-    
-    def get_all_features(self):
-        return self._all_features
