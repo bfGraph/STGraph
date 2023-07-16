@@ -16,6 +16,7 @@ class WikiMathDataLoader:
         self.total_timestamps = min(self._dataset["time_periods"], cutoff_time)
         
         self._get_num_nodes()
+        self._get_num_edges()
         self._get_edges()
         self._get_edge_weights()
         self._get_targets_and_features()
