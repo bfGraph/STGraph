@@ -119,8 +119,8 @@ def main(args):
                     if t >= total_timestamps:
                         break
 
-                    y_hat, hidden_state = model(G, y_hat, edge_weight, hidden_state)
-                    cost = cost + torch.mean((y_hat-targets[t])**2)
+                    y_out, y_hat, hidden_state = model(G, y_hat, edge_weight, hidden_state)
+                    cost = cost + torch.mean((y_out-targets[t])**2)
                 
                 if cost == 0:
                     break
