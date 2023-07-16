@@ -16,7 +16,7 @@ from seastar.dataset.METRLADataLoader import METRLADataLoader
 from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
 from seastar.benchmark_tools.table import BenchmarkTable
-from utils import to_default_device
+from utils import to_default_device, get_default_device
 
 def main(args):
 
