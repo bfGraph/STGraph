@@ -1,4 +1,4 @@
-![Seastar Banner](https://github.com/bfGraph/Seastar/blob/main/assets/Seastar%20Banner.png?raw=true)
+![STgraph Banner](https://github.com/bfGraph/Seastar/blob/main/assets/STGraph%20Banner.png?raw=true)
 [![Documentation Status](https://readthedocs.org/projects/seastar/badge/?version=latest)](https://seastar.readthedocs.io/en/latest/?badge=latest)
 
 <div align="center">
