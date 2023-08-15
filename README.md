@@ -1,7 +1,8 @@
-
-![STGraph Banner](https://github.com/bfGraph/Seastar/assets/64126131/d466836d-63c5-402a-8aa8-d6429b114179)
-
-
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/bfGraph/Seastar/assets/64126131/36a8bb80-25a9-4684-b604-7a5efbea12d4">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/bfGraph/Seastar/assets/64126131/4c57e5c5-2cf8-45e9-bb5c-147ae068d009">
+  <img alt="STGraph Banner" src="https://github.com/bfGraph/Seastar/assets/64126131/36a8bb80-25a9-4684-b604-7a5efbea12d4">
+</picture>
 
 
 [![Documentation Status](https://readthedocs.org/projects/seastar/badge/?version=latest)](https://seastar.readthedocs.io/en/latest/?badge=latest)
