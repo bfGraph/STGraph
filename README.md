@@ -1,9 +1,12 @@
-![STgraph Banner](https://github.com/bfGraph/Seastar/blob/main/assets/STGraph%20Banner.png?raw=true)
+
+![STGraph Banner](https://github.com/bfGraph/Seastar/assets/64126131/d466836d-63c5-402a-8aa8-d6429b114179)
+
+
+
+
 [![Documentation Status](https://readthedocs.org/projects/seastar/badge/?version=latest)](https://seastar.readthedocs.io/en/latest/?badge=latest)
 
 <div align="center">
-  <h3 align="center">Seamlessly write and train GNN models</h3>
-
   <p align="center">
     <a href="https://seastar.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
