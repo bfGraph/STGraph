@@ -1,0 +1,24 @@
+h1 {
+    font-family: 'Lato', monospace;
+
+    /* font-size: 150px; */
+    font-weight: 800;
+    outline: none;
+    /* text-transform: uppercase; */
+    background: linear-gradient(135deg, #6C314F 0%, #AD355B 25%, #DB3340 50%, #F28445 75%, #6C314F 100%);
+    background-size: 400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: animate 10s linear infinite;
+
+}
+
+@keyframes animate {
+    to {
+        background-position: 400%;
+    }
+}
+
+.wy-side-nav-search {
+    background-color: #F3F4F7;
+}

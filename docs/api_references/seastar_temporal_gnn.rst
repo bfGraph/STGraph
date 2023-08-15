@@ -1,2 +1,0 @@
-Seastar Temporal GNN
-####################
