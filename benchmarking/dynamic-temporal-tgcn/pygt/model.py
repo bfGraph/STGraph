@@ -5,7 +5,7 @@ from torch_geometric_temporal.nn.recurrent import TGCN
 class PyGT_TGCN(torch.nn.Module):
   def __init__(self, node_features, num_hidden_units):
     super(PyGT_TGCN, self).__init__()
-    self.temporal = TGCN(node_features, num_hidden_units)
+    self.temporal = TGCN(node_features, num_hidden_units, add_self_loops=False)
     self.linear = torch.nn.Linear(num_hidden_units, node_features)
 
   def forward(self, g, node_feat, edge_weight, hidden_state):
