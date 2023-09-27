@@ -6,10 +6,24 @@
 Welcome to STGraph's documentation!
 ===================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+STGraph is a Python Framework for writing fast and efficient Temporal Graph Neural Networks.
+Check out the :doc:`installation` section to get started. 
 
+You can also :ref:`download <stgraph_download>` project from GitHub.
+
+Check out this function :py:func:`STGraph.create_graph`
+
+.. note::
+
+   The project's documentation is still under construction
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contents
+
+   installation
+   Graph/STGraphBase
 
 
 Indices and tables
