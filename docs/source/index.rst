@@ -3,15 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to STGraph's documentation!
-===================================
+STGraph's Documentation and Tutorials!
+======================================
 
-STGraph is a Python Framework for writing fast and efficient Temporal Graph Neural Networks.
-Check out the :doc:`installation` section to get started. 
+STGraph is a backend agnostic framework written in Python extending Seastar. It IS built for faster and efficient implementations of Graph Neural Networks (GNNs) and Temporal Graph Neural Networks (TGNNs). It has support for real word graphs that are static and dynamic nature.
 
-You can also :ref:`download <stgraph_download>` project from GitHub.
-
-Check out this function :py:func:`STGraph.create_graph`
 
 .. note::
 
@@ -20,10 +16,20 @@ Check out this function :py:func:`STGraph.create_graph`
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents
+   :caption: Install and Setup
+   :hidden:
+   :glob:
 
-   installation
-   Graph/STGraphBase
+   install/index
+   tutorial/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials     
+   :hidden:
+   :glob:
+
+   tutorial/blitz/index
 
 
 Indices and tables
