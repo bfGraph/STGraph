@@ -6,22 +6,26 @@
 STGraph's Documentation and Tutorials!
 ======================================
 
-STGraph is a backend agnostic framework written in Python extending Seastar. It IS built for faster and efficient implementations of Graph Neural Networks (GNNs) and Temporal Graph Neural Networks (TGNNs). It has support for real word graphs that are static and dynamic nature.
+.. note::
 
+   Write a compelling and flattering introduction about STGraph
+
+Getting Started
+---------------
 
 .. note::
 
-   The project's documentation is still under construction
-
+   Explain how the user can use this documentation. Where they should go next and what they should
+   do to get familiar with STGraph
 
 .. toctree::
    :maxdepth: 1
-   :caption: Install and Setup
+   :caption: Getting Started
    :hidden:
    :glob:
 
+   getting_started/index
    install/index
-   tutorial/index
 
 .. toctree::
    :maxdepth: 1
@@ -29,8 +33,43 @@ STGraph is a backend agnostic framework written in Python extending Seastar. It 
    :hidden:
    :glob:
 
-   tutorial/blitz/index
+   tutorial/gnn/index
+   tutorial/tgnn/index
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Package Reference     
+   :hidden:
+   :glob:
+
+   package_reference/compiler/index
+   package_reference/dataset/index
+   package_reference/graph/index
+   package_reference/nn/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: User Guide  
+   :hidden:
+   :glob:
+
+   user_guide/gnn_fundamentals/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developers Guide     
+   :hidden:
+   :glob:
+
+   dev_guide/stgraph_architecture/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contributors Guide       
+   :hidden:
+   :glob:
+
+   contributors_guide/setting_up/index
 
 Indices and tables
 ==================
