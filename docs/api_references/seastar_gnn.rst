@@ -1,2 +1,2 @@
-Seastar GNN
+STGraph GNN
 ###########

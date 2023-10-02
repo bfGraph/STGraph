@@ -11,8 +11,8 @@ benchmarking/dataset/england_covid/
 benchmarking/dataset/bitcoin/
 benchmarking/results/
 *.egg-info/
-seastar/build/
-seastar/dist/
+stgraph/build/
+stgraph/dist/
 docs/_build
 __pycache__/
 .DS_Store

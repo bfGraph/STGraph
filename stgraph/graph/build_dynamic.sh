@@ -1,4 +1,4 @@
-echo "🏗️ Building Seastar Dynamic Graphs"
+echo "🏗️ Building STGraph Dynamic Graphs"
 echo " "
 
 for graph in "$@"

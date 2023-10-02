@@ -5,7 +5,7 @@ from stgraph.compiler.backend.callback import STGraphBackend
 from stgraph.compiler.backend.pytorch.torch_kernel_wrapper import KernelWrapperTorch 
 
 class STGraphBackendTorch(STGraphBackend):
-    ''' Seastar backend using PyTorch framework'''
+    ''' STGraph backend using PyTorch framework'''
     def __init__(self):
         super().__init__()
         self.backend_name = "torch"

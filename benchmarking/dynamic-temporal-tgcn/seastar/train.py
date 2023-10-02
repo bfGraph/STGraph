@@ -12,7 +12,7 @@ from stgraph.benchmark_tools.table import BenchmarkTable
 from stgraph.graph.dynamic.gpma.GPMAGraph import GPMAGraph
 from stgraph.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
 from stgraph.graph.dynamic.naive.NaiveGraph import NaiveGraph
-from model import SeastarTGCN
+from model import STGraphTGCN
 from utils import to_default_device, get_default_device
 
 def main(args):
@@ -78,7 +78,7 @@ def main(args):
 
     total_timestamps = dataloader.total_timestamps
     num_hidden_units = args.num_hidden
-    model = to_default_device(SeastarTGCN(args.feat_size, num_hidden_units))
+    model = to_default_device(STGraphTGCN(args.feat_size, num_hidden_units))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = torch.nn.BCEWithLogitsLoss()
 
@@ -98,7 +98,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(f"(Seastar Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Build FWD Graph Time(s)", "Build BWD Graph Time(s)", "Move to GPU Time(s)"])
+    table = BenchmarkTable(f"(STGraph Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Build FWD Graph Time(s)", "Build BWD Graph Time(s)", "Move to GPU Time(s)"])
 
     try:
         # train
@@ -177,7 +177,7 @@ def write_results(args, time_taken, max_gpu):
     cutoff = "whole"
     if args.cutoff_time < sys.maxsize:
         cutoff = str(args.cutoff_time)
-    file_name = f"seastar_{args.type}_{args.dataset}_T{cutoff}_S{args.slide_size}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
+    file_name = f"stgraph_{args.type}_{args.dataset}_T{cutoff}_S{args.slide_size}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
     df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu}])
     
     if os.path.exists('../../results/dynamic-temporal.csv'):
@@ -189,7 +189,7 @@ def write_results(args, time_taken, max_gpu):
     df.to_csv('../../results/dynamic-temporal.csv', sep=',', index=False, encoding='utf-8')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Seastar Static TGCN')
+    parser = argparse.ArgumentParser(description='STGraph Static TGCN')
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument("--slide-size", type=str, default="1.0",
             help="Slide Size")
     parser.add_argument("--type", type=str, default="naive", 
-            help="Seastar Type")
+            help="STGraph Type")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,

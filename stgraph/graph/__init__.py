@@ -1,1 +1,1 @@
-'''Graph Abstraction provided by Seastar'''
+'''Graph Abstraction provided by STGraph'''

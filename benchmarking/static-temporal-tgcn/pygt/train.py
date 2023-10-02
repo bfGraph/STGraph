@@ -151,7 +151,7 @@ def write_results(args, time_taken, max_gpu):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Seastar Static TGCN')
+    parser = argparse.ArgumentParser(description='STGraph Static TGCN')
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",

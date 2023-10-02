@@ -1,4 +1,4 @@
-# Seastar Graph Abstraction
+# STGraph Graph Abstraction
 
 ## Building the Graphs
 

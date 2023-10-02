@@ -1,30 +1,30 @@
 # Installation Guide
 
-This comprehensive guide will walk you through the installation process for Seastar, along with its essential prerequisites, enabling you to train GNN models on your local machine. Let's get started.
+This comprehensive guide will walk you through the installation process for STGraph, along with its essential prerequisites, enabling you to train GNN models on your local machine. Let's get started.
 
-## Seastar Installation
+## STGraph Installation
 
-To download Seastar on your local machine, execute the following command:
+To download STGraph on your local machine, execute the following command:
 
 ```
-git clone https://github.com/bfGraph/Seastar.git
-cd Seastar
+git clone https://github.com/bfGraph/STGraph.git
+cd STGraph
 ```
 
-### Seastar Virtual Environment
+### STGraph Virtual Environment
 
-It is highly recommended to create a dedicated Python virtual environment for running and developing with Seastar. To create a virtual environment named `seastar`, you can use either conda or venv.
+It is highly recommended to create a dedicated Python virtual environment for running and developing with STGraph. To create a virtual environment named `stgraph`, you can use either conda or venv.
 
 Using conda:
 
 ```
-conda create --name seastar
-conda activate seastar
+conda create --name stgraph
+conda activate stgraph
 ```
 
 ### Installing Python Packages
 
-To install the necessary Python packages for Seastar, run the following command. Ensure that you have activated the `seastar` virtual environment before installing these packages.
+To install the necessary Python packages for STGraph, run the following command. Ensure that you have activated the `stgraph` virtual environment before installing these packages.
 
 ```
 pip install -r requirements.txt
@@ -42,36 +42,36 @@ pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.0+c
 pip install torch-geometric-temporal
 ```
 
-### Seastar Graph Packages Installation
+### STGraph Graph Packages Installation
 
-Before proceeding with the remaining installation steps, it is crucial to build the shared object (.so) file for the CUDA/C++ extension that implements certain dynamic and static graph representations in Seastar. 
+Before proceeding with the remaining installation steps, it is crucial to build the shared object (.so) file for the CUDA/C++ extension that implements certain dynamic and static graph representations in STGraph. 
 
 ```
-cd seastar/graph/
+cd stgraph/graph/
 ./build_static.sh
 ./build_dynamic.sh gpma pcsr
 ```
 Once the build process completes successfully, you can proceed with the remaining installation steps.
 
-### Seastar Package Installation
+### STGraph Package Installation
 
-To complete the installation of the Seastar package, execute the following commands:
+To complete the installation of the STGraph package, execute the following commands:
 
 ```
 cd ../..
-python3 -m build && pip uninstall seastar -y && pip install dist/seastar-1.0.0-py3-none-any.whl
+python3 -m build && pip uninstall stgraph -y && pip install dist/stgraph-1.0.0-py3-none-any.whl
 ```
 
-After running the above commands, you can verify whether Seastar is installed correctly by executing `pip show seastar`.
+After running the above commands, you can verify whether STGraph is installed correctly by executing `pip show stgraph`.
 
-By executing the above instructions, you will have successfully installed Seastar along with all the required packages.
+By executing the above instructions, you will have successfully installed STGraph along with all the required packages.
 
 ## CUDA Python
 
-Seastar leverages CUDA Python, which encompasses a standardized collection of low-level interfaces, granting complete coverage of and access to the CUDA host APIs within Python. Prior to installing CUDA Python, ensure that your system meets the following requirements:
+STGraph leverages CUDA Python, which encompasses a standardized collection of low-level interfaces, granting complete coverage of and access to the CUDA host APIs within Python. Prior to installing CUDA Python, ensure that your system meets the following requirements:
 
 **Note:**
-> Seastar has undergone testing with Python CUDA version 11.7 and above. This installation guide is based on the latest release of Python CUDA, namely version 12.1.0. You can also install Python CUDA for versions 11.7 and above.
+> STGraph has undergone testing with Python CUDA version 11.7 and above. This installation guide is based on the latest release of Python CUDA, namely version 12.1.0. You can also install Python CUDA for versions 11.7 and above.
 
 ### System Requirements
 
@@ -89,10 +89,10 @@ pip install cuda-python
 
 ### Verifying the Installation
 
-To validate the successful installation of Python CUDA, run the provided Python script located within the Seastar directory:
+To validate the successful installation of Python CUDA, run the provided Python script located within the STGraph directory:
 
 ```
-cd seastar/compiler/code_gen/
+cd stgraph/compiler/code_gen/
 python3 cuda_check.py
 ```
 
@@ -116,20 +116,20 @@ Note: If either the Total Memory or Free Memory shows 0,
       it indicates that no context has been loaded into the device.
 ```
 
-With this, you have now completed the installation of Seastar and verified the presence of CUDA Python on your system.
+With this, you have now completed the installation of STGraph and verified the presence of CUDA Python on your system.
 
-## Running Seastar
+## Running STGraph
 
-To ensure the successful installation of Seastar, let's proceed with running Seastar by training a T-GCN model on the EnglandCOVID dataset.
+To ensure the successful installation of STGraph, let's proceed with running STGraph by training a T-GCN model on the EnglandCOVID dataset.
 
 ```
 cd ../../..
-cd benchmarking/tgcn/seastar-dynamic/
+cd benchmarking/tgcn/stgraph-dynamic/
 python3 train.py --type naive --num_epochs 10
 ```
 
 Upon executing the above command, you should observe the following output:
 
-![Seastar Verification Output](assets/Seastar%20verification%20output.png)
+![STGraph Verification Output](assets/STGraph%20verification%20output.png)
 
 If you encounter any errors while attempting to train the T-GCN model, kindly raise an issue, and our team will promptly assist you.

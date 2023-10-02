@@ -30,4 +30,4 @@ dependencies = [
 
 
 [project.urls]
-"Homepage" = "https://github.com/bfGraph/Seastar"
+"Homepage" = "https://github.com/bfGraph/STGraph"

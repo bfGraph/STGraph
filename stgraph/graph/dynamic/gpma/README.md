@@ -1,6 +1,6 @@
 # GPMA 
 
-Seastar provides GPMA abstraction to represent dynamic graphs in GPU.
+STGraph provides GPMA abstraction to represent dynamic graphs in GPU.
 
 ## Building GPMA CUDA/C++ extension
 

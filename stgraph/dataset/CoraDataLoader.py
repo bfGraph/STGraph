@@ -23,7 +23,7 @@ class CoraDataLoader:
         self._test_split = 1-split
 
         self._local_file_path = f"../../dataset/cora/cora.json"
-        self._url_path = "https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/cora.json"
+        self._url_path = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json"
         self._verbose = verbose
 
         self._load_dataset()

@@ -1,2 +1,2 @@
-Seastar Temporal GNN
+STGraph Temporal GNN
 ####################

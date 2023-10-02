@@ -1,1 +1,1 @@
-'''Seastar Module'''
+'''STGraph Module'''

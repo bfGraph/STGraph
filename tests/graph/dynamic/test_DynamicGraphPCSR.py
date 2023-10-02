@@ -2,7 +2,7 @@ import json
 from rich import inspect
 
 from stgraph.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
-from seastar.graph.static.csr import get_dev_array
+from stgraph.graph.static.csr import get_dev_array
 
 class TestDynamicGraphPCSR:
     # Stores the edge-list for each timestamp

@@ -30,7 +30,7 @@ extern "C" __global__ void {{kernel_name}}(
                 unsigned long long col_indices_key = __ldg(column_indices + e);
 
                 // GPMA indexes edges starting from 1
-                // Seastar requires edgs to be indexed from 0
+                // STGraph requires edgs to be indexed from 0
                 unsigned int eid = __ldg(eids + e) - 1;
                 
                 // UNIMPLEMENTED CHECK: Note if the value of col_index exceeds that 

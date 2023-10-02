@@ -1,1 +1,1 @@
-'''Dataset loader provided by Seastar'''
+'''Dataset loader provided by STGraph'''

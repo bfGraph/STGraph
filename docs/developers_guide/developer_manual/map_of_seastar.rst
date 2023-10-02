@@ -1,2 +1,2 @@
-Map of Seastar Repository
+Map of STGraph Repository
 #########################
