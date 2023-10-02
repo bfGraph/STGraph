@@ -84,7 +84,7 @@ def gen_code(exe_units, index_type, graph_type):
 
 def render_template(config, template_name):
     env = Environment(
-    loader=PackageLoader("seastar.compiler.code_gen"),
+    loader=PackageLoader("stgraph.compiler.code_gen"),
     )
     tpl = env.get_template("fa/{}.jinja".format(template_name))
     return tpl.render(**config)

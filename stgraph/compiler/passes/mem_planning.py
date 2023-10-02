@@ -3,7 +3,7 @@ from .peephole import PH
 from ..program import Program
 from ..utils import is_const_scalar
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 def mem_planning(funits, BProg, grad_map, grads):
     ''' 

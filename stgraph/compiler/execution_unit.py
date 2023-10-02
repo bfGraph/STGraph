@@ -5,7 +5,7 @@ from .code_gen.kernel_context import KernelContext, LinearizedKernelContext
 from .utils import is_const_scalar, ParallelMode, MAX_THREAD_PER_BLOCK, MAX_BLOCK 
 from .code_gen.cuda_error import ASSERT_DRV
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 # TODO: remove
 import numpy as np

@@ -6,11 +6,11 @@ from rich.console import Console
 console = Console()
 
 class LinkPredDataLoader:
-    def __init__(self, folder_name, dataset_name, cutoff_time, verbose: bool = False, for_seastar= False):
+    def __init__(self, folder_name, dataset_name, cutoff_time, verbose: bool = False, for_stgraph= False):
         self.name = dataset_name
         self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
-        self.for_seastar = for_seastar
+        self.for_stgraph = for_stgraph
 
         self._load_dataset()
         self._get_max_num_nodes()
@@ -52,7 +52,7 @@ class LinkPredDataLoader:
             working_set = working_set.union(set([(edge[0], edge[1]) for edge in updates[str(time)]["add"]])).difference(set([(edge[0], edge[1]) for edge in updates[str(time)]["delete"]]))
             edge_list.append(list(working_set))
         
-        if self.for_seastar:
+        if self.for_stgraph:
             self._edge_list = edge_list
         else:
             self._edge_list = [np.array(edge_lst_t).T for edge_lst_t in edge_list]

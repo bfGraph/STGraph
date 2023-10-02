@@ -16,7 +16,7 @@ from rich.traceback import install
 install(show_locals=True)
 
 class EnglandCovidDataLoader:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_seastar=False) -> None:
+    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_stgraph=False) -> None:
         self.name = "EnglandCOVID"
         self.lags = lags
         self.split = split
@@ -33,8 +33,8 @@ class EnglandCovidDataLoader:
         self.total_timestamps = self._dataset["time_periods"]
         self._get_targets_and_features()
 
-        if for_seastar:
-            self._get_edge_info_seastar()
+        if for_stgraph:
+            self._get_edge_info_stgraph()
             self._presort_edge_weights()
         else:
             self._get_edge_info_pygt()
@@ -52,7 +52,7 @@ class EnglandCovidDataLoader:
         # with open('../../dataset/eng_covid/eng_covid.json', 'w') as f:
         #     json.dump(self._dataset,f)
     
-    def _get_edge_info_seastar(self):
+    def _get_edge_info_stgraph(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
         self._edge_weights = []

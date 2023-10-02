@@ -8,7 +8,7 @@ from .dce import DCE
 from ..program import Stmt, Var
 from ..schema import Schema
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 def execute_sym_program(prog, sym_table, rmv_list):
     for s in prog:

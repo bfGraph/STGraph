@@ -35,17 +35,17 @@ def main(args):
     Graph = StaticGraph([(0,0)], [1], 1)
     
     if args.dataset == "wiki":
-        dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "windmill":
-        dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "hungarycp":
-        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "pedalme":
-        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "metrla":
-        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "monte":
-        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     else:
         print("😔 Unrecognized dataset")
         quit()

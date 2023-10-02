@@ -4,7 +4,7 @@ from collections import namedtuple
 from .utils import ValType,is_const_scalar, WriteType, WriteLocation, infer_val_type
 from .schema import Schema
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 GradInfo = namedtuple('GradInfo', ['targ', 'args', 'grad_x', 'op_schema'])
 

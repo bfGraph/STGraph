@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from stgraph.compiler.backend.pytorch.torch_callback import STGraphBackendTorch
-from stgraph.compiler import Seastar
+from stgraph.compiler import STGraph
 
 # pylint: enable=W0235
 class GATConv(nn.Module):
@@ -27,7 +27,7 @@ class GATConv(nn.Module):
         self.negative_slope = negative_slope
         
         self.activation = activation
-        self.seastar = Seastar(STGraphBackendTorch())
+        self.stgraph = STGraph(STGraphBackendTorch())
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -45,7 +45,7 @@ class GATConv(nn.Module):
         er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
 
         # Vertex-centric implementation.
-        @self.seastar.compile(gnn_module=self)
+        @self.stgraph.compile(gnn_module=self)
         def nb_forward(v):
             embs = [nb.el + v.er for nb in v.innbs]
             coeff = [torch.exp(self.leaky_relu(emb - max(embs))) for emb in embs]

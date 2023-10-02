@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from stgraph.compiler import Seastar
+from stgraph.compiler import STGraph
 from stgraph.compiler.backend.pytorch.torch_callback import STGraphBackendTorch
 
 class GraphConv(nn.Module):
@@ -16,7 +16,7 @@ class GraphConv(nn.Module):
         else:
             self.bias = None
         self.activation = activation
-        self.seastar = Seastar(STGraphBackendTorch())
+        self.stgraph = STGraph(STGraphBackendTorch())
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -28,14 +28,14 @@ class GraphConv(nn.Module):
         h = torch.mm(h, self.weight)
         
         if edge_weight is None:
-            @self.seastar.compile(gnn_module=self)
+            @self.stgraph.compile(gnn_module=self)
             def nb_compute(v):
                 h = sum([nb.h*nb.norm for nb in v.innbs])
                 h = h * v.norm
                 return h
             h = nb_compute(g=g, n_feats={'norm': g.get_ndata("norm"), 'h' : h})
         else:
-            @self.seastar.compile(gnn_module=self)
+            @self.stgraph.compile(gnn_module=self)
             def nb_compute(v):
                 h = sum([nb_edge.src.norm * nb_edge.src.h * nb_edge.edge_weight for nb_edge in v.inedges])
                 h = h * v.norm

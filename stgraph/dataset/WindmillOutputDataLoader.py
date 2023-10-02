@@ -5,11 +5,11 @@ import numpy as np
 console = Console()
 
 class WindmillOutputDataLoader:
-    def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_seastar= False) -> None:
+    def __init__(self, folder_name, dataset_name, lags, cutoff_time, verbose: bool = False, for_stgraph= False) -> None:
         self.name = dataset_name
         self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
-        self.for_seastar = for_seastar
+        self.for_stgraph = for_stgraph
         self.lags = lags
 
         self._load_dataset()
@@ -46,13 +46,13 @@ class WindmillOutputDataLoader:
         self.num_edges = len(self._dataset["edges"])
     
     def _get_edges(self):
-        if self.for_seastar:
+        if self.for_stgraph:
             self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
         else:
             self._edge_list = np.array(self._dataset["edges"]).T
 
     def _get_edge_weights(self):
-        if self.for_seastar:
+        if self.for_stgraph:
             edges = self._dataset["edges"]
             edge_weights = self._dataset["weights"]
             comb_edge_list = [(edges[i][0], edges[i][1], edge_weights[i]) for i in range(len(edges))]

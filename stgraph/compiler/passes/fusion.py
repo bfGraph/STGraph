@@ -8,7 +8,7 @@ from ..execution_unit import ExecutionUnit
 from .dependency_analysis import dep_program
 from datetime import datetime
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 class FusionStateMachine():
     state_trans = {

@@ -206,7 +206,7 @@ class Context():
         return str(name_space_id) + str(original_key)
 
 
-class Seastar():
+class STGraph():
     def __init__(self, backend_framework: STGraphBackend):
         self._ctx_map = {}
         self._backend_framework = backend_framework

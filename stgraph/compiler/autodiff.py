@@ -9,7 +9,7 @@ from .passes.cf import CF
 from .passes.mem_planning import mem_planning
 from .passes import optimize, fuse, visualize
 
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 
 def diff(vars, grads, forward_units, fprog):
     '''

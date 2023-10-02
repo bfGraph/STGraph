@@ -2,7 +2,7 @@ from .utils import is_const_scalar, ParallelMode
 import snoop
 from collections import deque
 from ..graph.dynamic.DynamicGraph import DynamicGraph
-from stgraph.compiler.debugging.seastar_logger import print_log
+from stgraph.compiler.debugging.stgraph_logger import print_log
 import torch
 
 class Stack:

@@ -8,11 +8,11 @@ import torch
 from rich import inspect
 
 class METRLADataLoader:
-    def __init__(self , folder_name, dataset_name, num_timesteps_in, num_timesteps_out, cutoff_time, verbose: bool = False, for_seastar: bool = False):
+    def __init__(self , folder_name, dataset_name, num_timesteps_in, num_timesteps_out, cutoff_time, verbose: bool = False, for_stgraph: bool = False):
         self.name = dataset_name
         self._local_path = f'../../dataset/{folder_name}/{dataset_name}.json'
         self._verbose = verbose
-        self.for_seastar = for_seastar
+        self.for_stgraph = for_stgraph
         
         self.num_timesteps_in = num_timesteps_in
         self.num_timesteps_out = num_timesteps_out
@@ -52,7 +52,7 @@ class METRLADataLoader:
         self.num_edges = len(self._dataset["edges"])
             
     def _get_edges(self):
-        if self.for_seastar:
+        if self.for_stgraph:
             self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
         else:
             self._edge_list = np.array(self._dataset["edges"]).T     
@@ -60,7 +60,7 @@ class METRLADataLoader:
     # TODO: We are sorting the edge weights accordingly, but are we doing
     # the same for edges in the edge list
     def _get_edge_weights(self):
-        if self.for_seastar:
+        if self.for_stgraph:
             edges = self._dataset["edges"]
             edge_weights = self._dataset["weights"]
             comb_edge_list = [(edges[i][0], edges[i][1], edge_weights[i]) for i in range(len(edges))]
