@@ -29,9 +29,9 @@ STGraph is a framework designed for deep-learning practitioners to write and tra
 
 ![STGraph GCN Formula](https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20GCN%20Formula.png?raw=true)
 
-STGraphs' objective is more natural GNN programming so that users’ learning curve is flattened. Our key observation is that the equation for a GCN layer shown above takes the form of vertex-centric computation, i.e., it computes the features of a center vertex 𝑣 by aggregating the features of its neighbours.
+The primary goal of _Seastar_ is more natural GNN programming so that the users learning curve is flattened. Our key observation lies in recognizing that the equation governing a GCN layer, as shown above, takes the form of vertex-centric computation and can be implemented succinctly with only one line of code. Moreover, we can see a clear correspondence between the GNN formulas and the vertex-centric implementations. The benefit is two-fold: users can effortlessly implement GNN models, while simultaneously understanding these models by inspecting their direct implementations.
 
-The key step of GCN can be implemented succinctly with only one line of code. More importantly, we can see a clear correspondence between the GNN formulas and the vertex-centric implementations. The benefit is bi-directional: users can implement a GNN model easily, and users can learn the GNN model by directly checking its implementation.
+The _Seastar_ system outperforms state-of-the-art GNN frameworks but lacks support for TGNNs. STGraph bridges that gap and enables users to to develop TGNN models through a vertex-centric approach. 
 
 ## Getting Started
 
