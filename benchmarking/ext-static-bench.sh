@@ -102,7 +102,7 @@ cd ../..
 # (Static Temporal STGraph)
 cd static-temporal-tgcn/stgraph
 
-#  ---- (SEASTAR) WikiMaths ----
+#  ---- (STGraph) WikiMaths ----
 
 echo "Starting STGraph Wikimaths script for different feature sizes"
 for i in {8..80..8}
@@ -119,7 +119,7 @@ do
         echo "Finished executing STGraph Wikimaths script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) Windmill ----
+#  ---- (STGraph) Windmill ----
 
 echo "Starting STGraph Windmill script for different feature sizes"
 for i in {8..80..8}
@@ -136,7 +136,7 @@ do
         echo "Finished executing STGraph Windmill script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) Hungary Chickenpox ----
+#  ---- (STGraph) Hungary Chickenpox ----
 echo "Starting STGraph Hungary Chickenpox script for different feature sizes"
 for i in {8..80..8}
 do
@@ -152,7 +152,7 @@ do
         echo "Finished executing STGraph Hungary Chickenpox script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) PedalMe ----
+#  ---- (STGraph) PedalMe ----
 echo "Starting STGraph PedalMe script for different feature sizes"
 for i in {8..32..8}
 do
@@ -168,7 +168,7 @@ do
         echo "Finished executing STGraph PedalMe script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) Montevideo Bus ----
+#  ---- (STGraph) Montevideo Bus ----
 echo "Starting STGraph Montevideo Bus script for different feature sizes"
 for i in {8..80..8}
 do

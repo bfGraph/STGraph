@@ -42,7 +42,7 @@
 # (Static Temporal STGraph)
 cd static-temporal-tgcn/stgraph
 
-#  ---- (SEASTAR) WikiMaths ----
+#  ---- (STGraph) WikiMaths ----
 
 echo "Starting STGraph Wikimaths script for different feature sizes"
 for i in {8..80..8}
@@ -59,7 +59,7 @@ do
         echo "Finished executing STGraph Wikimaths script for seq_len=$i"
 done
 
-#  ---- (SEASTAR) Windmill ----
+#  ---- (STGraph) Windmill ----
 
 echo "Starting STGraph Windmill script for different feature sizes"
 for i in {8..80..8}
