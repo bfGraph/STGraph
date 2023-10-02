@@ -7,12 +7,12 @@ from rich.console import Console
 
 console = Console()
 
-from stgraph.graph.SeastarGraph import SeastarGraph
+from stgraph.graph.STGraphBase import STGraphBase
 
 
-from seastar.graph.static.csr import CSR
+from stgraph.graph.static.csr import CSR
 
-class StaticGraph(SeastarGraph):
+class StaticGraph(STGraphBase):
     def __init__(self, edge_list, edge_weights, num_nodes):    
         super().__init__()
         self._num_nodes = num_nodes

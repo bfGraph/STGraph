@@ -5,7 +5,7 @@ import numpy as np
 from rich import inspect
 
 from stgraph.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.gpma.gpma import (
+from stgraph.graph.dynamic.gpma.gpma import (
     GPMA,
     init_gpma,
     init_graph_updates,
@@ -82,7 +82,7 @@ class GPMAGraph(DynamicGraph):
         # if we went through the entire time-stamps
         if str(self.current_timestamp + 1) not in self.graph_updates:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
 
         edge_update_t(self._forward_graph, self.current_timestamp + 1)
@@ -98,7 +98,7 @@ class GPMAGraph(DynamicGraph):
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_backward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_backward()"
             )
 
         # Freeing resources from previous CSR

@@ -1,8 +1,8 @@
-from stgraph.graph.SeastarGraph import SeastarGraph
+from stgraph.graph.STGraphBase import STGraphBase
 from abc import abstractmethod
 import time
 
-class DynamicGraph(SeastarGraph):
+class DynamicGraph(STGraphBase):
     def __init__(self, edge_list, max_num_nodes):
         super().__init__()
         self.graph_updates = {}
@@ -59,7 +59,7 @@ class DynamicGraph(SeastarGraph):
 
         if timestamp < self.current_timestamp:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
         
         if self._get_cached_graph(timestamp - 1):
@@ -81,7 +81,7 @@ class DynamicGraph(SeastarGraph):
 
         if timestamp > self.current_timestamp:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_backward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_backward()"
             )
 
         while self.current_timestamp > timestamp:

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class SeastarGraph(ABC):
+class STGraphBase(ABC):
     def __init__(self):
         self._ndata = {}
         

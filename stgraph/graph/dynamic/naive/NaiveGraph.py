@@ -3,7 +3,7 @@ import numpy as np
 from rich import inspect
 
 from stgraph.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.static.csr import CSR
+from stgraph.graph.static.csr import CSR
 from collections import deque
 import time
 
@@ -93,7 +93,7 @@ class NaiveGraph(DynamicGraph):
         """Updates the current base graph to the next timestamp"""
         if str(self.current_timestamp + 1) not in self.graph_updates:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_forward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
         self._get_graph_csr_ptrs(self.current_timestamp + 1)
 
@@ -104,6 +104,6 @@ class NaiveGraph(DynamicGraph):
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
             raise Exception(
-                "⏰ Invalid timestamp during SeastarGraph.update_graph_backward()"
+                "⏰ Invalid timestamp during STGraphBase.update_graph_backward()"
             )
         self._get_graph_csr_ptrs(self.current_timestamp - 1)

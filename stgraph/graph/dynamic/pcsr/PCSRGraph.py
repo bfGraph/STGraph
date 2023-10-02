@@ -4,7 +4,7 @@ from rich import inspect
 import time
 
 from stgraph.graph.dynamic.DynamicGraph import DynamicGraph
-from seastar.graph.dynamic.pcsr.pcsr import PCSR
+from stgraph.graph.dynamic.pcsr.pcsr import PCSR
 
 class PCSRGraph(DynamicGraph):
     def __init__(self, edge_list, max_num_nodes):
@@ -73,7 +73,7 @@ class PCSRGraph(DynamicGraph):
         ''' Updates the current base graph to the next timestamp
         '''
         if str(self.current_timestamp + 1) not in self.graph_updates:
-            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_forward()")
+            raise Exception("⏰ Invalid timestamp during STGraphBase.update_graph_forward()")
         
         graph_additions = self.graph_updates[str(self.current_timestamp + 1)]["add"]
         graph_deletions = self.graph_updates[str(self.current_timestamp + 1)]["delete"]
@@ -93,7 +93,7 @@ class PCSRGraph(DynamicGraph):
 
     def _update_graph_backward(self):
         if self.current_timestamp < 0:
-            raise Exception("⏰ Invalid timestamp during SeastarGraph.update_graph_backward()")
+            raise Exception("⏰ Invalid timestamp during STGraphBase.update_graph_backward()")
         
         graph_additions = self.graph_updates[str(self.current_timestamp)]["delete"]
         graph_deletions = self.graph_updates[str(self.current_timestamp)]["add"]
