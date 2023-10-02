@@ -8,8 +8,8 @@ import pynvml
 import sys
 import os
 from model import PyGT_TGCN
-from seastar.dataset.LinkPredDataLoader import LinkPredDataLoader
-from seastar.benchmark_tools.table import BenchmarkTable
+from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
+from stgraph.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device, get_default_device
 
 def main(args):
@@ -149,7 +149,7 @@ def write_results(args, time_taken, max_gpu):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Seastar Static TGCN')
+    parser = argparse.ArgumentParser(description='STGraph Static TGCN')
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",

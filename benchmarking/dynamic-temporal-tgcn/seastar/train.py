@@ -7,12 +7,12 @@ import snoop
 import pynvml
 import sys
 import os
-from seastar.dataset.LinkPredDataLoader import LinkPredDataLoader
-from seastar.benchmark_tools.table import BenchmarkTable
-from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
-from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
-from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
-from model import SeastarTGCN
+from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
+from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.graph.dynamic.gpma.GPMAGraph import GPMAGraph
+from stgraph.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+from stgraph.graph.dynamic.naive.NaiveGraph import NaiveGraph
+from model import STGraphTGCN
 from utils import to_default_device, get_default_device
 
 def main(args):
@@ -33,23 +33,23 @@ def main(args):
         Graph = GPMAGraph([[(0,0)]],1)
     
     if args.dataset == "math":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "wikitalk":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "askubuntu":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-askubuntu-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-askubuntu-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "superuser":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "stackoverflow":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-stackoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-stackoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "reddit_title":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-title-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-title-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "reddit_body":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-body-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-body-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "email":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'email-eu-core-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'email-eu-core-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "bitcoin_otc":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'bitcoin-otc-data-{args.slide_size}', args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'bitcoin-otc-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -78,7 +78,7 @@ def main(args):
 
     total_timestamps = dataloader.total_timestamps
     num_hidden_units = args.num_hidden
-    model = to_default_device(SeastarTGCN(args.feat_size, num_hidden_units))
+    model = to_default_device(STGraphTGCN(args.feat_size, num_hidden_units))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = torch.nn.BCEWithLogitsLoss()
 
@@ -98,7 +98,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(f"(Seastar Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Build FWD Graph Time(s)", "Build BWD Graph Time(s)", "Move to GPU Time(s)"])
+    table = BenchmarkTable(f"(STGraph Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)", "Build FWD Graph Time(s)", "Build BWD Graph Time(s)", "Move to GPU Time(s)"])
 
     try:
         # train
@@ -177,7 +177,7 @@ def write_results(args, time_taken, max_gpu):
     cutoff = "whole"
     if args.cutoff_time < sys.maxsize:
         cutoff = str(args.cutoff_time)
-    file_name = f"seastar_{args.type}_{args.dataset}_T{cutoff}_S{args.slide_size}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
+    file_name = f"stgraph_{args.type}_{args.dataset}_T{cutoff}_S{args.slide_size}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
     df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu}])
     
     if os.path.exists('../../results/dynamic-temporal.csv'):
@@ -189,7 +189,7 @@ def write_results(args, time_taken, max_gpu):
     df.to_csv('../../results/dynamic-temporal.csv', sep=',', index=False, encoding='utf-8')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Seastar Static TGCN')
+    parser = argparse.ArgumentParser(description='STGraph Static TGCN')
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="math",
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument("--slide-size", type=str, default="1.0",
             help="Slide Size")
     parser.add_argument("--type", type=str, default="naive", 
-            help="Seastar Type")
+            help="STGraph Type")
     parser.add_argument("--backprop-every", type=int, default=0,
             help="Feature size of nodes")
     parser.add_argument("--feat-size", type=int, default=8,

@@ -3,9 +3,9 @@
 cd dataset/static-temporal
 wget https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/wikivital_mathematics.json
 wget --no-check-certificate https://graphmining.ai/temporal_datasets/windmill_output.json
-wget https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/HungaryCP.json
-wget https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/pedalme.json
-wget https://raw.githubusercontent.com/bfGraph/Seastar-Datasets/main/montevideobus.json
+wget https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/HungaryCP.json
+wget https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/pedalme.json
+wget https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/montevideobus.json
 
 cd ../dynamic-temporal
 gdown --fuzzy "https://drive.google.com/file/d/1_oKkXG_3aIA5r-Jsnx5GY4birAO0bF5U/view?usp=sharing"

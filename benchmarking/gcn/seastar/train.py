@@ -5,8 +5,8 @@ import snoop
 import pynvml
 import torch.nn as nn
 import torch.nn.functional as F
-from seastar.graph.static.StaticGraph import StaticGraph
-from seastar.dataset.CoraDataLoader import CoraDataLoader
+from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.dataset.CoraDataLoader import CoraDataLoader
 from utils import to_default_device, accuracy
 from model import GCN
 

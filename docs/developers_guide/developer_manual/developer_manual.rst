@@ -5,4 +5,4 @@ Developer Manual
    :maxdepth: 2
    :caption: Table of Contents
 
-   map_of_seastar
+   map_of_stgraph

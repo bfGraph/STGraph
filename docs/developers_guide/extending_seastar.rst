@@ -1,2 +1,2 @@
-Extending Seastar
+Extending STGraph
 #################

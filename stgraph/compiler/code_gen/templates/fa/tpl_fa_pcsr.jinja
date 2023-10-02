@@ -1,0 +1,61 @@
+extern "C" __global__ void {{kernel_name}}
+({%for arg in args%}{{arg.type}} {{'*' if arg.is_ptr}}{{arg.name}}, {% endfor %}
+  {{index_type}} *row_offsets,
+  {{index_type}} *eids,
+  {{index_type}} *column_indices,
+  {{index_type}} *node_ids,
+  {{index_type}} num_nodes,
+  {{index_type}} max_dimx,
+  {{index_type}} max_dimy,
+  {{index_type}} thrs_per_group,
+  {{index_type}} nodes_per_block) {
+      
+    {{index_type}} node_id_index = nodes_per_block*blockIdx.x + threadIdx.x/thrs_per_group;
+
+    if (node_id_index < num_nodes) {
+        
+        {{index_type}} feat_len = max_dimx * max_dimy;
+        {{index_type}} {{row_offset}} = __ldg(node_ids + node_id_index);
+        {{index_type}} beg = __ldg(row_offsets + {{row_offset}});
+        {{index_type}} end = __ldg(row_offsets + {{row_offset}} + 1);
+        {{index_type}} tx = threadIdx.x % thrs_per_group;
+        
+        for (; tx<feat_len; tx+=blockDim.x) {
+            
+            {%for agg_stmt in aggs%}{{agg_stmt.init}}{%endfor%}
+            {{init_outter_offset}}
+            
+            for ({{index_type}} e=beg;e<end;++e) {
+                
+                {{index_type}} {{col_index}} = __ldg(column_indices + e);
+
+                // PCSR indexes edges starting from 1
+                // STGraph requires edges to be indexed from 0
+                {{index_type}} eid = __ldg(eids + e) - 1;
+                
+                {{init_inner_offset}}
+                
+                {%for edge_stmt in edges%}
+                {{edge_stmt.load}}
+                {{edge_stmt.compute}}
+                {{edge_stmt.inner_write}}
+                {%endfor%}
+                
+                {%for agg_stmt in aggs%}
+                {{agg_stmt.compute}}
+                {{agg_stmt.inner_write}}
+                {%endfor%}
+            }
+            
+            {%for agg_stmt in aggs%}
+            {{agg_stmt.outter_write}}
+            {%endfor%}
+            
+            {%for node_stmt in nodes%}
+            {{node_stmt.load}}
+            {{node_stmt.compute}}
+            {{node_stmt.inner_write}}
+            {%endfor%}
+        }
+    }
+}

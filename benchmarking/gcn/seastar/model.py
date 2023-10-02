@@ -1,5 +1,5 @@
 import torch.nn as nn
-from seastar.nn.pytorch.graph_conv import GraphConv
+from stgraph.nn.pytorch.graph_conv import GraphConv
 
 class GCN(nn.Module):
     def __init__(self,

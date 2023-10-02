@@ -5,7 +5,7 @@ The benchmarking is done in two categories. One for static-temporal graphs i.e. 
 1. The `static-bench.sh` uses the WikiMaths and WindmillOutput datasets.
 2. The `dynamic-bench.sh` uses the sx-mathoverflow and wiki-talk-temporal (pruned at 2Million temporal edges)
 
-## Setting up Seastar
+## Setting up STGraph
 
 1. From the main project directory run the collowing commands
 ```
@@ -17,24 +17,24 @@ pip install -r requirements.txt
 sudo apt-get install python3.10-venv
 ```
 
-3. Traverse to the `seastar/graph/static` folder
+3. Traverse to the `stgraph/graph/static` folder
 ```
 nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC' -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o csr.so csr.cu
 ```
 
-4. Traverse to the `seastar/graph/dynamic/pcsr` folder
+4. Traverse to the `stgraph/graph/dynamic/pcsr` folder
 ```
 nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC' -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o pcsr.so pcsr.cu
 ```
 
-5. Traverse to the `seastar/graph/dynamic/gpma` folder
+5. Traverse to the `stgraph/graph/dynamic/gpma` folder
 ```
 nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC' -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o gpma.so gpma.cu
 ```
 
 6. From the main project directory run the following
 ```
-python3 -m build && pip uninstall seastar -y && pip install dist/seastar-1.0.0-py3-none-any.whl
+python3 -m build && pip uninstall stgraph -y && pip install dist/stgraph-1.0.0-py3-none-any.whl
 ```
 
 **Note:** For benchmarking we will need to install PyG-T, the following commands should do the necessary

@@ -9,12 +9,9 @@ find = {}
 "*" = ["*.so", "*.jinja"]
 
 [project]
-name = "seastar"
+name = "stgraph"
 version = "1.0.0"
-authors = [
-  { name="Joel Mathew Cherian", email="joelmathewcherian@gmail.com" },
-  { name="Nithin Puthalath Manoj", email="nithinp.manoj@gmail.com"},
-]
+authors = []
 description = "Vertex-Centric Approach to building Graph Neural Networks"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -33,4 +30,4 @@ dependencies = [
 
 
 [project.urls]
-"Homepage" = "https://github.com/bfGraph/Seastar"
+"Homepage" = "https://github.com/bfGraph/STGraph"

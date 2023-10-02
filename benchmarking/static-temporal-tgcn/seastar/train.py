@@ -8,17 +8,17 @@ import pynvml
 import sys
 import os
 
-from model import SeastarTGCN
-from seastar.graph.static.StaticGraph import StaticGraph
+from model import STGraphTGCN
+from stgraph.graph.static.StaticGraph import StaticGraph
 
-from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
-from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
-from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
-from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
-from seastar.dataset.METRLADataLoader import METRLADataLoader
-from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
+from stgraph.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
+from stgraph.dataset.WikiMathDataLoader import WikiMathDataLoader
+from stgraph.dataset.HungaryCPDataLoader import HungaryCPDataLoader
+from stgraph.dataset.PedalMeDataLoader import PedalMeDataLoader
+from stgraph.dataset.METRLADataLoader import METRLADataLoader
+from stgraph.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
-from seastar.benchmark_tools.table import BenchmarkTable
+from stgraph.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device, get_default_device
 
 from rich import inspect
@@ -35,17 +35,17 @@ def main(args):
     Graph = StaticGraph([(0,0)], [1], 1)
     
     if args.dataset == "wiki":
-        dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = WikiMathDataLoader('static-temporal', 'wikivital_mathematics', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "windmill":
-        dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = WindmillOutputDataLoader('static-temporal', 'windmill_output', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "hungarycp":
-        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = HungaryCPDataLoader('static-temporal', 'HungaryCP', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "pedalme":
-        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = PedalMeDataLoader('static-temporal', 'pedalme', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "metrla":
-        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = METRLADataLoader('static-temporal', 'METRLA', args.feat_size, args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     elif args.dataset == "monte":
-        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True, for_seastar=True)
+        dataloader = MontevideoBusDataLoader('static-temporal', 'montevideobus', args.feat_size, args.cutoff_time, verbose=True, for_stgraph=True)
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -65,7 +65,7 @@ def main(args):
 
     num_hidden_units = args.num_hidden
     num_outputs = 1
-    model = to_default_device(SeastarTGCN(args.feat_size, num_hidden_units, num_outputs))
+    model = to_default_device(STGraphTGCN(args.feat_size, num_hidden_units, num_outputs))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # Logging Output
@@ -87,7 +87,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(f"(Seastar Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
+    table = BenchmarkTable(f"(STGraph Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
     
     # normalization
     degs = torch.from_numpy(G.in_degrees()).type(torch.int32)
@@ -158,7 +158,7 @@ def write_results(args, time_taken, max_gpu):
     cutoff = "whole"
     if args.cutoff_time < sys.maxsize:
         cutoff = str(args.cutoff_time)
-    file_name = f"seastar_{args.dataset}_T{cutoff}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
+    file_name = f"stgraph_{args.dataset}_T{cutoff}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
     df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu}])
     
     if os.path.exists('../../results/static-temporal.csv'):
@@ -171,7 +171,7 @@ def write_results(args, time_taken, max_gpu):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Seastar Static TGCN')
+    parser = argparse.ArgumentParser(description='STGraph Static TGCN')
     snoop.install(enabled=False)
 
     parser.add_argument("--dataset", type=str, default="wiki",

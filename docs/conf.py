@@ -10,7 +10,7 @@ import sphinx_rtd_theme
 import os
 import sys
 
-# Temporary fix to ensure that the seastar codebase can be accessed
+# Temporary fix to ensure that the stgraph codebase can be accessed
 sys.path.insert(0,os.path.abspath('../python'))
 
 html_theme = 'sphinx_rtd_theme'
@@ -18,7 +18,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-html_logo = "_static/Seastar_docs_logo.png"
+html_logo = "_static/STGraph_docs_logo.png"
 html_theme_options = {
     'logo_only': True,
     'display_version': False,
@@ -26,7 +26,7 @@ html_theme_options = {
 
 html_css_files = ["custom.css"]
 
-project = 'Seastar'
+project = 'STGraph'
 copyright = '2023, Joel Mathew Cherian, Nithin Puthalath Manoj'
 author = 'Joel Mathew Cherian, Nithin Puthalath Manoj'
 release = '0.2.0'

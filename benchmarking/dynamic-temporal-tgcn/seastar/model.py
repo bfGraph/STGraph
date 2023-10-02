@@ -1,10 +1,10 @@
 import torch
 import torch.nn.functional as F
-from seastar.nn.pytorch.temporal.tgcn import TGCN
+from stgraph.nn.pytorch.temporal.tgcn import TGCN
 
-class SeastarTGCN(torch.nn.Module):
+class STGraphTGCN(torch.nn.Module):
     def __init__(self, node_features, num_hidden_units):
-        super(SeastarTGCN, self).__init__()
+        super(STGraphTGCN, self).__init__()
         self.temporal = TGCN(node_features, num_hidden_units)
         self.linear = torch.nn.Linear(num_hidden_units, node_features)
 
