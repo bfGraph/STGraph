@@ -8,8 +8,8 @@ import pynvml
 import sys
 import os
 from model import PyGT_TGCN
-from seastar.dataset.LinkPredDataLoader import LinkPredDataLoader
-from seastar.benchmark_tools.table import BenchmarkTable
+from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
+from stgraph.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device, get_default_device
 
 def main(args):

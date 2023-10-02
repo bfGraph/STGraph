@@ -1,7 +1,7 @@
 import csv
 from rich import inspect
 
-from seastar.benchmark_tools.table import BenchmarkTable
+from stgraph.benchmark_tools.table import BenchmarkTable
 
 all_results = []
 

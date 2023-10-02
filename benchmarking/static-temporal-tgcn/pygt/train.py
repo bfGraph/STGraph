@@ -8,14 +8,14 @@ import pynvml
 import sys
 import os
 from model import PyGT_TGCN
-from seastar.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
-from seastar.dataset.WikiMathDataLoader import WikiMathDataLoader
-from seastar.dataset.HungaryCPDataLoader import HungaryCPDataLoader
-from seastar.dataset.PedalMeDataLoader import PedalMeDataLoader
-from seastar.dataset.METRLADataLoader import METRLADataLoader
-from seastar.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
+from stgraph.dataset.WindmillOutputDataLoader import WindmillOutputDataLoader
+from stgraph.dataset.WikiMathDataLoader import WikiMathDataLoader
+from stgraph.dataset.HungaryCPDataLoader import HungaryCPDataLoader
+from stgraph.dataset.PedalMeDataLoader import PedalMeDataLoader
+from stgraph.dataset.METRLADataLoader import METRLADataLoader
+from stgraph.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
-from seastar.benchmark_tools.table import BenchmarkTable
+from stgraph.benchmark_tools.table import BenchmarkTable
 from utils import to_default_device, get_default_device
 
 def main(args):

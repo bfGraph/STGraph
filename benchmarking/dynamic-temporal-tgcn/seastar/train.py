@@ -7,11 +7,11 @@ import snoop
 import pynvml
 import sys
 import os
-from seastar.dataset.LinkPredDataLoader import LinkPredDataLoader
-from seastar.benchmark_tools.table import BenchmarkTable
-from seastar.graph.dynamic.gpma.GPMAGraph import GPMAGraph
-from seastar.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
-from seastar.graph.dynamic.naive.NaiveGraph import NaiveGraph
+from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
+from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.graph.dynamic.gpma.GPMAGraph import GPMAGraph
+from stgraph.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
+from stgraph.graph.dynamic.naive.NaiveGraph import NaiveGraph
 from model import SeastarTGCN
 from utils import to_default_device, get_default_device
 

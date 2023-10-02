@@ -9,6 +9,7 @@ benchmarking/dataset/aifb/
 benchmarking/dataset/mutag/
 benchmarking/dataset/england_covid/
 benchmarking/dataset/bitcoin/
+benchmarking/results/
 *.egg-info/
 seastar/build/
 seastar/dist/

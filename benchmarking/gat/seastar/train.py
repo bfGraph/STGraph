@@ -13,8 +13,8 @@ import time
 import torch
 import torch.nn.functional as F
 import pynvml
-from seastar.graph.static.StaticGraph import StaticGraph
-from seastar.dataset.CoraDataLoader import CoraDataLoader
+from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.dataset.CoraDataLoader import CoraDataLoader
 from utils import EarlyStopping, accuracy
 import snoop
 import numpy as np

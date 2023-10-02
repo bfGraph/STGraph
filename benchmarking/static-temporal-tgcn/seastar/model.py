@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from seastar.nn.pytorch.temporal.tgcn import TGCN
+from stgraph.nn.pytorch.temporal.tgcn import TGCN
 
 
 class SeastarTGCN(torch.nn.Module):
