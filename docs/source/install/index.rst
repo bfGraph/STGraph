@@ -131,4 +131,28 @@ A successful installation will yield output similar to the following, with speci
               Total Memory   2047.875 MiB
                Free Memory   1641.7216796875 MiB
 
-🥳 With this, you've completed the STGraph installation and verified CUDA Python's presence on your system.
+With this, you've completed the STGraph installation and verified CUDA Python's presence on your system.
+
+Running STGraph
+===============
+
+To confirm the successful installation, let's proceed with running STGraph by training a T-GCN model on the WikiMaths dataset.
+
+.. code-block:: bash
+
+    cd ../../..
+    cd benchmarking/
+    chmod u+x verify.sh
+    ./verify.sh
+
+Executing the above command will initiate the dataset download and model training. A table will display the time taken, MSE, and memory consumption for each epoch. Congratulations, STGraph is running as expected.
+
+In some cases, you may encounter out-of-memory (OOM) issues. This can occur when your GPU lacks the necessary memory for this dataset. However, you can still validate STGraph's functionality by inspecting the CUDA code generated for this T-GCN model, found in the following directory
+
+.. code-block:: bash
+
+    cd static-temporal-tgcn/stgraph/
+
+Within this directory, you'll find the CUDA code in ``egl_kernel.cu`` and the PTX file in ``egl_kernel.ptx``.
+
+If you encounter any errors while attempting to train the T-GCN model, kindly raise an issue, and our team will promptly assist you.

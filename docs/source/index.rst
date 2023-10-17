@@ -9,10 +9,19 @@ Welcome to STGraph's documentation and tutorials!
 .. toctree::
    :maxdepth: 1
    :caption: Getting Started
+   :hidden:
+   :glob:
 
    install/index
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Package Reference
+   :hidden:
+   :glob:
 
+   package_reference/stgraph.dataset
+   package_reference/stgraph.compiler
 
 Indices and tables
 ==================
