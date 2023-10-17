@@ -14,6 +14,8 @@ benchmarking/results/
 stgraph/build/
 stgraph/dist/
 docs/_build
+docs_old/
+docs_v2/
 __pycache__/
 .DS_Store
 *.so

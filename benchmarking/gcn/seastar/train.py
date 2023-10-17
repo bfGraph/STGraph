@@ -10,16 +10,16 @@ from stgraph.dataset.CoraDataLoader import CoraDataLoader
 from utils import to_default_device, accuracy
 from model import GCN
 
-def main(args):
 
+def main(args):
     cora = CoraDataLoader(verbose=True)
 
     # To account for the initial CUDA Context object for pynvml
-    tmp = StaticGraph([(0,0)], [1], 1)
-    
+    tmp = StaticGraph([(0, 0)], [1], 1)
+
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())
-    
+
     train_mask = cora.get_train_mask()
     test_mask = cora.get_test_mask()
 
@@ -47,7 +47,9 @@ def main(args):
 
     # A simple sanity check
     print("Measuerd Graph Size (pynvml): ", graph_mem, " B", flush=True)
-    print("Measuerd Graph Size (pynvml): ", (graph_mem)/(1024**2), " MB", flush=True)
+    print(
+        "Measuerd Graph Size (pynvml): ", (graph_mem) / (1024**2), " MB", flush=True
+    )
 
     # normalization
     degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)
@@ -58,23 +60,18 @@ def main(args):
 
     num_feats = features.shape[1]
     n_classes = int(max(labels) - min(labels) + 1)
-    print("Num Classes: ",n_classes)
+    print("Num Classes: ", n_classes)
 
-    model = GCN(g,
-                num_feats,
-                args.num_hidden,
-                n_classes,
-                args.num_layers,
-                F.relu)
-    
+    model = GCN(g, num_feats, args.num_hidden, n_classes, args.num_layers, F.relu)
+
     if cuda:
         model.cuda()
     loss_fcn = torch.nn.CrossEntropyLoss()
 
     # use optimizer
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=args.lr,
-                                 weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
 
     # initialize graph
     dur = []
@@ -106,38 +103,43 @@ def main(args):
             dur.append(run_time_this_epoch)
 
         train_acc = accuracy(logits[train_mask], labels[train_mask])
-        print('Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb '.format(
-            epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
-        ))
+        print(
+            "Epoch {:05d} | Time(s) {:.4f} | train_acc {:.6f} | Used_Memory {:.6f} mb ".format(
+                epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))
+            )
+        )
 
-    Used_memory /= (1024**3)
-    print('^^^{:6f}^^^{:6f}'.format(Used_memory, np.mean(dur)))
+    Used_memory /= 1024**3
+    print("^^^{:6f}^^^{:6f}".format(Used_memory, np.mean(dur)))
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='GCN')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="GCN")
 
     # COMMENT IF SNOOP IS TO BE ENABLED
     snoop.install(enabled=False)
 
-    parser.add_argument("--dropout", type=float, default=0.5,
-            help="dropout probability")
-    parser.add_argument("--dataset", type=str,
-            help="Datset to train your model")
-    parser.add_argument("--gpu", type=int, default=0,
-            help="gpu")
-    parser.add_argument("--lr", type=float, default=1e-2,
-            help="learning rate")
-    parser.add_argument("--num_epochs", type=int, default=200,
-            help="number of training epochs")
-    parser.add_argument("--num_hidden", type=int, default=16,
-            help="number of hidden gcn units")
-    parser.add_argument("--num_layers", type=int, default=1,
-            help="number of hidden gcn layers")
-    parser.add_argument("--weight-decay", type=float, default=5e-4,
-            help="Weight for L2 loss")
-    parser.add_argument("--self-loop", action='store_true',
-            help="graph self-loop (default=False)")
+    parser.add_argument(
+        "--dropout", type=float, default=0.5, help="dropout probability"
+    )
+    parser.add_argument("--dataset", type=str, help="Datset to train your model")
+    parser.add_argument("--gpu", type=int, default=0, help="gpu")
+    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
+    parser.add_argument(
+        "--num_epochs", type=int, default=200, help="number of training epochs"
+    )
+    parser.add_argument(
+        "--num_hidden", type=int, default=16, help="number of hidden gcn units"
+    )
+    parser.add_argument(
+        "--num_layers", type=int, default=1, help="number of hidden gcn layers"
+    )
+    parser.add_argument(
+        "--weight-decay", type=float, default=5e-4, help="Weight for L2 loss"
+    )
+    parser.add_argument(
+        "--self-loop", action="store_true", help="graph self-loop (default=False)"
+    )
     parser.set_defaults(self_loop=False)
     args = parser.parse_args()
     print(args)
