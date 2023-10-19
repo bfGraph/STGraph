@@ -48,6 +48,18 @@ class CoraDataLoader:
     split : float
         Train to test split ratio
 
+    Example
+    -------
+
+    .. code-block:: python
+
+         from stgraph.dataset.CoraDataLoader import CoraDataLoader
+
+         cora = CoraDataLoader()
+         edge_list = cora.get_edges()
+         all_feats = cora.get_all_features()
+         all_targets = cora.get_all_targets()
+
     Attributes
     ----------
     name : str
