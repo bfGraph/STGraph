@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 class STGraphDataset(ABC):
     def __init__(self) -> None:
-        self.name = "Cora"
+        self.name = None
         self.gdata = {}
 
         self._url = None
@@ -62,3 +62,7 @@ class STGraphDataset(ABC):
         cache_file_name = self.name + "." + self._cache_file_type
 
         return os.path.exists(cache_dir + cache_file_name)
+
+    @abstractmethod
+    def _init_graph_data(self) -> dict:
+        pass
