@@ -1,8 +1,13 @@
 """Base class for all STGraph static graph datasets"""
 
+
 from abc import ABC, abstractmethod
+from rich.console import Console
 
 from stgraph.dataset.STGraphDataset import STGraphDataset
+
+
+console = Console()
 
 
 class STGraphStaticDataset(STGraphDataset):
