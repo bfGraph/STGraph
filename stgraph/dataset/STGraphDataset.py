@@ -64,5 +64,21 @@ class STGraphDataset(ABC):
         return os.path.exists(cache_dir + cache_file_name)
 
     @abstractmethod
-    def _init_graph_data(self) -> dict:
+    def _init_graph_data(self) -> None:
+        pass
+
+    @abstractmethod
+    def _download_dataset(self) -> None:
+        pass
+
+    @abstractmethod
+    def _process_dataset(self) -> None:
+        pass
+
+    @abstractmethod
+    def _save_dataset(self) -> None:
+        pass
+
+    @abstractmethod
+    def _load_dataset(self) -> None:
         pass
