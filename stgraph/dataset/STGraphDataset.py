@@ -39,6 +39,9 @@ class STGraphDataset(ABC):
         inside the ``~/.stgraph/dataset_cache/``. Incase the directory does not exists, it
         is created by this method.
 
+        This private method is intended for internal use within the class and should not be
+        called directly from outside the class.
+
         Example
         -------
 
@@ -48,11 +51,6 @@ class STGraphDataset(ABC):
                 # The dataset is cached, continue cached operations
             else:
                 # The dataset is not cached, continue load and save operations
-
-        Warning
-        -------
-        This private method is intended for internal use within the class and should not be
-        called directly from outside the class.
         """
 
         user_home_dir = os.path.expanduser("~")
@@ -81,9 +79,9 @@ class STGraphDataset(ABC):
     def _init_graph_data(self) -> None:
         pass
 
-    # @abstractmethod
-    # def _process_dataset(self) -> None:
-    #     pass
+    @abstractmethod
+    def _process_dataset(self) -> None:
+        pass
 
     def _download_dataset(self) -> None:
         if self._verbose:
