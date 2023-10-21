@@ -13,6 +13,14 @@ console = Console()
 class STGraphDataset(ABC):
     r"""Abstract base class for graph dataset loaders
 
+    The dataset handling is done as follows
+
+    1. Checks whether the dataset is present in cache.
+    2. If not present in the cache, it downloads it from the URL.
+    3. It then saves the downloaded file inside the cache.
+    4. Incase it is present inside the cache, it directly loads it from there
+    5. Dataset specific graph processing is then done
+
     Attributes
     ----------
 
