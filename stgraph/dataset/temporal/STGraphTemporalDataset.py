@@ -26,3 +26,5 @@ class STGraphTemporalDataset(STGraphDataset):
         self.gdata["num_nodes"] = 0
         self.gdata["num_edges"] = 0
         self.gdata["total_timestamps"] = 0
+
+        self._lags = 0
