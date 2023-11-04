@@ -28,3 +28,4 @@ class STGraphTemporalDataset(STGraphDataset):
         self.gdata["total_timestamps"] = 0
 
         self._lags = 0
+        self._cutoff_time = None
