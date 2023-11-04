@@ -27,7 +27,7 @@ STGraph is a framework designed for deep-learning practitioners to write and tra
 
 ## Why STGraph
 
-![Seastar GCN Formula](https://github.com/bfGraph/STGraph/assets/64126131/861b8b9f-8e6c-48f5-b94c-0ccdd3e59d71)
+![Seastar GCN Formula](https://github.com/bfGraph/STGraph/blob/main/assets/Seastar%20GCN%20Formula.png?raw=true)
 
 
 
