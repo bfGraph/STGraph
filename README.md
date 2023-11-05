@@ -6,6 +6,7 @@
 
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
+[![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://openreview.net/pdf?id=8PRRNv81qB)
 
 <div align="center">
   <p align="center">
