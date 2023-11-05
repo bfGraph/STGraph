@@ -1,5 +1,3 @@
-import json
-import urllib.request
 import random
 
 import numpy as np
@@ -71,8 +69,18 @@ class CoraDataLoader(STGraphStaticDataset):
             Split ratio for train data.
         _test_split : float
             Split ratio for test data.
+        _edge_list : np.ndarray
+            The edge list of the graph dataset
+        _all_features : np.ndarray
+            Numpy array of the node features
+        _all_targets : np.ndarray
+            Numpy array of the node target features
         """
         super().__init__()
+
+        assert (
+            split > 0 and split < 1
+        ), "split should be a value between 0 and 1 (exclusive)"
 
         self.name = "Cora"
         self._verbose = verbose
