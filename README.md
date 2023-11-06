@@ -18,6 +18,8 @@
     <a href="https://github.com/bfGraph/STGraph/issues">Report Bug</a>
     ·
     <a href="https://github.com/bfGraph/STGraph/discussions">View Discussions</a>
+    .
+    <a href="https://openreview.net/forum?id=8PRRNv81qB">Paper</a>
   </p>
 </div>
 
@@ -25,6 +27,8 @@
 # 🌟 STGraph
 
 STGraph is a framework designed for deep-learning practitioners to write and train Graph Neural Networks (GNNs) and Temporal Graph Neural Networks (TGNNs). It is built on top of _Seastar_ and utilizes the vertex-centric approach to produce highly efficient fused GPU kernels for forward and backward passes. It achieves better usability, faster computation time and consumes less memory than state-of-the-art graph deep-learning systems like DGL, PyG and PyG-T.
+
+_NOTE: If the contents of this repository are used for research work, kindly cite the paper linked above._
 
 ## Why STGraph
 
