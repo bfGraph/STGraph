@@ -13,10 +13,14 @@ from rich.console import Console
 console = Console()
 
 from rich.traceback import install
+
 install(show_locals=True)
 
+
 class EnglandCovidDataLoader:
-    def __init__(self, verbose: bool = False, lags: int = 8, split=0.75, for_stgraph=False) -> None:
+    def __init__(
+        self, verbose: bool = False, lags: int = 8, split=0.75, for_stgraph=False
+    ) -> None:
         self.name = "EnglandCOVID"
         self.lags = lags
         self.split = split
@@ -47,11 +51,11 @@ class EnglandCovidDataLoader:
         if self._verbose:
             console.log(f"Downloading [cyan]{self.name}[/cyan] dataset")
         self._dataset = json.loads(urllib.request.urlopen(self._url_path).read())
-        
+
         # THIS NEEDS TO BE EDITED
         # with open('../../dataset/eng_covid/eng_covid.json', 'w') as f:
         #     json.dump(self._dataset,f)
-    
+
     def _get_edge_info_stgraph(self):
         # getting the edge_list and edge_weights
         self._edge_list = []
@@ -71,9 +75,9 @@ class EnglandCovidDataLoader:
             self._edge_weights.append(time_edge_weights)
 
     def _get_edge_info_pygt(self):
-        self._edge_list  = []
+        self._edge_list = []
         self._edge_weights = []
-        
+
         for time in range(self._dataset["time_periods"]):
             self._edge_list.append(
                 np.array(self._dataset["edge_mapping"]["edge_index"][str(time)]).T
