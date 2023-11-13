@@ -93,14 +93,21 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         self._process_dataset()
 
     def _process_dataset(self) -> None:
-        self._get_total_timestamps()
-        self._get_num_nodes()
-        self._get_num_edges()
-        self._get_edges()
-        self._get_edge_weights()
-        self._get_targets_and_features()
+        self._set_total_timestamps()
+        self._set_num_nodes()
+        self._set_num_edges()
+        self._set_edges()
+        self._set_edge_weights()
+        self._set_targets_and_features()
 
-    def _get_total_timestamps(self) -> None:
+    def _set_total_timestamps(self) -> None:
+        r"""Sets the total timestamps present in the dataset
+
+        It sets the total timestamps present in the dataset into the
+        gdata attribute dictionary. It is the minimum of the cutoff time
+        choosen by the user and the total time periods present in the
+        original dataset.
+        """
         if self._cutoff_time != None:
             self.gdata["total_timestamps"] = min(
                 len(self._dataset["FX"]), self._cutoff_time
@@ -108,7 +115,8 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         else:
             self.gdata["total_timestamps"] = len(self._dataset["FX"])
 
-    def _get_num_nodes(self):
+    def _set_num_nodes(self):
+        r"""Sets the total number of nodes present in the dataset"""
         node_set = set()
         max_node_id = 0
         for edge in self._dataset["edges"]:
@@ -119,26 +127,33 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
         self.gdata["num_nodes"] = len(node_set)
 
-    def _get_num_edges(self):
+    def _set_num_edges(self):
+        r"""Sets the total number of edges present in the dataset"""
         self.gdata["num_edges"] = len(self._dataset["edges"])
 
-    def _get_edges(self):
+    def _set_edges(self):
+        r"""Sets the edge list of the dataset"""
         self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
 
-    def _get_edge_weights(self):
+    def _set_edge_weights(self):
+        r"""Sets the edge weights of the dataset"""
         self._edge_weights = np.ones(self.gdata["num_edges"])
 
-    def _get_targets_and_features(self):
+    def _set_targets_and_features(self):
+        r"""Calculates and sets the target and feature attributes"""
         stacked_target = np.array(self._dataset["FX"])
         self._all_targets = np.array(
             [stacked_target[i, :].T for i in range(stacked_target.shape[0])]
         )
 
     def get_edges(self):
+        r"""Returns the edge list"""
         return self._edge_list
 
     def get_edge_weights(self):
+        r"""Returns the edge weights"""
         return self._edge_weights
 
     def get_all_targets(self):
+        r"""Returns the targets for each timestamp"""
         return self._all_targets

@@ -109,12 +109,12 @@ class CoraDataLoader(STGraphStaticDataset):
         Calls private methods to extract edge list, node features, target classes
         and the train/test binary mask array.
         """
-        self._get_edge_info()
-        self._get_targets_and_features()
-        self._get_graph_attributes()
-        self._get_mask_info()
+        self._set_edge_info()
+        self._set_targets_and_features()
+        self._set_graph_attributes()
+        self._set_mask_info()
 
-    def _get_edge_info(self) -> None:
+    def _set_edge_info(self) -> None:
         r"""Extract edge information from the dataset"""
         edges = np.array(self._dataset["edges"])
         edge_list = []
@@ -124,12 +124,12 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self._edge_list = edge_list
 
-    def _get_targets_and_features(self):
+    def _set_targets_and_features(self):
         r"""Extract targets and features from the dataset."""
         self._all_features = np.array(self._dataset["features"])
         self._all_targets = np.array(self._dataset["labels"]).T
 
-    def _get_graph_attributes(self):
+    def _set_graph_attributes(self):
         r"""Calculates and stores graph meta data inside ``gdata``"""
         node_set = set()
         for edge in self._edge_list:
@@ -141,7 +141,7 @@ class CoraDataLoader(STGraphStaticDataset):
         self.gdata["num_feats"] = len(self._all_features[0])
         self.gdata["num_classes"] = len(set(self._all_targets))
 
-    def _get_mask_info(self):
+    def _set_mask_info(self):
         r"""Generate train and test binary masks array"""
         self._train_mask = [0] * self.gdata["num_nodes"]
         self._test_mask = [0] * self.gdata["num_nodes"]

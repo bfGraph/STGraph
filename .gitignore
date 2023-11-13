@@ -26,3 +26,4 @@ dist
 *.svg
 *.json
 *.npy
+.coverage
