@@ -1,7 +1,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20%E2%80%93%20Dark.png?raw=true">
   <source media="(prefers-color-scheme: light)" srcset="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20New.png?raw=true">
-  <img alt="STGraph Banner" src="https://github.com/bfGraph/STGraph/assets/64126131/36a8bb80-25a9-4684-b604-7a5efbea12d4">  
+  <img alt="STGraph Banner" src="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20New.png?raw=true">  
 </picture>
 
 
