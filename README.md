@@ -7,6 +7,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
 [![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://neurips.cc/virtual/2023/76335)
+[![STGraph 1.0.0](https://img.shields.io/badge/STGraph_1.0.0-?logo=pypi#ffdf76)](https://pypi.org/project/stgraph/)
 
 <div align="center">
   <p align="center">
