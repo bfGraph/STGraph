@@ -71,32 +71,6 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided tutorial.
 
-### Pre-requisites
-
-Install the python packages by running the following. It is recommended that you create a virtual environment before installing the packages.
-
-**Setup a new virtual environment**
-```
-conda create --name stgraph
-conda activate stgraph
-```
-
-**Install the python packages**
-```
-pip install -r requirements.txt
-```
-
-STGraph requires CUDA Version `11.7` or above to run. Versions below that may or may not run, depending on any changes within CUDA.
-
-### Installation
-
-You can git clone STGraph into your workspace by running the following command
-
-```
-git clone https://github.com/bfGraph/STGraph.git
-cd STGraph
-```
-
 ## Running your first STGraph Program
 
 In this is quick mini tutorial, we will show you how to train a simple GCN model on the Cora dataset. After installing STGraph and entering the STGraph directory, enter the following commands to reach the GCN `benchmarking` folder
