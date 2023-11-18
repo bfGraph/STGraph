@@ -7,6 +7,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
 [![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://neurips.cc/virtual/2023/76335)
+[![PyPI - 1.0.0](https://img.shields.io/static/v1?label=PyPI&message=1.0.0&color=%23ffdf76&logo=Python)](https://pypi.org/project/stgraph/)
 
 <div align="center">
   <p align="center">
@@ -42,31 +43,34 @@ The _Seastar_ system outperforms state-of-the-art GNN frameworks but lacks suppo
 
 ## Getting Started
 
-### Pre-requisites
+### Installation for STGraph Package Users
 
-Install the python packages by running the following. It is recommended that you create a virtual environment before installing the packages.
+This guide is tailored for users of the STGraph package, designed for constructing Graph Neural Network (GNN) and Temporal Graph Neural Network (TGNN) models.
 
-**Setup a new virtual environment**
-```
-conda create --name stgraph
+**Setting Up a Virtual Environment**
+
+We recommend creating a new virtual environment with Python version `3.8`. Here, we create a dedicated virtual environment named `stgraph` using the `conda` package manager.
+
+```bash
+conda create --name stgraph python=3.8
 conda activate stgraph
 ```
 
-**Install the python packages**
-```
-pip install -r requirements.txt
+**Installing STGraph from PyPI**
+
+```bash
+pip install stgraph
 ```
 
-STGraph requires CUDA Version `11.7` or above to run. Versions below that may or may not run, depending on any changes within CUDA.
+**Installing PyTorch**
 
-### Installation
+In addition, STGraph relies on PyTorch. Ensure it is installed in your virtual environment with the following command
 
-You can git clone STGraph into your workspace by running the following command
-
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
-git clone https://github.com/bfGraph/STGraph.git
-cd STGraph
-```
+
+Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided tutorial.
 
 ## Running your first STGraph Program
 
@@ -158,7 +162,7 @@ make html
 | `Dr. Unnikrishnan Cheramangalath` | Assistant Professor in CSED at Indian Institue of Technology Palakkad |
 | `Kevin Jude`                      | Ph.D. in CSED at Indian Institue of Technology Palakkad               |
 
-## Attributions
+## References
 
 | Author(s)                                                                                                                                                                         | Title                                                                                                    | Link(s)                                                                                                                          |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |

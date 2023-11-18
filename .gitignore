@@ -16,7 +16,6 @@ stgraph/dist/
 docs/_build
 __pycache__/
 .DS_Store
-*.so
 build
 dist
 *.egg-info
