@@ -42,6 +42,35 @@ The _Seastar_ system outperforms state-of-the-art GNN frameworks but lacks suppo
 
 ## Getting Started
 
+### Installation for Users
+
+This installation walkthrough's intended audience are users of the STGraph package for building GNN and TGNN models.
+
+**Setup a new virtual environment**
+
+It is recommended to setup a new virtual environment with Python version `3.8`. Here we are creating a new virtual environment named `stgraph` using `conda`. 
+
+```bash
+conda create --name stgraph python=3.8
+conda activate stgraph
+```
+
+**Install STGraph from PyPI**
+
+```bash
+pip install stgraph
+```
+
+**Install PyTorch**
+
+Additionally, STGraph requires PyTorch.
+
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+After running all of the above, you have successfully installed STGraph. You can write and train your first GNN model by following this tutorial.
+
 ### Pre-requisites
 
 Install the python packages by running the following. It is recommended that you create a virtual environment before installing the packages.
