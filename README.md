@@ -61,7 +61,7 @@ In addition, STGraph relies on PyTorch. Ensure it is installed in your virtual e
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided tutorial.
+Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided [tutorial](examples/README.md).
 
 ### Installation for STGraph Package Developers
 
