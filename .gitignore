@@ -26,3 +26,4 @@ dist
 *.json
 *.npy
 .coverage
+dev-stgraph/
