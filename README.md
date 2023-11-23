@@ -45,16 +45,7 @@ The _Seastar_ system outperforms state-of-the-art GNN frameworks but lacks suppo
 
 ### Installation for STGraph Package Users
 
-This guide is tailored for users of the STGraph package, designed for constructing Graph Neural Network (GNN) and Temporal Graph Neural Network (TGNN) models.
-
-**Setting Up a Virtual Environment**
-
-We recommend creating a new virtual environment with Python version `3.8`. Here, we create a dedicated virtual environment named `stgraph` using the `conda` package manager.
-
-```bash
-conda create --name stgraph python=3.8
-conda activate stgraph
-```
+This guide is tailored for users of the STGraph package, designed for constructing GNN and TGNN models. We recommend creating a new virtual environment with Python version `3.8` and installing `stgraph` inside that dedicated environment.
 
 **Installing STGraph from PyPI**
 
@@ -70,7 +61,46 @@ In addition, STGraph relies on PyTorch. Ensure it is installed in your virtual e
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided tutorial.
+Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided [tutorial](examples/README.md).
+
+### Installation for STGraph Package Developers
+
+This guide is intended for those interested in developing and contributing to STGraph.
+
+**Download source files from GitHub**
+
+```bash
+git clone https://github.com/bfGraph/STGraph.git
+cd STGraph
+```
+
+**Create a dedicated virtual environment**
+
+Inside the STGraph directory create and activate a dedicated virtual environment named `dev-stgraph` with Python version `3.8`.
+
+```bash
+python3.8 -m venv dev-stgraph
+source dev-stgraph/bin/activate
+```
+
+**Install STGraph in editable mode**
+
+Make sure to install the STGraph package in editable mode to ease your development process. 
+
+```bash
+pip install -e .[dev]
+pip list
+```
+
+**Install PyTorch**
+
+Ensure to install PyTorch as well for development
+
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+With this you have successfully installed STGraph locally to make development changes and contribute to the project. Head out to our [Pull Requests](https://github.com/bfGraph/STGraph/pulls) page and get started with your first contribution.
 
 ## Running your first STGraph Program
 
