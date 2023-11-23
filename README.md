@@ -92,8 +92,15 @@ pip install -e .[dev]
 pip list
 ```
 
-Verify if STGraph has been successfully installed in editable mode. You can continue with your development process and contribute to this package. Please do check out our
-contribution guide before making your first changes.
+**Install PyTorch**
+
+Ensure to install PyTorch as well for development
+
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+With this you have successfully installed STGraph locally to make development changes and contribute to the project. Head out to our [Pull Requests](https://github.com/bfGraph/STGraph/pulls) page and get started with your first contribution.
 
 ## Running your first STGraph Program
 
