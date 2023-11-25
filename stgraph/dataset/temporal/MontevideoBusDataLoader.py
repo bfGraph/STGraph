@@ -6,14 +6,89 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 class MontevideoBusDataLoader(STGraphTemporalDataset):
     def __init__(self, verbose=False, url=None, lags=4, cutoff_time=None) -> None:
-        r"""A dataset of inflow passenger at bus stop level from Montevideo city."""
+        r"""A dataset of inflow passenger at bus stop level from Montevideo city.
+
+        This dataset compiles hourly passenger inflow data for 11 key bus lines
+        in Montevideo, Uruguay, during October 2020. Focused on routes to the city
+        center, it encompasses bus stop vertices, interlinked by edges representing
+        connections with weights indicating road distances. The target variable
+        is passenger inflow, sourced from diverse data outlets within Montevideo's
+        Metropolitan Transportation System (STM).
+
+        This class provides functionality for loading, processing, and accessing the
+        Montevideo Bus dataset for use in deep learning tasks such as passenger inflow prediction.
+
+        .. list-table:: gdata
+            :widths: 33 33 33
+            :header-rows: 1
+
+            * - num_nodes
+              - num_edges
+              - total_timestamps
+            * - 675
+              - 690
+              - 744
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            from stgraph.dataset import MontevideoBusDataLoader
+
+            monte = MontevideoBusDataLoader(verbose=True)
+            num_nodes = monte.gdata["num_nodes"]
+            num_edges = monte.gdata["num_edges"]
+            total_timestamps = monte.gdata["total_timestamps"]
+
+            edge_list = monte.get_edges()
+            edge_weights = monte.get_edge_weights()
+            feats = monte.get_all_features()
+            targets = monte.get_all_targets()
+
+        Parameters
+        ----------
+
+        verbose : bool, optional
+            Flag to control whether to display verbose info (default is False)
+        url : str, optional
+            The URL from where the dataset is downloaded online (default is None)
+        lags : int, optional
+            The number of time lags (default is 4)
+        cutoff_time : int, optional
+            The cutoff timestamp for the temporal dataset (default is None)
+
+        Attributes
+        ----------
+        name : str
+            The name of the dataset.
+        _verbose : bool
+            Flag to control whether to display verbose info.
+        _lags : int
+            The number of time lags
+        _cutoff_time : int
+            The cutoff timestamp for the temporal dataset
+        _edge_list : list
+            The edge list of the graph dataset
+        _edge_weights : numpy.ndarray
+            Numpy array of the edge weights
+        _all_targets : list
+            Numpy array of the node target value
+        _all_features : list
+            Numpy array of the node feature value
+        """
 
         super().__init__()
 
-        assert lags > 0, "lags should be a positive integer"
-        assert type(lags) == int, "lags should be of type int"
-        assert cutoff_time > 0, "cutoff_time should be a positive integer"
-        assert type(cutoff_time) == int, "cutoff_time should be a positive integer"
+        if type(lags) != int:
+            raise TypeError("lags must be of type int")
+        if lags < 0:
+            raise ValueError("lags must be a positive integer")
+
+        if cutoff_time != None and type(cutoff_time) != int:
+            raise TypeError("cutoff_time must be of type int")
+        if cutoff_time != None and cutoff_time < 0:
+            raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "Montevideo Bus"
         self._verbose = verbose
@@ -79,6 +154,13 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
 
     def _set_edge_weights(self):
         r"""Sets the edge weights of the dataset"""
+        edges = self._dataset["edges"]
+        edge_weights = self._dataset["weights"]
+        comb_edge_list = [
+            (edges[i][0], edges[i][1], edge_weights[i]) for i in range(len(edges))
+        ]
+        comb_edge_list.sort(key=lambda x: (x[1], x[0]))
+        self._edge_weights = np.array([edge_det[2] for edge_det in comb_edge_list])
 
     def _set_features(self):
         r"""Calculates and sets the feature attributes"""
