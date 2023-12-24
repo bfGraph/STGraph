@@ -1,5 +1,4 @@
 @inproceedings{
-  manoj2023stgraph,
   title={{STG}raph: A Framework for Temporal Graph Neural Networks},
   author={Nithin Puthalath Manoj and Joel Cherian and Kevin Jude Concessao and Unnikrishnan Cheramangalath},
   booktitle={Temporal Graph Learning Workshop @ NeurIPS 2023},
