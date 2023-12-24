@@ -13,6 +13,7 @@ benchmarking/results/
 *.egg-info/
 stgraph/build/
 stgraph/dist/
+dev-stgraph/
 docs/_build
 docs_old/
 docs_v2/

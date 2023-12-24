@@ -3,13 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to STGraph's documentation and tutorials!
-=================================================
+STGraph Documentation and Tutorials
+===================================
 
 .. toctree::
    :maxdepth: 1
-   :caption: Getting Started
-   :hidden:
+   :caption: Install STGraph
    :glob:
 
    install/index
