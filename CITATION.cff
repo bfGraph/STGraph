@@ -1,7 +1,9 @@
-@inproceedings{
-  title={{STG}raph: A Framework for Temporal Graph Neural Networks},
-  author={Nithin Puthalath Manoj and Joel Cherian and Kevin Jude Concessao and Unnikrishnan Cheramangalath},
-  booktitle={Temporal Graph Learning Workshop @ NeurIPS 2023},
-  year={2023},
-  url={https://openreview.net/forum?id=8PRRNv81qB}
+@inproceedings{manoj2023stgraph,
+  author = {Lisa, Mona and Bot, Hew},
+  doi = {10.5281/zenodo.1234},
+  month = {12},
+  title = {{My Research Software}},
+  url = {https://github.com/github-linguist/linguist},
+  version = {2.0.4},
+  year = {2017}
 }
