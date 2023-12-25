@@ -28,6 +28,13 @@ Explore the STGraph documentation and tutorials to get started with writing and 
    install/index
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+   :glob:
+
+   tutorials/gnn
+
+.. toctree::
    :maxdepth: 2
    :caption: Package Reference
    :hidden:
