@@ -4,6 +4,13 @@ Installation Guide
 Welcome to the STGraph installation guide that will lead you through the installation process ensuring a smooth setup
 so you can start training TGNN models in your local machine.
 
+**Currently STGraph is available for 🐍 Python 3.8 only**
+
+.. note::
+
+    It is always recommended to install STGraph and it's dependencies inside a dedicated python
+    virtual environment with Python version set to 3.8
+
 Installation for STGraph Package Users
 ======================================
 
