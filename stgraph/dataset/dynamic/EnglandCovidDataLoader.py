@@ -73,7 +73,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         """
         super().__init__()
 
-        self.name = "England COVID"
+        self.name = "England_COVID"
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time

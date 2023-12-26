@@ -74,7 +74,7 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         assert cutoff_time > 0, "cutoff_time should be a positive integer"
         assert type(cutoff_time) == int, "cutoff_time should be a positive integer"
 
-        self.name = "Hungary Chickenpox"
+        self.name = "Hungary_Chickenpox"
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
