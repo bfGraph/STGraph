@@ -2,6 +2,7 @@
 
 import os
 import json
+import ssl
 import urllib.request
 
 from abc import ABC, abstractmethod
@@ -169,7 +170,10 @@ class STGraphDataset(ABC):
                 f"[cyan bold]{self.name}[/cyan bold] not present in cache. Downloading right now."
             )
 
-        self._dataset = json.loads(urllib.request.urlopen(self._url).read())
+        context = ssl._create_unverified_context()
+        self._dataset = json.loads(
+            urllib.request.urlopen(self._url, context=context).read()
+        )
 
         if self._verbose:
             console.log(f"[cyan bold]{self.name}[/cyan bold] download complete.")
