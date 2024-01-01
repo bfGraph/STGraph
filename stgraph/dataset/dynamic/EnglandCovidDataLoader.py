@@ -10,6 +10,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         url: str = None,
         lags: int = 8,
         cutoff_time: int = None,
+        redownload: bool = False,
     ) -> None:
         r"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions
 
@@ -82,6 +83,9 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()

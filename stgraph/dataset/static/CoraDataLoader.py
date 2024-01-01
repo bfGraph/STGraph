@@ -10,7 +10,7 @@ console = Console()
 
 
 class CoraDataLoader(STGraphStaticDataset):
-    def __init__(self, verbose=False, url=None, split=0.75) -> None:
+    def __init__(self, verbose=False, url=None, redownload=False) -> None:
         r"""Citation network consisting of scientific publications
 
         The Cora dataset consists of 2708 scientific publications classified into one of seven classes.
@@ -52,8 +52,6 @@ class CoraDataLoader(STGraphStaticDataset):
             Flag to control whether to display verbose info (default is False)
         url : str, optional
             The URL from where the dataset is downloaded online (default is None)
-        split : float, optional
-            Train to test split ratio (default is 0.75)
 
         Attributes
         ----------
@@ -61,14 +59,6 @@ class CoraDataLoader(STGraphStaticDataset):
             The name of the dataset.
         _verbose : bool
             Flag to control whether to display verbose info.
-        _train_mask : np.ndarray
-            Binary mask for train data.
-        _test_mask : np.ndarray
-            Binary mask for test data.
-        _train_split : float
-            Split ratio for train data.
-        _test_split : float
-            Split ratio for test data.
         _edge_list : np.ndarray
             The edge list of the graph dataset
         _all_features : np.ndarray
@@ -78,22 +68,16 @@ class CoraDataLoader(STGraphStaticDataset):
         """
         super().__init__()
 
-        assert (
-            split > 0 and split < 1
-        ), "split should be a value between 0 and 1 (exclusive)"
-
         self.name = "Cora"
         self._verbose = verbose
-
-        self._train_mask = None
-        self._test_mask = None
-        self._train_split = split
-        self._test_split = 1 - split
 
         if not url:
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()
@@ -112,7 +96,6 @@ class CoraDataLoader(STGraphStaticDataset):
         self._set_edge_info()
         self._set_targets_and_features()
         self._set_graph_attributes()
-        self._set_mask_info()
 
     def _set_edge_info(self) -> None:
         r"""Extract edge information from the dataset"""
@@ -141,26 +124,7 @@ class CoraDataLoader(STGraphStaticDataset):
         self.gdata["num_feats"] = len(self._all_features[0])
         self.gdata["num_classes"] = len(set(self._all_targets))
 
-    def _set_mask_info(self):
-        r"""Generate train and test binary masks array"""
-        self._train_mask = [0] * self.gdata["num_nodes"]
-        self._test_mask = [0] * self.gdata["num_nodes"]
-
-        train_len = int(self.gdata["num_nodes"] * self._train_split)
-
-        for i in range(0, train_len):
-            self._train_mask[i] = 1
-
-        random.shuffle(self._train_mask)
-
-        for i in range(len(self._train_mask)):
-            if self._train_mask[i] == 0:
-                self._test_mask[i] = 1
-
-        self._train_mask = np.array(self._train_mask)
-        self._test_mask = np.array(self._test_mask)
-
-    def get_edges(self) -> np.ndarray:
+    def get_edges(self) -> list:
         r"""Get the edge list."""
         return self._edge_list
 
@@ -171,31 +135,3 @@ class CoraDataLoader(STGraphStaticDataset):
     def get_all_targets(self) -> np.ndarray:
         r"""Get all targets."""
         return self._all_targets
-
-    def get_train_mask(self):
-        r"""Get the train mask."""
-        return self._train_mask
-
-    def get_test_mask(self):
-        r"""Get the test mask."""
-        return self._test_mask
-
-    def get_train_features(self) -> np.ndarray:
-        r"""Get train features."""
-        train_range = int(len(self._all_features) * self.split)
-        return self._all_features[:train_range]
-
-    def get_train_targets(self) -> np.ndarray:
-        r"""Get train targets."""
-        train_range = int(len(self._all_targets) * self.split)
-        return self._all_targets[:train_range]
-
-    def get_test_features(self) -> np.ndarray:
-        r"""Get test features."""
-        test_range = int(len(self._all_features) * self.split)
-        return self._all_features[test_range:]
-
-    def get_test_targets(self) -> np.ndarray:
-        r"""Get test targets."""
-        test_range = int(len(self._all_targets) * self.split)
-        return self._all_targets[test_range:]

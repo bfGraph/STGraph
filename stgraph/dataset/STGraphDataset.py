@@ -138,6 +138,11 @@ class STGraphDataset(ABC):
 
         return cache_dir + cache_file_name
 
+    def _delete_cached_dataset(self) -> None:
+        r"""Deletes the cached dataset file"""
+
+        os.remove(self._get_cache_file_path())
+
     @abstractmethod
     def _init_graph_data(self) -> None:
         r"""Initialises the ``gdata`` attribute with all necessary meta data

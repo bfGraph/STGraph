@@ -27,3 +27,4 @@ dist
 *.npy
 .coverage
 dev-stgraph/
+htmlconv/

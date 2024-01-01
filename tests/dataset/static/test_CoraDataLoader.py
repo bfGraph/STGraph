@@ -4,24 +4,29 @@ import urllib.request
 from stgraph.dataset import CoraDataLoader
 
 
-class TestCoraDataLoader:
+def CoraDataCheck(cora: CoraDataLoader):
+    assert len(cora._edge_list) == 10556
+    assert cora._all_features.shape == (2708, 1433)
+    assert cora._all_targets.shape == (2708,)
+
+    assert cora.gdata["num_nodes"] == 2708
+    assert cora.gdata["num_edges"] == 10556
+    assert cora.gdata["num_feats"] == 1433
+    assert cora.gdata["num_classes"] == 7
+
+    edge_list = cora.get_edges()
+
+    assert len(edge_list) == 10556 and len(edge_list[0]) == 2
+    assert cora.get_all_features().shape == (2708, 1433)
+    assert cora.get_all_targets().shape == (2708,)
+
+
+def test_CoraDataLoader():
     cora = CoraDataLoader()
 
-    def test_init(self):
-        assert self.cora.name == "Cora", "Incorrect name for the CoraDataLoader"
-        assert self.cora._verbose == False, "Verbose flag for Cora not set to False"
+    cora_1 = CoraDataLoader(
+        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json",
+    )
 
-        assert isinstance(
-            self.cora._train_mask, np.ndarray
-        ), "Train mask for Cora is not a numpy array"
-
-        assert isinstance(
-            self.cora._test_mask, np.ndarray
-        ), "Test mask for Cora is not a numpy array"
-
-        assert self.cora._train_split == 0.75, "Train split not set to 0.75"
-        assert self.cora._test_split == 0.25, "Test split not set to 0.25"
-
-        assert (
-            urllib.request.urlopen(self.cora._url).getcode() == 200
-        ), "Cora dataset URL is not available"
+    CoraDataCheck(cora)
+    CoraDataCheck(cora_1)
