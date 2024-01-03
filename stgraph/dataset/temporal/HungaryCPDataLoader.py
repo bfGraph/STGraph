@@ -4,7 +4,14 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 
 class HungaryCPDataLoader(STGraphTemporalDataset):
-    def __init__(self, verbose=False, url=None, lags=4, cutoff_time=None) -> None:
+    def __init__(
+        self,
+        verbose: bool = False,
+        url: str = None,
+        lags: int = 4,
+        cutoff_time: int = None,
+        redownload: bool = False,
+    ) -> None:
         r"""County level chicken pox cases in Hungary
 
         This dataset comprises information on weekly occurrences of chickenpox
@@ -48,6 +55,8 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
             The number of time lags (default is 4)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -69,10 +78,15 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
 
         super().__init__()
 
-        assert lags > 0, "lags should be a positive integer"
-        assert type(lags) == int, "lags should be of type int"
-        assert cutoff_time > 0, "cutoff_time should be a positive integer"
-        assert type(cutoff_time) == int, "cutoff_time should be a positive integer"
+        if type(lags) != int:
+            raise TypeError("lags must be of type int")
+        if lags < 0:
+            raise ValueError("lags must be a positive integer")
+
+        if cutoff_time != None and type(cutoff_time) != int:
+            raise TypeError("cutoff_time must be of type int")
+        if cutoff_time != None and cutoff_time < 0:
+            raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "Hungary_Chickenpox"
         self._verbose = verbose
@@ -83,6 +97,9 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/HungaryCP.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()
@@ -142,9 +159,11 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
     def _set_targets_and_features(self):
         r"""Calculates and sets the target and feature attributes"""
         stacked_target = np.array(self._dataset["FX"])
-        self._all_targets = np.array(
-            [stacked_target[i, :].T for i in range(stacked_target.shape[0])]
-        )
+
+        self._all_targets = [
+            stacked_target[i + self._lags, :].T
+            for i in range(self.gdata["total_timestamps"] - self._lags)
+        ]
 
     def get_edges(self):
         r"""Returns the edge list"""

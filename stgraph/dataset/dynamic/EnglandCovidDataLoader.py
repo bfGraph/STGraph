@@ -51,6 +51,8 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             The number of time lags (default is 8)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------

@@ -1,6 +1,3 @@
-import numpy as np
-import urllib.request
-
 from stgraph.dataset import CoraDataLoader
 
 

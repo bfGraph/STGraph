@@ -52,6 +52,8 @@ class CoraDataLoader(STGraphStaticDataset):
             Flag to control whether to display verbose info (default is False)
         url : str, optional
             The URL from where the dataset is downloaded online (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
