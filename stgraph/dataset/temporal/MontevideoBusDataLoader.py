@@ -4,7 +4,14 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 
 class MontevideoBusDataLoader(STGraphTemporalDataset):
-    def __init__(self, verbose=False, url=None, lags=4, cutoff_time=None) -> None:
+    def __init__(
+        self,
+        verbose: bool = False,
+        url: str = None,
+        lags: int = 4,
+        cutoff_time: int = None,
+        redownload: bool = False,
+    ) -> None:
         r"""A dataset of inflow passenger at bus stop level from Montevideo city.
 
         This dataset compiles hourly passenger inflow data for 11 key bus lines
@@ -56,6 +63,8 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             The number of time lags (default is 4)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -98,6 +107,9 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/montevideobus.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()

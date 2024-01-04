@@ -7,11 +7,12 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 class METRLADataLoader(STGraphTemporalDataset):
     def __init__(
         self,
-        verbose=True,
-        url=None,
-        num_timesteps_in=12,
-        num_timesteps_out=12,
-        cutoff_time=None,
+        verbose: bool = True,
+        url: str = None,
+        num_timesteps_in: int = 12,
+        num_timesteps_out: int = 12,
+        cutoff_time: int = None,
+        redownload: bool = False,
     ):
         r"""A traffic forecasting dataset based on Los Angeles Metropolitan traffic conditions.
 
@@ -64,6 +65,8 @@ class METRLADataLoader(STGraphTemporalDataset):
             The number of timesteps the sequence model has to predict (default is 12)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -89,12 +92,20 @@ class METRLADataLoader(STGraphTemporalDataset):
 
         super().__init__()
 
-        assert (
-            num_timesteps_in > 0 and type(num_timesteps_in) == int
-        ), "Invalid num_timesteps_in value"
-        assert (
-            num_timesteps_out > 0 and type(num_timesteps_out) == int
-        ), "Invalid num_timesteps_out value"
+        if type(num_timesteps_in) != int:
+            raise TypeError("num_timesteps_in must be of type int")
+        if num_timesteps_in < 0:
+            raise ValueError("num_timesteps_in must be a positive integer")
+
+        if type(num_timesteps_out) != int:
+            raise TypeError("num_timesteps_out must be of type int")
+        if num_timesteps_out < 0:
+            raise ValueError("num_timesteps_out must be a positive integer")
+
+        if cutoff_time != None and type(cutoff_time) != int:
+            raise TypeError("cutoff_time must be of type int")
+        if cutoff_time != None and cutoff_time < 0:
+            raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "METRLA"
         self._verbose = verbose
@@ -106,6 +117,9 @@ class METRLADataLoader(STGraphTemporalDataset):
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/METRLA.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()
