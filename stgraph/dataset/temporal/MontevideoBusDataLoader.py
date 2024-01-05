@@ -97,6 +97,8 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             raise TypeError("cutoff_time must be of type int")
         if cutoff_time != None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
+        if cutoff_time != None and cutoff_time <= lags:
+            raise ValueError("cutoff_time must be greater than lags")
 
         self.name = "Montevideo_Bus"
         self._verbose = verbose
@@ -176,10 +178,13 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
     def _set_features(self):
         r"""Calculates and sets the feature attributes"""
         features = []
+
         for node in self._dataset["nodes"]:
             X = node.get("X")
             for feature_var in ["y"]:
-                features.append(np.array(X.get(feature_var)))
+                features.append(
+                    np.array(X.get(feature_var)[: self.gdata["total_timestamps"]])
+                )
 
         stacked_features = np.stack(features).T
         standardized_features = (
@@ -197,7 +202,7 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         r"""Calculates and sets the target attributes"""
         targets = []
         for node in self._dataset["nodes"]:
-            y = node.get("y")
+            y = node.get("y")[: self.gdata["total_timestamps"]]
             targets.append(np.array(y))
 
         stacked_targets = np.stack(targets).T
