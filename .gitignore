@@ -25,4 +25,6 @@ dist
 *.svg
 *.json
 *.npy
+.coverage
 dev-stgraph/
+htmlconv/
