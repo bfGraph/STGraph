@@ -1,0 +1,38 @@
+title: STGraph
+abstract: Vertex Centric approach for building GNN/TGNNs
+authors:
+  - family-names: Puthalath Manoj
+    given-names: Nithin
+    orcid: "https://orcid.org/0009-0000-3822-8391"
+  - family-names: Mathew Cherian
+    given-names: Joel
+cff-version: 1.2.0
+date-released: "2023-12-16"
+identifiers:
+  - type: url
+    value: "https://github.com/bfGraph/STGraph"
+    description: Latest version of STGraph
+keywords:
+  - "Temporal Graph Neural Networks"
+  - "Deep Learning"
+  - "Python"
+license: MIT
+message: If you use this software, please cite it using these metadata.
+repository-code: "https://github.com/bfGraph/STGraph"
+preferred-citation:
+  title: "STGraph: A Framework for Temporal Graph Neural Networks"
+  type: conference-paper
+  authors:
+  - family-names: "Puthalath Manoj"
+    given-names: "Nithin"
+  - family-names: "Mathew Cherian"
+    given-names: "Joel"
+  - family-names: "Jude Concessao"
+    given-names: "Kevin"
+  - family-names: "Cheramgalath"
+    given-names: "Unnikrishnan"
+  collection-title: "Temporal Graph Learning Workshop @ NeurIPS 2023" # booktitle
+  collection-type: "proceedings"
+  conference:
+    name: "NeurIPS" # series
+  year: 2023
