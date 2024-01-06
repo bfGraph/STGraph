@@ -4,7 +4,14 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 
 class PedalMeDataLoader(STGraphTemporalDataset):
-    def __init__(self, verbose=False, url=None, lags=4, cutoff_time=None) -> None:
+    def __init__(
+        self,
+        verbose: bool = False,
+        url: str = None,
+        lags: int = 4,
+        cutoff_time: int = None,
+        redownload: bool = False,
+    ) -> None:
         r"""A dataset of PedalMe Bicycle deliver orders in London.
 
         This class provides functionality for loading, processing, and accessing the PedalMe
@@ -48,6 +55,8 @@ class PedalMeDataLoader(STGraphTemporalDataset):
             The number of time lags (default is 4)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -78,6 +87,8 @@ class PedalMeDataLoader(STGraphTemporalDataset):
             raise TypeError("cutoff_time must be of type int")
         if cutoff_time != None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
+        if cutoff_time != None and cutoff_time <= lags:
+            raise ValueError("cutoff_time must be greater than lags")
 
         self.name = "PedalMe"
         self._verbose = verbose
@@ -88,6 +99,9 @@ class PedalMeDataLoader(STGraphTemporalDataset):
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/pedalme.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()
