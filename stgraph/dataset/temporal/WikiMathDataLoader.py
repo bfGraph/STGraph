@@ -4,7 +4,14 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 
 class WikiMathDataLoader(STGraphTemporalDataset):
-    def __init__(self, verbose=False, url=None, lags=8, cutoff_time=None) -> None:
+    def __init__(
+        self,
+        verbose: bool = False,
+        url: str = None,
+        lags: int = 8,
+        cutoff_time: int = None,
+        redownload: bool = False,
+    ) -> None:
         r"""A dataset of vital mathematical articles sourced from Wikipedia.
 
         The graph dataset is static, with vertices representing Wikipedia pages and
@@ -54,6 +61,8 @@ class WikiMathDataLoader(STGraphTemporalDataset):
             The number of time lags (default is 8)
         cutoff_time : int, optional
             The cutoff timestamp for the temporal dataset (default is None)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -84,6 +93,8 @@ class WikiMathDataLoader(STGraphTemporalDataset):
         if cutoff_time != None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
 
+        # TODO: Add check for cutoff_time <= lags
+
         self.name = "WikiMath"
         self._verbose = verbose
         self._lags = lags
@@ -93,6 +104,9 @@ class WikiMathDataLoader(STGraphTemporalDataset):
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/wikivital_mathematics.json"
         else:
             self._url = url
+
+        if redownload and self._has_dataset_cache():
+            self._delete_cached_dataset()
 
         if self._has_dataset_cache():
             self._load_dataset()

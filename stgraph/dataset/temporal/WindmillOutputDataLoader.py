@@ -5,7 +5,13 @@ from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDatas
 
 class WindmillOutputDataLoader(STGraphTemporalDataset):
     def __init__(
-        self, verbose=False, url=None, lags=8, cutoff_time=None, size="large"
+        self,
+        verbose: bool = False,
+        url: str = None,
+        lags: int = 8,
+        cutoff_time: int = None,
+        size: str = "large",
+        redownload: bool = False,
     ) -> None:
         r"""Hourly energy output of windmills from a European country for more than 2 years.
 
@@ -74,6 +80,8 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
             The cutoff timestamp for the temporal dataset (default is None)
         size : str, optional
             The dataset size among large, medium and small (default is large)
+        redownload : bool, optional (default is False)
+            Redownload the dataset online and save to cache
 
         Attributes
         ----------
@@ -104,6 +112,8 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
         if cutoff_time != None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
 
+        # TODO: Added check for cutoff <= lags
+
         if type(size) != str:
             raise TypeError("size must be of type string")
         if size not in ["large", "medium", "small"]:
@@ -115,6 +125,7 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
+        self._size = size
 
         if not url:
             if size == "large":
