@@ -19,7 +19,6 @@ docs_old/
 docs_v2/
 __pycache__/
 .DS_Store
-*.so
 build
 dist
 *.egg-info
@@ -29,3 +28,6 @@ dist
 *.svg
 *.json
 *.npy
+.coverage
+dev-stgraph/
+htmlconv/

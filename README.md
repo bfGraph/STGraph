@@ -1,11 +1,13 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/bfGraph/Seastar/assets/64126131/dfa8aa12-a047-43d7-a938-67e1e52f081b">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/bfGraph/Seastar/assets/64126131/86b75d51-8701-47b3-88fc-fbc0f070693b">
-  <img alt="STGraph Banner" src="https://github.com/bfGraph/STGraph/assets/64126131/36a8bb80-25a9-4684-b604-7a5efbea12d4">  
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20%E2%80%93%20Dark.png?raw=true">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20New.png?raw=true">
+  <img alt="STGraph Banner" src="https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20Banner%20New.png?raw=true">  
 </picture>
 
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
+[![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://neurips.cc/virtual/2023/76335)
+[![PyPI - 1.0.0](https://img.shields.io/static/v1?label=PyPI&message=1.0.0&color=%23ffdf76&logo=Python)](https://pypi.org/project/stgraph/)
 
 <div align="center">
   <p align="center">
@@ -17,6 +19,8 @@
     <a href="https://github.com/bfGraph/STGraph/issues">Report Bug</a>
     ·
     <a href="https://github.com/bfGraph/STGraph/discussions">View Discussions</a>
+    .
+    <a href="https://openreview.net/forum?id=8PRRNv81qB">Paper</a>
   </p>
 </div>
 
@@ -25,9 +29,13 @@
 
 STGraph is a framework designed for deep-learning practitioners to write and train Graph Neural Networks (GNNs) and Temporal Graph Neural Networks (TGNNs). It is built on top of _Seastar_ and utilizes the vertex-centric approach to produce highly efficient fused GPU kernels for forward and backward passes. It achieves better usability, faster computation time and consumes less memory than state-of-the-art graph deep-learning systems like DGL, PyG and PyG-T.
 
+_NOTE: If the contents of this repository are used for research work, kindly cite the paper linked above._
+
 ## Why STGraph
 
-![STGraph GCN Formula](https://github.com/bfGraph/STGraph/blob/main/assets/STGraph%20GCN%20Formula.png?raw=true)
+![Seastar GCN Formula](https://github.com/bfGraph/STGraph/blob/main/assets/Seastar%20GCN%20Formula.png?raw=true)
+
+
 
 The primary goal of _Seastar_ is more natural GNN programming so that the users learning curve is flattened. Our key observation lies in recognizing that the equation governing a GCN layer, as shown above, takes the form of vertex-centric computation and can be implemented succinctly with only one line of code. Moreover, we can see a clear correspondence between the GNN formulas and the vertex-centric implementations. The benefit is two-fold: users can effortlessly implement GNN models, while simultaneously understanding these models by inspecting their direct implementations.
 
@@ -35,31 +43,64 @@ The _Seastar_ system outperforms state-of-the-art GNN frameworks but lacks suppo
 
 ## Getting Started
 
-### Pre-requisites
+### Installation for STGraph Package Users
 
-Install the python packages by running the following. It is recommended that you create a virtual environment before installing the packages.
+This guide is tailored for users of the STGraph package, designed for constructing GNN and TGNN models. We recommend creating a new virtual environment with Python version `3.8` and installing `stgraph` inside that dedicated environment.
 
-**Setup a new virtual environment**
-```
-conda create --name stgraph
-conda activate stgraph
-```
+**Installing STGraph from PyPI**
 
-**Install the python packages**
-```
-pip install -r requirements.txt
+```bash
+pip install stgraph
 ```
 
-STGraph requires CUDA Version `11.7` or above to run. Versions below that may or may not run, depending on any changes within CUDA.
+**Installing PyTorch**
 
-### Installation
+In addition, STGraph relies on PyTorch. Ensure it is installed in your virtual environment with the following command
 
-You can git clone STGraph into your workspace by running the following command
-
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
+
+Upon completion of the above steps, you have successfully installed STGraph. Proceed to write and train your first GNN model by referring to the provided [tutorial](examples/README.md).
+
+### Installation for STGraph Package Developers
+
+This guide is intended for those interested in developing and contributing to STGraph.
+
+**Download source files from GitHub**
+
+```bash
 git clone https://github.com/bfGraph/STGraph.git
 cd STGraph
 ```
+
+**Create a dedicated virtual environment**
+
+Inside the STGraph directory create and activate a dedicated virtual environment named `dev-stgraph` with Python version `3.8`.
+
+```bash
+python3.8 -m venv dev-stgraph
+source dev-stgraph/bin/activate
+```
+
+**Install STGraph in editable mode**
+
+Make sure to install the STGraph package in editable mode to ease your development process. 
+
+```bash
+pip install -e .[dev]
+pip list
+```
+
+**Install PyTorch**
+
+Ensure to install PyTorch as well for development
+
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+With this you have successfully installed STGraph locally to make development changes and contribute to the project. Head out to our [Pull Requests](https://github.com/bfGraph/STGraph/pulls) page and get started with your first contribution.
 
 ## Running your first STGraph Program
 
@@ -151,7 +192,7 @@ make html
 | `Dr. Unnikrishnan Cheramangalath` | Assistant Professor in CSED at Indian Institue of Technology Palakkad |
 | `Kevin Jude`                      | Ph.D. in CSED at Indian Institue of Technology Palakkad               |
 
-## Attributions
+## References
 
 | Author(s)                                                                                                                                                                         | Title                                                                                                    | Link(s)                                                                                                                          |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
