@@ -1,9 +1,75 @@
+"""A dataset of PedalMe Bicycle deliver orders in London"""
+
 import numpy as np
 
 from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDataset
 
 
 class PedalMeDataLoader(STGraphTemporalDataset):
+    r"""A dataset of PedalMe Bicycle deliver orders in London.
+
+    This class provides functionality for loading, processing, and accessing the PedalMe
+    dataset for use in deep learning tasks such as node classification.
+
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 15
+          - 225
+          - 36
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import PedalMeDataLoader
+
+        pedal = PedalMeDataLoader(verbose=True)
+        num_nodes = pedal.gdata["num_nodes"]
+        num_edges = pedal.gdata["num_edges"]
+        total_timestamps = pedal.gdata["total_timestamps"]
+
+        edge_list = pedal.get_edges()
+        edge_weights = pedal.get_edge_weights()
+        targets = pedal.get_all_targets()
+
+    Parameters
+    ----------
+
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 4)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    """
+
     def __init__(
         self,
         verbose: bool = False,
@@ -12,70 +78,6 @@ class PedalMeDataLoader(STGraphTemporalDataset):
         cutoff_time: int = None,
         redownload: bool = False,
     ) -> None:
-        r"""A dataset of PedalMe Bicycle deliver orders in London.
-
-        This class provides functionality for loading, processing, and accessing the PedalMe
-        dataset for use in deep learning tasks such as node classification.
-
-        .. list-table:: gdata
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 15
-              - 225
-              - 36
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import PedalMeDataLoader
-
-            pedal = PedalMeDataLoader(verbose=True)
-            num_nodes = pedal.gdata["num_nodes"]
-            num_edges = pedal.gdata["num_edges"]
-            total_timestamps = pedal.gdata["total_timestamps"]
-
-            edge_list = pedal.get_edges()
-            edge_weights = pedal.get_edge_weights()
-            targets = pedal.get_all_targets()
-
-        Parameters
-        ----------
-
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 4)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        """
-
         super().__init__()
 
         if type(lags) != int:

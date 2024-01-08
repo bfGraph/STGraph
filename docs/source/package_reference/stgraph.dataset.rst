@@ -1,8 +1,21 @@
 stgraph.dataset
 ###############
 
-.. currentmodule:: stgraph.dataset.CoraDataLoader
-.. automodule:: stgraph.dataset.CoraDataLoader
+.. currentmodule:: stgraph.dataset
+.. automodule:: stgraph.dataset
+
+Bases Dataset Classes
+=====================
+
+.. autosummary::
+    :toctree: ../generated/
+    :nosignatures:
+    :template: class.rst
+
+    STGraphDataset
+    STGraphStaticDataset
+    STGraphTemporalDataset
+    STGraphDynamicDataset
 
 Static Graph Datasets
 =====================
@@ -14,7 +27,7 @@ Static Graph Datasets
 
     CoraDataLoader
 
-Static Temporal Graph Datasets
+Temporal Graph Datasets
 ==============================
 
 .. autosummary::
@@ -22,7 +35,12 @@ Static Temporal Graph Datasets
     :nosignatures:
     :template: class.rst
 
-    CoraDataLoader
+    HungaryCPDataLoader
+    METRLADataLoader
+    MontevideoBusDataLoader
+    PedalMeDataLoader
+    WikiMathDataLoader
+    WindmillOutputDataLoader
 
 Dynamic Graph Datasets
 ======================
@@ -32,4 +50,4 @@ Dynamic Graph Datasets
     :nosignatures:
     :template: class.rst
 
-    CoraDataLoader
+    EnglandCovidDataLoader
