@@ -17,6 +17,12 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
     Covid dataset for use in deep learning tasks such as predicting the COVID cases
     in a region.
 
+    References
+    ----------
+
+    `PyTorch Geometric Temporal EnglandCovidDatasetLoader <https://pytorch-geometric-temporal.readthedocs.io/en/latest/_modules/torch_geometric_temporal/dataset/encovid.html#EnglandCovidDatasetLoader>`__
+
+
     Example
     -------
 
@@ -53,20 +59,8 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
 
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _lags : int
-        The number of time lags
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset for each timestamp
-    _edge_weights : list
-        List of edge weights for each timestamp
-    _all_features : list
-        Node features for each timestamp minus lags
-    _all_targets : list
-        Node target value for each timestamp minus lags
+    gdata : dict
+        The graph meta data
     """
 
     def __init__(
@@ -196,18 +190,18 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         self._edge_list = final_edges_lst
         self._edge_weights = final_edge_weights_lst
 
-    def get_edges(self):
+    def get_edges(self) -> list:
         r"""Returns the edge list"""
         return self._edge_list
 
-    def get_edge_weights(self):
+    def get_edge_weights(self) -> list:
         r"""Returns the edge weights"""
         return self._edge_weights
 
-    def get_all_features(self):
+    def get_all_features(self) -> list:
         r"""Returns the features for each timestamp"""
         return self._all_features
 
-    def get_all_targets(self):
+    def get_all_targets(self) -> list:
         r"""Returns the targets for each timestamp"""
         return self._all_targets

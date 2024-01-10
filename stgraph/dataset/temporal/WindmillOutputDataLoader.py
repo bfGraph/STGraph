@@ -11,6 +11,16 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
     This class provides functionality for loading, processing, and accessing the Windmill
     output dataset for use in deep learning such as regression tasks.
 
+    References
+    ----------
+
+    `PyTorch Geometric Temporal WindmillOutputLargeDatasetLoader <https://pytorch-geometric-temporal.readthedocs.io/en/latest/_modules/torch_geometric_temporal/dataset/windmilllarge.html#WindmillOutputLargeDatasetLoader>`__
+
+    `PyTorch Geometric Temporal WindmillOutputMediumDatasetLoader <https://pytorch-geometric-temporal.readthedocs.io/en/latest/_modules/torch_geometric_temporal/dataset/windmillmedium.html#WindmillOutputMediumDatasetLoader>`__
+
+    `PyTorch Geometric Temporal WindmillOutputSmallDatasetLoader <https://pytorch-geometric-temporal.readthedocs.io/en/latest/_modules/torch_geometric_temporal/dataset/windmillsmall.html#WindmillOutputSmallDatasetLoader>`__
+
+
     .. list-table:: gdata for Windmill Output Small
         :widths: 33 33 33
         :header-rows: 1
@@ -78,20 +88,13 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
 
     Attributes
     ----------
+
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _lags : int
-        The number of time lags
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset
-    _edge_weights : numpy.ndarray
-        Numpy array of the edge weights
-    _all_targets : numpy.ndarray
-        Numpy array of the node target value
+    gdata : dict
+        The graph meta data
+
+
     """
 
     def __init__(
@@ -217,14 +220,14 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
         # TODO:
         pass
 
-    def get_edges(self):
+    def get_edges(self) -> list:
         r"""Returns the edge list"""
         return self._edge_list
 
-    def get_edge_weights(self):
+    def get_edge_weights(self) -> np.ndarray:
         r"""Returns the edge weights"""
         return self._edge_weights
 
-    def get_all_targets(self):
+    def get_all_targets(self) -> np.ndarray:
         r"""Returns the targets for each timestamp"""
         return self._all_targets
