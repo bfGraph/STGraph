@@ -17,11 +17,14 @@ class STGraphDynamicDataset(STGraphDataset):
     def _init_graph_data(self) -> dict:
         r"""Initialize graph meta data for a dynamic dataset.
 
-        The ``num_nodes``, ``num_edges``, ``total_timestamps`` keys are set to value 0
+        The ``num_nodes``, ``num_edges``, ``total_timestamps``, ``max_num_nodes`` and ``max_num_edges``
+        keys are set to value 0
         """
         self.gdata["num_nodes"] = {}
         self.gdata["num_edges"] = {}
         self.gdata["total_timestamps"] = 0
+        self.gdata["max_num_nodes"] = 0
+        self.gdata["max_num_edges"] = 0
 
         self._lags = 0
         self._cutoff_time = None

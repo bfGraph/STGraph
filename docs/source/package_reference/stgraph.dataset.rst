@@ -4,7 +4,7 @@ stgraph.dataset
 .. currentmodule:: stgraph.dataset
 .. automodule:: stgraph.dataset
 
-Bases Dataset Classes
+Base Dataset Classes
 =====================
 
 .. autosummary::

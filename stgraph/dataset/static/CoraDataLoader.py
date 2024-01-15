@@ -60,14 +60,8 @@ class CoraDataLoader(STGraphStaticDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _edge_list : np.ndarray
-        The edge list of the graph dataset
-    _all_features : np.ndarray
-        Numpy array of the node features
-    _all_targets : np.ndarray
-        Numpy array of the node target features
+    gdata : dict
+        The graph meta data
     """
 
     def __init__(self, verbose=False, url=None, redownload=False) -> None:

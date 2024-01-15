@@ -35,9 +35,8 @@ Explore the STGraph documentation and tutorials to get started with writing and 
    tutorials/gnn
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Package Reference
-   :hidden:
    :glob:
 
    package_reference/stgraph.dataset

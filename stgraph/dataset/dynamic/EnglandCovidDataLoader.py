@@ -22,6 +22,16 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
 
     `PyTorch Geometric Temporal EnglandCovidDatasetLoader <https://pytorch-geometric-temporal.readthedocs.io/en/latest/_modules/torch_geometric_temporal/dataset/encovid.html#EnglandCovidDatasetLoader>`__
 
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - max_num_nodes
+          - max_num_edges
+          - total_timestamps
+        * - 129
+          - 2158
+          - 61
 
     Example
     -------
@@ -34,6 +44,8 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         num_nodes_dict = eng_covid.gdata["num_nodes"]
         num_edges_dict = eng_covid.gdata["num_edges"]
         total_timestamps = eng_covid.gdata["total_timestamps"]
+        max_num_nodes = eng_covid.gdata["max_num_nodes"]
+        max_num_edges = eng_covid.gdata["max_num_edges"]
 
         edge_list = eng_covid.get_edges()
         edge_weights = eng_covid.get_edge_weights()
@@ -151,6 +163,14 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             self.gdata["num_edges"][str(time)] = len(time_edge_list)
             self.gdata["num_nodes"][str(time)] = len(
                 {node for edge in time_edge_list for node in edge}
+            )
+
+            self.gdata["max_num_nodes"] = max(
+                self.gdata["max_num_nodes"], self.gdata["num_nodes"][str(time)]
+            )
+
+            self.gdata["max_num_edges"] = max(
+                self.gdata["max_num_edges"], self.gdata["num_edges"][str(time)]
             )
 
     def _presort_edge_weights(self):
