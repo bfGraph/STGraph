@@ -41,6 +41,7 @@ Explore the STGraph documentation and tutorials to get started with writing and 
 
    package_reference/stgraph.dataset
    package_reference/stgraph.compiler
+   package_reference/stgraph.graph
 
 .. toctree::
    :maxdepth: 1
