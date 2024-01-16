@@ -25,3 +25,15 @@ This step should be performed whenever changes are made to the shell script.
 
 .. currentmodule:: stgraph.graph
 .. automodule:: stgraph.graph
+
+Base Graph Class
+================
+
+.. autosummary::
+    :toctree: ../generated/
+    :nosignatures:
+    :template: class.rst
+
+    STGraphBase
+    StaticGraph
+    DynamicGraph
