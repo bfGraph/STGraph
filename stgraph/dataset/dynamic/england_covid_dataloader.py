@@ -1,9 +1,13 @@
+"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions"""
+
 import numpy as np
 
 from stgraph.dataset.dynamic.STGraphDynamicDataset import STGraphDynamicDataset
 
 
 class EnglandCovidDataLoader(STGraphDynamicDataset):
+    """Dataloader provided for Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions"""
+
     def __init__(
         self,
         verbose: bool = False,
@@ -81,6 +85,11 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         self._lags = lags
         self._cutoff_time = cutoff_time
 
+        self._all_features = None
+        self._all_targets = None
+        self._edge_list = None
+        self._edge_weights = None
+
         if not url:
             self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
         else:
@@ -111,7 +120,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         choosen by the user and the total time periods present in the
         original dataset.
         """
-        if self._cutoff_time != None:
+        if self._cutoff_time:
             self.gdata["total_timestamps"] = min(
                 self._dataset["time_periods"], self._cutoff_time
             )
@@ -172,9 +181,8 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             edge_info_list = []
             sorted_edge_weights_lst = []
 
-            for j in range(len(weights)):
-                edge_info = (src_list[j], dst_list[j], weights[j])
-                edge_info_list.append(edge_info)
+            for src, dst, weight in zip(src_list, dst_list, weights):
+                edge_info_list.append(tuple((src, dst, weight)))
 
             # since it has to be sorted according to the reverse order
             sorted_edge_info_list = sorted(

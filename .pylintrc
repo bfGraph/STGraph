@@ -1,0 +1,13 @@
+[FORMAT]
+
+# Set the maximum line length to a value that suits your project
+max-line-length = 120
+
+[MESSAGES CONTROL]
+
+# Disable specific messages by adding them to the "disable" option
+disable=
+    line-too-long,
+    too-many-instance-attributes,
+    too-many-arguments,
+    # Add more disabled messages here if needed

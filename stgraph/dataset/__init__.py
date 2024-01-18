@@ -10,4 +10,4 @@ from stgraph.dataset.temporal.PedalMeDataLoader import PedalMeDataLoader
 from stgraph.dataset.temporal.WikiMathDataLoader import WikiMathDataLoader
 from stgraph.dataset.temporal.WindmillOutputDataLoader import WindmillOutputDataLoader
 
-from stgraph.dataset.dynamic.EnglandCovidDataLoader import EnglandCovidDataLoader
+from stgraph.dataset.dynamic.england_covid_dataloader import EnglandCovidDataLoader
