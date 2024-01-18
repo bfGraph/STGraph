@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from stgraph.dataset.dynamic.STGraphDynamicDataset import STGraphDynamicDataset
+from stgraph.dataset.dynamic.stgraph_dynamic_dataset import STGraphDynamicDataset
 
 
 class EnglandCovidDataLoader(STGraphDynamicDataset):

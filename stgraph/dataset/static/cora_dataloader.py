@@ -1,4 +1,5 @@
-import random
+"""Citation network consisting of scientific publications"""
+
 
 import numpy as np
 from rich.console import Console
@@ -10,6 +11,8 @@ console = Console()
 
 
 class CoraDataLoader(STGraphStaticDataset):
+    """Dataloader provided for Citation network consisting of scientific publications"""
+
     def __init__(self, verbose=False, url=None, redownload=False) -> None:
         r"""Citation network consisting of scientific publications
 
@@ -73,6 +76,10 @@ class CoraDataLoader(STGraphStaticDataset):
         self.name = "Cora"
         self._verbose = verbose
 
+        self._edge_list = None
+        self._all_features = None
+        self._all_targets = None
+
         if not url:
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json"
         else:
@@ -103,9 +110,9 @@ class CoraDataLoader(STGraphStaticDataset):
         r"""Extract edge information from the dataset"""
         edges = np.array(self._dataset["edges"])
         edge_list = []
-        for i in range(len(edges)):
-            edge = edges[i]
-            edge_list.append((edge[0], edge[1]))
+
+        for src, dst in edges:
+            edge_list.append((src, dst))
 
         self._edge_list = edge_list
 

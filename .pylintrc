@@ -10,4 +10,6 @@ disable=
     line-too-long,
     too-many-instance-attributes,
     too-many-arguments,
+    import-error,
+    too-few-public-methods,
     # Add more disabled messages here if needed
