@@ -4,35 +4,55 @@
 # Dynamic Temporal PyG-T
 cd dynamic-temporal-tgcn/pygt
 
-echo "Running PyG-T (math, wikitalk) script for different slide sizes"
-for dataset in math wikitalk
+echo "Running PyG-T on all script for different slide sizes"
+for dataset in math wikitalk askubuntu superuser stackoverflow reddit_title reddit_body email bitcoin_otc
 do
     for slide_size in 2.0 4.0 6.0 8.0 10.0
     do
-        python3 train.py --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 20 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$i\_B20_H64_F32.txt
+        python3 train.py --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H64_F32.txt
         echo "Finished executing PyG-T $dataset script for S=$slide_size"
     done
 done
 
-echo "Running PyG-T sx-mathoverflow script for different feature sizes"
-for slide_size in 5.0
+echo "Running PyG-T (wikitalk, askubuntu, superuser, stackoverflow) script for different feature sizes"
+for dataset in wikitalk askubuntu superuser stackoverflow
 do
-    for feat_size in {50..500..50}
+    for slide_size in 5.0
     do
-        hidden_units=$((feat_size*2))
-        python3 train.py --dataset math --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 10 > ../../results/dynamic-temporal/pygt_math_Twhole_S$i\_B10_H$hidden_units\_F$feat_size.txt
-        echo "Finished executing PyG-T sx-mathoverflow for F=$feat_size"
+        for feat_size in {8..80..8}
+        do
+            hidden_units=$((feat_size*2))
+            python3 train.py --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+            echo "Finished executing PyG-T $dataset for F=$feat_size"
+        done
     done
 done
 
-echo "Running PyG-T wikitalk script for different feature sizes"
-for slide_size in 5.0
+echo "Running PyG-T (math, reddit_body, reddit_title) script for different feature sizes"
+for dataset in math reddit_body reddit_title
 do
-    for feat_size in {8..80..8}
+    for slide_size in 5.0
     do
-        hidden_units=$((feat_size*2))
-        python3 train.py --dataset wikitalk --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 10 > ../../results/dynamic-temporal/pygt_wikitalk_Twhole_S$i\_B10_H$hidden_units\_F$feat_size.txt
-        echo "Finished executing PyG-T wikitalk for F=$feat_size"
+        for feat_size in {50..500..50}
+        do
+            hidden_units=$((feat_size*2))
+            python3 train.py --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+            echo "Finished executing PyG-T $dataset for F=$feat_size"
+        done
+    done
+done
+
+echo "Running PyG-T (bitcoin_otc, email) script for different feature sizes"
+for dataset in bitcoin_otc email
+do
+    for slide_size in 5.0
+    do
+        for feat_size in {200..2000..200}
+        do
+            hidden_units=$((feat_size*2))
+            python3 train.py --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/pygt_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+            echo "Finished executing PyG-T $dataset for F=$feat_size"
+        done
     done
 done
 
@@ -41,43 +61,67 @@ cd ../..
 # Dynamic Temporal STGraph
 cd dynamic-temporal-tgcn/stgraph
 
-echo "Running STGraph (math, wikitalk) script for different slide sizes"
-for dataset in math wikitalk
+echo "Running STGraph on all script for different slide sizes"
+
+for dataset in math wikitalk askubuntu superuser stackoverflow reddit_title reddit_body email bitcoin_otc
 do
-    for type in naive gpma pcsr
+    for type in naive gpma
     do
         for slide_size in 2.0 4.0 6.0 8.0 10.0
         do
-            python3 train.py --type $type --dataset $dataset --num-epochs 10 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 20 > ../../results/dynamic-temporal/stgraph_$type\_$dataset\_Twhole_S$i\_B20_H64_F32.txt
-            echo "Finished executing STGraph $dataset script for S=$slide_size and Type=$type"
+            python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden 64 --feat-size 32 --backprop-every 5 > ../../results/dynamic-temporal/stgraph_$type\_$dataset\_Twhole_S$slide_size\_B5_H64_F32.txt
+            echo "Finished executing STGraph $dataset for type $type script for S=$slide_size"
         done
     done
 done
 
-echo "Running STGraph sx-mathoverflow script for different feature sizes"
-for type in naive gpma pcsr
+echo "Running STGraph (wikitalk, askubuntu, superuser, stackoverflow) script for different feature sizes"
+for dataset in wikitalk askubuntu superuser stackoverflow
 do
-    for slide_size in 5.0
+    for type in naive gpma
     do
-        for feat_size in {50..500..50}
+        for slide_size in 5.0
         do
-            hidden_units=$((feat_size*2))
-            python3 train.py --type $type --dataset math --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 10 > ../../results/dynamic-temporal/stgraph_$type\_math_Twhole_S$i\_B10_H$hidden_units\_F$feat_size.txt
-            echo "Finished executing STGraph sx-mathoverflow script for F=$feat_size"
+            for feat_size in {8..80..8}
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/stgraph_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+                echo "Finished executing STGraph $dataset for type $type for F=$feat_size"
+            done
         done
     done
 done
 
-echo "Running STGraph wikitalk script for different feature sizes"
-for type in naive gpma pcsr
+echo "Running STGraph (math, reddit_body, reddit_title) script for different feature sizes"
+for dataset in math reddit_body reddit_title
 do
-    for slide_size in 5.0
+    for type in naive gpma
     do
-        for feat_size in {8..80..8}
+        for slide_size in 5.0
         do
-            hidden_units=$((feat_size*2))
-            python3 train.py --type $type --dataset wikitalk --num-epochs 10 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 10 > ../../results/dynamic-temporal/stgraph_$type\_wikitalk_Twhole_S$i\_B10_H$hidden_units\_F$feat_size.txt
-            echo "Finished executing STGraph wikitalk script for F=$feat_size"
+            for feat_size in {50..500..50}
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/stgraph_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+                echo "Finished executing PyG-T $dataset for F=$feat_size"
+            done
+        done
+    done
+done
+
+echo "Running STGraph (bitcoin_otc, email) script for different feature sizes"
+for dataset in bitcoin_otc email
+do
+    for type in naive gpma
+    do
+        for slide_size in 5.0
+        do
+            for feat_size in {200..2000..200}
+            do
+                hidden_units=$((feat_size*2))
+                python3 train.py --type $type --dataset $dataset --num-epochs 100 --slide-size $slide_size --num-hidden $hidden_units --feat-size $feat_size --backprop-every 5 > ../../results/dynamic-temporal/stgraph_$type\_$dataset\_Twhole_S$slide_size\_B5_H$hidden_units\_F$feat_size.txt
+                echo "Finished executing PyG-T $dataset for F=$feat_size"
+            done
         done
     done
 done
