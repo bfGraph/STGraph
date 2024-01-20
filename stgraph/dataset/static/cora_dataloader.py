@@ -1,28 +1,36 @@
-"""Citation network consisting of scientific publications"""
+"""Citation network consisting of scientific publications."""
 
+
+from typing import Optional
 
 import numpy as np
 from rich.console import Console
 
-from stgraph.dataset.static.STGraphStaticDataset import STGraphStaticDataset
-
+from stgraph.dataset.static.stgraph_static_dataset import STGraphStaticDataset
 
 console = Console()
 
 
 class CoraDataLoader(STGraphStaticDataset):
-    """Dataloader provided for Citation network consisting of scientific publications"""
+    """Citation network consisting of scientific publications."""
 
-    def __init__(self, verbose=False, url=None, redownload=False) -> None:
-        r"""Citation network consisting of scientific publications
+    def __init__(
+        self: "CoraDataLoader",
+        verbose: bool = False,
+        url: Optional[str] = None,
+        redownload: bool = False,
+    ) -> None:
+        r"""Citation network consisting of scientific publications.
 
-        The Cora dataset consists of 2708 scientific publications classified into one of seven classes.
-        The citation network consists of 5429 links. Each publication in the dataset is described by a 0/1-valued
-        word vector indicating the absence/presence of the corresponding word from the dictionary.
+        The Cora dataset consists of 2708 scientific publications classified into
+        one of seven classes. The citation network consists of 5429 links. Each
+        publication in the dataset is described by a 0/1-valued word vector
+        indicating the absence/presence of the corresponding word from the dictionary.
         The dictionary consists of 1433 unique words.
 
-        This class provides functionality for loading, processing, and accessing the Cora dataset
-        for use in deep learning tasks such as graph-based node classification.
+        This class provides functionality for loading, processing, and accessing the
+        Cora dataset for use in deep learning tasks such as graph-based
+        node classification.
 
         .. list-table:: gdata
             :widths: 25 25 25 25
@@ -50,7 +58,6 @@ class CoraDataLoader(STGraphStaticDataset):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Flag to control whether to display verbose info (default is False)
         url : str, optional
@@ -96,7 +103,7 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self) -> None:
+    def _process_dataset(self: "CoraDataLoader") -> None:
         r"""Process the Cora dataset.
 
         Calls private methods to extract edge list, node features, target classes
@@ -106,8 +113,8 @@ class CoraDataLoader(STGraphStaticDataset):
         self._set_targets_and_features()
         self._set_graph_attributes()
 
-    def _set_edge_info(self) -> None:
-        r"""Extract edge information from the dataset"""
+    def _set_edge_info(self: "CoraDataLoader") -> None:
+        r"""Extract edge information from the dataset."""
         edges = np.array(self._dataset["edges"])
         edge_list = []
 
@@ -116,13 +123,13 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self._edge_list = edge_list
 
-    def _set_targets_and_features(self):
+    def _set_targets_and_features(self: "CoraDataLoader") -> None:
         r"""Extract targets and features from the dataset."""
         self._all_features = np.array(self._dataset["features"])
         self._all_targets = np.array(self._dataset["labels"]).T
 
-    def _set_graph_attributes(self):
-        r"""Calculates and stores graph meta data inside ``gdata``"""
+    def _set_graph_attributes(self: "CoraDataLoader") -> None:
+        r"""Calculate and stores graph meta data inside ``gdata``."""
         node_set = set()
         for edge in self._edge_list:
             node_set.add(edge[0])
@@ -133,14 +140,14 @@ class CoraDataLoader(STGraphStaticDataset):
         self.gdata["num_feats"] = len(self._all_features[0])
         self.gdata["num_classes"] = len(set(self._all_targets))
 
-    def get_edges(self) -> list:
+    def get_edges(self: "CoraDataLoader") -> list:
         r"""Get the edge list."""
         return self._edge_list
 
-    def get_all_features(self) -> np.ndarray:
+    def get_all_features(self: "CoraDataLoader") -> np.ndarray:
         r"""Get all features."""
         return self._all_features
 
-    def get_all_targets(self) -> np.ndarray:
+    def get_all_targets(self: "CoraDataLoader") -> np.ndarray:
         r"""Get all targets."""
         return self._all_targets

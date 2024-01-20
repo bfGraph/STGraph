@@ -1,9 +1,13 @@
+"""Temporal dataset for County level chicken pox cases in Hungary"""
+
 import numpy as np
 
 from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDataset
 
 
 class HungaryCPDataLoader(STGraphTemporalDataset):
+    """Temporal dataset provided for County level chicken pox cases in Hungary"""
+
     def __init__(
         self,
         verbose: bool = False,
@@ -78,20 +82,23 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
 
         super().__init__()
 
-        if type(lags) != int:
+        if not isinstance(lags, int):
             raise TypeError("lags must be of type int")
         if lags < 0:
             raise ValueError("lags must be a positive integer")
 
-        if cutoff_time != None and type(cutoff_time) != int:
+        if cutoff_time is not None and not isinstance(cutoff_time, int):
             raise TypeError("cutoff_time must be of type int")
-        if cutoff_time != None and cutoff_time < 0:
+        if cutoff_time is not None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "Hungary_Chickenpox"
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
+        self._edge_list = None
+        self._edge_weights = None
+        self._all_targets = None
 
         if not url:
             self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/HungaryCP.json"
@@ -125,7 +132,7 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         choosen by the user and the total time periods present in the
         original dataset.
         """
-        if self._cutoff_time != None:
+        if self._cutoff_time is not None:
             self.gdata["total_timestamps"] = min(
                 len(self._dataset["FX"]), self._cutoff_time
             )
