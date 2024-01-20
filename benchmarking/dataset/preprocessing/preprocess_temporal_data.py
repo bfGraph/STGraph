@@ -130,8 +130,10 @@ def main(args):
 	lines = file1.readlines()
 	edges, num_nodes = parse_txt_lines(lines, args.cutoff_time)
 
+	# Divide by 200 (2*100) because we need the change percentage to be split across additions and deletions
 	add_delta = int(args.base * (args.percent_change/200))
 	delete_delta = int(args.base * (args.percent_change/200))
+
 	graph_json = preprocess_graph(edges, num_nodes, args.base, add_delta, delete_delta)
 	out_file = open(f"{args.dataset}-data-{str(args.percent_change)}.json", "w")
 	json.dump(graph_json, out_file)
