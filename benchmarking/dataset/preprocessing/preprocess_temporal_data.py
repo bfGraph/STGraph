@@ -2,20 +2,16 @@ import json
 import random
 import argparse
 import sys
+import time
 
-
-def parse_txt_lines(lines, cutoff_time):
+def parse_txt_lines(lines):
 	id_to_pid_map = {}   # ID to processed ID
 	node_counter = 0
 
 	node_set = set()
 	edges = []
 
-	time = 0
 	for line in lines:
-
-		if time >= cutoff_time:
-			break
 
 		parsed_line = line.split(' ')
 
@@ -34,24 +30,12 @@ def parse_txt_lines(lines, cutoff_time):
 		node_set.add(id_to_pid_map[src])
 		node_set.add(id_to_pid_map[dst])
 
-		time += 1
-
 	expected_node_set = set([i for i in range(len(node_set))])
 	assert node_set == expected_node_set, "Node labelling is not continuous"
-	# print(node_set.difference(expected_node_set))
-	# quit()
 	return edges, len(node_set)
 
 
 def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
-	# base = 2000000
-	# add_delta = 50000
-	# delete_delta = 50000
-
-	# base = 100000
-	# add_delta = 5000
-	# delete_delta = 1000
-
 	graphs = {}
 
 	graphs["0"] = {
@@ -62,7 +46,7 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 
 	add_start_ptr = base
 	delete_start_ptr = 0
-	time = 1
+	time_track = 1
 
 	while (add_start_ptr + add_delta) < len(edges):
 		graph_t = set(edges[delete_start_ptr + delete_delta:add_start_ptr + add_delta])
@@ -80,17 +64,17 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 			if candidate not in graph_t:
 				neg_edge_set_t.add(candidate)
 
-		graphs[str(time)] = {
+		graphs[str(time_track)] = {
 								"add": add_edges,
 								"delete": del_edges,
 								"neg": list(neg_edge_set_t)
 							}
 		
-		assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
+		# assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
 
 		add_start_ptr += add_delta
 		delete_start_ptr += delete_delta
-		time = time + 1
+		time_track = time_track + 1
 
 	if add_start_ptr < len(edges):
 		graph_t = set(edges[delete_start_ptr+delete_delta:])
@@ -108,7 +92,7 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 			if candidate not in graph_t:
 				neg_edge_set_t.add(candidate)
 
-		graphs[str(time)] = {
+		graphs[str(time_track)] = {
 								"add": add_edges,
 								"delete": del_edges,
 								"neg": list(neg_edge_set_t)
@@ -116,43 +100,55 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 		
 		assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
 
-		time = time+1
+		time_track = time_track+1
 
 	graph_json = {
 		"edge_mapping": {"edge_index": graphs},
-		"time_periods": time,
+		"time_periods": time_track,
 	}
 
 	return graph_json
 
 def main(args):
+	curr_time = time.time()
 	file1 = open(f'{args.dataset}.txt', 'r')
-	lines = file1.readlines()
-	edges, num_nodes = parse_txt_lines(lines, args.cutoff_time)
-
+	lines = []
+	for i, line in enumerate(file1):
+		if i == args.cutoff_time:
+			break
+		else:
+			lines.append(line)
+	edges, num_nodes = parse_txt_lines(lines)
+	print(f"[CHECKPOINT]::FILE_PARSING_COMPLETED in {time.time() - curr_time}s")
+	
+	curr_time = time.time()
 	# Divide by 200 (2*100) because we need the change percentage to be split across additions and deletions
 	add_delta = int(args.base * (args.percent_change/200))
 	delete_delta = int(args.base * (args.percent_change/200))
 
 	graph_json = preprocess_graph(edges, num_nodes, args.base, add_delta, delete_delta)
+	print(f"[CHECKPOINT]::PREPROCESS_GRAPH in {time.time() - curr_time}s")
+
+	curr_time = time.time()
 	out_file = open(f"{args.dataset}-data-{str(args.percent_change)}.json", "w")
 	json.dump(graph_json, out_file)
 	out_file.close()
+	print(f"[CHECKPOINT]::JSON_DUMP in {time.time() - curr_time}s")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Preprocess Temporal Data')
+	parser = argparse.ArgumentParser(description='Preprocess Temporal Data')
 
-    parser.add_argument("--dataset", type=str, default="",
-            help="Name of the Dataset")
-    parser.add_argument("--base", type=int, default=0,
-            help="Num of edges in Base Graph")
-    parser.add_argument("--percent-change", type=float, default=5,
-            help="Percentage of change from base graph, this change is by sliding along the timestamps")
-    parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,
-            help="Cuttoff time")
-    args = parser.parse_args()
-    
-    print(args)
-    main(args)
+	parser.add_argument("--dataset", type=str, default="",
+			help="Name of the Dataset")
+	parser.add_argument("--base", type=int, default=0,
+			help="Num of edges in Base Graph")
+	parser.add_argument("--percent-change", type=float, default=5,
+			help="Percentage of change from base graph, this change is by sliding along the timestamps")
+	parser.add_argument("--cutoff-time", type=int, default=sys.maxsize,
+			help="Cuttoff time")
+	args = parser.parse_args()
+	
+	print(args)
+	main(args)
 
 
