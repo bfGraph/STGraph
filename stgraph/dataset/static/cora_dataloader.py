@@ -1,7 +1,7 @@
 """Citation network consisting of scientific publications."""
 
 
-from typing import Optional
+from __future__ import annotations
 
 import numpy as np
 from rich.console import Console
@@ -15,9 +15,9 @@ class CoraDataLoader(STGraphStaticDataset):
     """Citation network consisting of scientific publications."""
 
     def __init__(
-        self: "CoraDataLoader",
+        self: CoraDataLoader,
         verbose: bool = False,
-        url: Optional[str] = None,
+        url: str | None = None,
         redownload: bool = False,
     ) -> None:
         r"""Citation network consisting of scientific publications.
@@ -82,7 +82,6 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self.name = "Cora"
         self._verbose = verbose
-
         self._edge_list = None
         self._all_features = None
         self._all_targets = None
@@ -103,7 +102,7 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self: "CoraDataLoader") -> None:
+    def _process_dataset(self: CoraDataLoader) -> None:
         r"""Process the Cora dataset.
 
         Calls private methods to extract edge list, node features, target classes
@@ -113,7 +112,7 @@ class CoraDataLoader(STGraphStaticDataset):
         self._set_targets_and_features()
         self._set_graph_attributes()
 
-    def _set_edge_info(self: "CoraDataLoader") -> None:
+    def _set_edge_info(self: CoraDataLoader) -> None:
         r"""Extract edge information from the dataset."""
         edges = np.array(self._dataset["edges"])
         edge_list = []
@@ -123,12 +122,12 @@ class CoraDataLoader(STGraphStaticDataset):
 
         self._edge_list = edge_list
 
-    def _set_targets_and_features(self: "CoraDataLoader") -> None:
+    def _set_targets_and_features(self: CoraDataLoader) -> None:
         r"""Extract targets and features from the dataset."""
         self._all_features = np.array(self._dataset["features"])
         self._all_targets = np.array(self._dataset["labels"]).T
 
-    def _set_graph_attributes(self: "CoraDataLoader") -> None:
+    def _set_graph_attributes(self: CoraDataLoader) -> None:
         r"""Calculate and stores graph meta data inside ``gdata``."""
         node_set = set()
         for edge in self._edge_list:
@@ -140,14 +139,14 @@ class CoraDataLoader(STGraphStaticDataset):
         self.gdata["num_feats"] = len(self._all_features[0])
         self.gdata["num_classes"] = len(set(self._all_targets))
 
-    def get_edges(self: "CoraDataLoader") -> list:
+    def get_edges(self: CoraDataLoader) -> list:
         r"""Get the edge list."""
         return self._edge_list
 
-    def get_all_features(self: "CoraDataLoader") -> np.ndarray:
+    def get_all_features(self: CoraDataLoader) -> np.ndarray:
         r"""Get all features."""
         return self._all_features
 
-    def get_all_targets(self: "CoraDataLoader") -> np.ndarray:
+    def get_all_targets(self: CoraDataLoader) -> np.ndarray:
         r"""Get all targets."""
         return self._all_targets
