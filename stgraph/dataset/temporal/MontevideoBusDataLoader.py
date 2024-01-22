@@ -1,6 +1,6 @@
 import numpy as np
 
-from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDataset
+from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDataset
 
 
 class MontevideoBusDataLoader(STGraphTemporalDataset):

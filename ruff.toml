@@ -1,4 +1,4 @@
 [lint]
 select = ["ALL"]
 
-ignore = ["FBT002", "FBT001", "PLR0913"]
+ignore = ["FBT002", "FBT001", "PLR0913", "TRY003", "EM101"]

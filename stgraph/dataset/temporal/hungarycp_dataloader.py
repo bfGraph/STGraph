@@ -1,30 +1,33 @@
-"""Temporal dataset for County level chicken pox cases in Hungary"""
+"""Temporal dataset for County level chicken pox cases in Hungary."""
+
+from __future__ import annotations
 
 import numpy as np
 
-from stgraph.dataset.temporal.STGraphTemporalDataset import STGraphTemporalDataset
+from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDataset
 
 
 class HungaryCPDataLoader(STGraphTemporalDataset):
-    """Temporal dataset provided for County level chicken pox cases in Hungary"""
+    """Temporal dataset provided for County level chicken pox cases in Hungary."""
 
     def __init__(
-        self,
+        self: HungaryCPDataLoader,
         verbose: bool = False,
-        url: str = None,
+        url: str | None = None,
         lags: int = 4,
-        cutoff_time: int = None,
+        cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""County level chicken pox cases in Hungary
+        r"""County level chicken pox cases in Hungary.
 
         This dataset comprises information on weekly occurrences of chickenpox
         in Hungary from 2005 to 2015. The graph structure is static with nodes
         representing the counties and edges are neighbourhoods between them.
         Vertex features are lagged weekly counts of the chickenpox cases.
 
-        This class provides functionality for loading, processing, and accessing the Hungary
-        Chickenpox dataset for use in deep learning tasks such as County level case count prediction.
+        This class provides functionality for loading, processing, and accessing
+        the Hungary Chickenpox dataset for use in deep learning tasks such as
+        County level case count prediction.
 
         .. list-table:: gdata
             :widths: 33 33 33
@@ -50,7 +53,6 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Flag to control whether to display verbose info (default is False)
         url : str, optional
@@ -79,7 +81,6 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         _all_targets : numpy.ndarray
             Numpy array of the node target value
         """
-
         super().__init__()
 
         if not isinstance(lags, int):
@@ -116,7 +117,7 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self) -> None:
+    def _process_dataset(self: HungaryCPDataLoader) -> None:
         self._set_total_timestamps()
         self._set_num_nodes()
         self._set_num_edges()
@@ -124,8 +125,8 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         self._set_edge_weights()
         self._set_targets_and_features()
 
-    def _set_total_timestamps(self) -> None:
-        r"""Sets the total timestamps present in the dataset
+    def _set_total_timestamps(self: HungaryCPDataLoader) -> None:
+        r"""Set the total timestamps present in the dataset.
 
         It sets the total timestamps present in the dataset into the
         gdata attribute dictionary. It is the minimum of the cutoff time
@@ -134,13 +135,14 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         """
         if self._cutoff_time is not None:
             self.gdata["total_timestamps"] = min(
-                len(self._dataset["FX"]), self._cutoff_time
+                len(self._dataset["FX"]),
+                self._cutoff_time,
             )
         else:
             self.gdata["total_timestamps"] = len(self._dataset["FX"])
 
-    def _set_num_nodes(self):
-        r"""Sets the total number of nodes present in the dataset"""
+    def _set_num_nodes(self: HungaryCPDataLoader) -> None:
+        r"""Set the total number of nodes present in the dataset."""
         node_set = set()
         max_node_id = 0
         for edge in self._dataset["edges"]:
@@ -148,23 +150,25 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
             node_set.add(edge[1])
             max_node_id = max(max_node_id, edge[0], edge[1])
 
-        assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
+        if max_node_id == len(node_set) - 1:
+            raise RuntimeError("Node ID labelling is not continuous")
+
         self.gdata["num_nodes"] = len(node_set)
 
-    def _set_num_edges(self):
-        r"""Sets the total number of edges present in the dataset"""
+    def _set_num_edges(self: HungaryCPDataLoader) -> None:
+        r"""Set the total number of edges present in the dataset."""
         self.gdata["num_edges"] = len(self._dataset["edges"])
 
-    def _set_edges(self):
-        r"""Sets the edge list of the dataset"""
+    def _set_edges(self: HungaryCPDataLoader) -> None:
+        r"""Set the edge list of the dataset."""
         self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
 
-    def _set_edge_weights(self):
-        r"""Sets the edge weights of the dataset"""
+    def _set_edge_weights(self: HungaryCPDataLoader) -> None:
+        r"""Set the edge weights of the dataset."""
         self._edge_weights = np.ones(self.gdata["num_edges"])
 
-    def _set_targets_and_features(self):
-        r"""Calculates and sets the target and feature attributes"""
+    def _set_targets_and_features(self: HungaryCPDataLoader) -> None:
+        r"""Calculate and set the target and feature attributes."""
         stacked_target = np.array(self._dataset["FX"])
 
         self._all_targets = [
@@ -172,14 +176,14 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
             for i in range(self.gdata["total_timestamps"] - self._lags)
         ]
 
-    def get_edges(self):
-        r"""Returns the edge list"""
+    def get_edges(self: HungaryCPDataLoader) -> list:
+        r"""Return the edge list."""
         return self._edge_list
 
-    def get_edge_weights(self):
-        r"""Returns the edge weights"""
+    def get_edge_weights(self: HungaryCPDataLoader) -> np.ndarray:
+        r"""Return the edge weights."""
         return self._edge_weights
 
-    def get_all_targets(self):
-        r"""Returns the targets for each timestamp"""
+    def get_all_targets(self: HungaryCPDataLoader) -> np.ndarray:
+        r"""Return the targets for each timestamp."""
         return self._all_targets
