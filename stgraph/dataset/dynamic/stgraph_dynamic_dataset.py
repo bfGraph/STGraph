@@ -1,20 +1,20 @@
-"""Base class for all STGraph dynamic graph datasets"""
+"""Base class for all STGraph dynamic graph datasets."""
+
+from __future__ import annotations
 
 from stgraph.dataset.STGraphDataset import STGraphDataset
 
 
 class STGraphDynamicDataset(STGraphDataset):
-    r"""Base class for dynamic graph datasets
+    r"""Base class for dynamic graph datasets."""
 
-    This class is a subclass of ``STGraphDataset`` and provides the base structure for
-    handling dynamic graph datasets."""
-
-    def __init__(self) -> None:
+    def __init__(self: STGraphDynamicDataset) -> None:
+        r"""Provide the base structure for handling dynamic graph datasets."""
         super().__init__()
 
         self._init_graph_data()
 
-    def _init_graph_data(self) -> dict:
+    def _init_graph_data(self: STGraphDynamicDataset) -> dict:
         r"""Initialize graph meta data for a dynamic dataset.
 
         The ``num_nodes``, ``num_edges``, ``total_timestamps`` keys are set to value 0

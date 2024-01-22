@@ -1,4 +1,4 @@
-"""Dataset loader provided by STGraph"""
+"""Dataset loader provided by STGraph."""
 
 from stgraph.dataset.static.cora_dataloader import CoraDataLoader
 
