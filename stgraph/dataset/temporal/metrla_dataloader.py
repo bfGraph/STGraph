@@ -1,32 +1,35 @@
-"""Temporal dataset for traffic forecasting dataset based on Los Angeles Metropolitan traffic conditions"""
+"""Temporal dataset for traffic forecasting based on Los Angeles city."""
 
-import torch
+from __future__ import annotations
+
 import numpy as np
+import torch
 
 from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDataset
 
 
 class METRLADataLoader(STGraphTemporalDataset):
-    """Temporal dataset for traffic forecasting dataset based on Los Angeles Metropolitan traffic conditions"""
+    """Temporal dataset for traffic forecasting based on the Los Angeles city."""
 
     def __init__(
-        self,
+        self: METRLADataLoader,
         verbose: bool = True,
-        url: str = None,
+        url: str | None = None,
         num_timesteps_in: int = 12,
         num_timesteps_out: int = 12,
-        cutoff_time: int = None,
+        cutoff_time: int | None = None,
         redownload: bool = False,
-    ):
-        r"""A traffic forecasting dataset based on Los Angeles Metropolitan traffic conditions.
+    ) -> None:
+        r"""Traffic forecasting dataset based on the Los Angeles city..
 
         A dataset for predicting traffic patterns in the Los Angeles Metropolitan area,
-        comprising traffic data obtained from 207 loop detectors on highways in Los Angeles County.
-        The dataset includes aggregated 5-minute interval readings spanning a four-month
-        period from March 2012 to June 2012.
+        comprising traffic data obtained from 207 loop detectors on highways in Los
+        Angeles County. The dataset includes aggregated 5-minute interval readings
+        spanning a four-month period from March 2012 to June 2012.
 
-        This class provides functionality for loading, processing, and accessing the METRLA
-        dataset for use in deep learning tasks such as traffic forecasting.
+        This class provides functionality for loading, processing, and accessing
+        the METRLA dataset for use in deep learning tasks such as traffic
+        forecasting.
 
         .. list-table:: gdata
             :widths: 33 33 33
@@ -58,7 +61,6 @@ class METRLADataLoader(STGraphTemporalDataset):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Flag to control whether to display verbose info (default is False)
         url : str, optional
@@ -93,7 +95,6 @@ class METRLADataLoader(STGraphTemporalDataset):
         _all_targets : numpy.ndarray
             Numpy array of the node target value
         """
-
         super().__init__()
 
         if not isinstance(num_timesteps_in, int):
@@ -137,7 +138,7 @@ class METRLADataLoader(STGraphTemporalDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self) -> None:
+    def _process_dataset(self: METRLADataLoader) -> None:
         self._set_total_timestamps()
         self._set_num_nodes()
         self._set_num_edges()
@@ -145,8 +146,8 @@ class METRLADataLoader(STGraphTemporalDataset):
         self._set_edge_weights()
         self._set_targets_and_features()
 
-    def _set_total_timestamps(self) -> None:
-        r"""Sets the total timestamps present in the dataset
+    def _set_total_timestamps(self: METRLADataLoader) -> None:
+        r"""Set the total timestamps present in the dataset.
 
         It sets the total timestamps present in the dataset into the
         gdata attribute dictionary. It is the minimum of the cutoff time
@@ -155,13 +156,14 @@ class METRLADataLoader(STGraphTemporalDataset):
         """
         if self._cutoff_time is not None:
             self.gdata["total_timestamps"] = min(
-                self._dataset["time_periods"], self._cutoff_time
+                self._dataset["time_periods"],
+                self._cutoff_time,
             )
         else:
             self.gdata["total_timestamps"] = self._dataset["time_periods"]
 
-    def _set_num_nodes(self):
-        r"""Sets the total number of nodes present in the dataset"""
+    def _set_num_nodes(self: METRLADataLoader) -> None:
+        r"""Set the total number of nodes present in the dataset."""
         node_set = set()
         max_node_id = 0
         for edge in self._dataset["edges"]:
@@ -169,19 +171,21 @@ class METRLADataLoader(STGraphTemporalDataset):
             node_set.add(edge[1])
             max_node_id = max(max_node_id, edge[0], edge[1])
 
-        assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
+        if max_node_id == len(node_set) - 1:
+            raise RuntimeError("Node ID labelling is not continuous")
+
         self.gdata["num_nodes"] = len(node_set)
 
-    def _set_num_edges(self):
-        r"""Sets the total number of edges present in the dataset"""
+    def _set_num_edges(self: METRLADataLoader) -> None:
+        r"""Set the total number of edges present in the dataset."""
         self.gdata["num_edges"] = len(self._dataset["edges"])
 
-    def _set_edges(self):
-        r"""Sets the edge list of the dataset"""
+    def _set_edges(self: METRLADataLoader) -> None:
+        r"""Set the edge list of the dataset."""
         self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
 
-    def _set_edge_weights(self):
-        r"""Sets the edge weights of the dataset"""
+    def _set_edge_weights(self: METRLADataLoader) -> None:
+        r"""Set the edge weights of the dataset."""
         edges = self._dataset["edges"]
         edge_weights = self._dataset["weights"]
         comb_edge_list = [
@@ -190,12 +194,12 @@ class METRLADataLoader(STGraphTemporalDataset):
         comb_edge_list.sort(key=lambda x: (x[1], x[0]))
         self._edge_weights = np.array([edge_det[2] for edge_det in comb_edge_list])
 
-    def _set_targets_and_features(self):
-        r"""Calculates and sets the target and feature attributes"""
-        x = []
-
-        for timestamp in range(self.gdata["total_timestamps"]):
-            x.append(self._dataset[str(timestamp)])
+    def _set_targets_and_features(self: METRLADataLoader) -> None:
+        r"""Calculate and set the target and feature attributes."""
+        x = [
+            self._dataset[str(timestamp)]
+            for timestamp in range(self.gdata["total_timestamps"])
+        ]
 
         x = np.array(x).transpose(1, 2, 0).astype(np.float32)
         # x = x.transpose((1, 2, 0))
@@ -212,7 +216,7 @@ class METRLADataLoader(STGraphTemporalDataset):
         indices = [
             (i, i + (self._num_timesteps_in + self._num_timesteps_out))
             for i in range(
-                x.shape[2] - (self._num_timesteps_in + self._num_timesteps_out) + 1
+                x.shape[2] - (self._num_timesteps_in + self._num_timesteps_out) + 1,
             )
         ]
 
@@ -225,18 +229,18 @@ class METRLADataLoader(STGraphTemporalDataset):
         self._all_features = np.array(features)
         self._all_targets = np.array(target)
 
-    def get_edges(self):
-        r"""Returns the edge list"""
+    def get_edges(self: METRLADataLoader) -> list:
+        r"""Return the edge list."""
         return self._edge_list
 
-    def get_edge_weights(self):
-        r"""Returns the edge weights"""
+    def get_edge_weights(self: METRLADataLoader) -> np.ndarray:
+        r"""Return the edge weights."""
         return self._edge_weights
 
-    def get_all_targets(self):
-        r"""Returns the targets for each timestamp"""
+    def get_all_targets(self: METRLADataLoader) -> np.ndarray:
+        r"""Return the targets for each timestamp."""
         return self._all_targets
 
-    def get_all_features(self):
-        r"""Returns the features for each timestamp"""
+    def get_all_features(self: METRLADataLoader) -> np.ndarray:
+        r"""Return the features for each timestamp."""
         return self._all_features
