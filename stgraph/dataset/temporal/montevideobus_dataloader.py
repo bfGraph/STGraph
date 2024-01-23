@@ -1,18 +1,25 @@
+"""Temporal dataset of inflow passenger at bus stop level from Montevideo city."""
+
+from __future__ import annotations
+
+import time
 import numpy as np
 
 from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDataset
 
 
 class MontevideoBusDataLoader(STGraphTemporalDataset):
+    r"""Temporal dataset of inflow passenger at bus stop level from Montevideo city."""
+
     def __init__(
-        self,
+        self: MontevideoBusDataLoader,
         verbose: bool = False,
-        url: str = None,
+        url: str | None = None,
         lags: int = 4,
-        cutoff_time: int = None,
+        cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""A dataset of inflow passenger at bus stop level from Montevideo city.
+        r"""Temporal dataset of inflow passenger at bus stop level from Montevideo city.
 
         This dataset compiles hourly passenger inflow data for 11 key bus lines
         in Montevideo, Uruguay, during October 2020. Focused on routes to the city
@@ -22,7 +29,8 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         Metropolitan Transportation System (STM).
 
         This class provides functionality for loading, processing, and accessing the
-        Montevideo Bus dataset for use in deep learning tasks such as passenger inflow prediction.
+        Montevideo Bus dataset for use in deep learning tasks such as
+        passenger inflow prediction.
 
         .. list-table:: gdata
             :widths: 33 33 33
@@ -54,7 +62,6 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Flag to control whether to display verbose info (default is False)
         url : str, optional
@@ -85,19 +92,18 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         _all_features : numpy.ndarray
             Numpy array of the node feature value
         """
-
         super().__init__()
 
-        if type(lags) != int:
+        if not isinstance(lags, int):
             raise TypeError("lags must be of type int")
         if lags < 0:
             raise ValueError("lags must be a positive integer")
 
-        if cutoff_time != None and type(cutoff_time) != int:
+        if cutoff_time is not None and not isinstance(cutoff_time, int):
             raise TypeError("cutoff_time must be of type int")
-        if cutoff_time != None and cutoff_time < 0:
+        if cutoff_time is not None and cutoff_time < 0:
             raise ValueError("cutoff_time must be a positive integer")
-        if cutoff_time != None and cutoff_time <= lags:
+        if cutoff_time is not None and cutoff_time <= lags:
             raise ValueError("cutoff_time must be greater than lags")
 
         self.name = "Montevideo_Bus"
@@ -121,7 +127,7 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self) -> None:
+    def _process_dataset(self: MontevideoBusDataLoader) -> None:
         self._set_total_timestamps()
         self._set_num_nodes()
         self._set_num_edges()
@@ -130,23 +136,24 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         self._set_features()
         self._set_targets()
 
-    def _set_total_timestamps(self) -> None:
-        r"""Sets the total timestamps present in the dataset
+    def _set_total_timestamps(self: MontevideoBusDataLoader) -> None:
+        r"""Set the total timestamps present in the dataset.
 
         It sets the total timestamps present in the dataset into the
         gdata attribute dictionary. It is the minimum of the cutoff time
         choosen by the user and the total time periods present in the
         original dataset.
         """
-        if self._cutoff_time != None:
+        if self._cutoff_time is not None:
             self.gdata["total_timestamps"] = min(
-                len(self._dataset["nodes"][0]["y"]), self._cutoff_time
+                len(self._dataset["nodes"][0]["y"]),
+                self._cutoff_time,
             )
         else:
             self.gdata["total_timestamps"] = len(self._dataset["nodes"][0]["y"])
 
-    def _set_num_nodes(self):
-        r"""Sets the total number of nodes present in the dataset"""
+    def _set_num_nodes(self: MontevideoBusDataLoader) -> None:
+        r"""Set the total number of nodes present in the dataset."""
         node_set = set()
         max_node_id = 0
         for edge in self._dataset["edges"]:
@@ -154,19 +161,21 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             node_set.add(edge[1])
             max_node_id = max(max_node_id, edge[0], edge[1])
 
-        assert max_node_id == len(node_set) - 1, "Node ID labelling is not continuous"
+        if max_node_id != len(node_set) - 1:
+            raise ValueError("Node ID labelling is not continuous")
+
         self.gdata["num_nodes"] = len(node_set)
 
-    def _set_num_edges(self):
-        r"""Sets the total number of edges present in the dataset"""
+    def _set_num_edges(self: MontevideoBusDataLoader) -> None:
+        r"""Set the total number of edges present in the dataset."""
         self.gdata["num_edges"] = len(self._dataset["edges"])
 
-    def _set_edges(self):
-        r"""Sets the edge list of the dataset"""
+    def _set_edges(self: MontevideoBusDataLoader) -> None:
+        r"""Set the edge list of the dataset."""
         self._edge_list = [(edge[0], edge[1]) for edge in self._dataset["edges"]]
 
-    def _set_edge_weights(self):
-        r"""Sets the edge weights of the dataset"""
+    def _set_edge_weights(self: MontevideoBusDataLoader) -> None:
+        r"""Set the edge weights of the dataset."""
         edges = self._dataset["edges"]
         edge_weights = self._dataset["weights"]
         comb_edge_list = [
@@ -175,16 +184,14 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         comb_edge_list.sort(key=lambda x: (x[1], x[0]))
         self._edge_weights = np.array([edge_det[2] for edge_det in comb_edge_list])
 
-    def _set_features(self):
-        r"""Calculates and sets the feature attributes"""
-        features = []
+    def _set_features(self: MontevideoBusDataLoader) -> None:
+        r"""Calculate and set the feature attributes."""
 
-        for node in self._dataset["nodes"]:
-            X = node.get("X")
-            for feature_var in ["y"]:
-                features.append(
-                    np.array(X.get(feature_var)[: self.gdata["total_timestamps"]])
-                )
+        features = [
+            np.array(node.get("X").get(feature_var)[: self.gdata["total_timestamps"]])
+            for node in self._dataset["nodes"]
+            for feature_var in ["y"]
+        ]
 
         stacked_features = np.stack(features).T
         standardized_features = (
@@ -195,11 +202,11 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             [
                 standardized_features[i : i + self._lags, :].T
                 for i in range(len(standardized_features) - self._lags)
-            ]
+            ],
         )
 
-    def _set_targets(self):
-        r"""Calculates and sets the target attributes"""
+    def _set_targets(self: MontevideoBusDataLoader) -> None:
+        r"""Calculate and set the target attributes."""
         targets = []
         for node in self._dataset["nodes"]:
             y = node.get("y")[: self.gdata["total_timestamps"]]
@@ -214,21 +221,21 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             [
                 standardized_targets[i + self._lags, :].T
                 for i in range(len(standardized_targets) - self._lags)
-            ]
+            ],
         )
 
-    def get_edges(self):
-        r"""Returns the edge list"""
+    def get_edges(self: MontevideoBusDataLoader) -> list:
+        r"""Return the edge list."""
         return self._edge_list
 
-    def get_edge_weights(self):
-        r"""Returns the edge weights"""
+    def get_edge_weights(self: MontevideoBusDataLoader) -> np.ndarray:
+        r"""Return the edge weights."""
         return self._edge_weights
 
-    def get_all_targets(self):
-        r"""Returns the targets for each timestamp"""
+    def get_all_targets(self: MontevideoBusDataLoader) -> np.ndarray:
+        r"""Return the targets for each timestamp."""
         return self._all_targets
 
-    def get_all_features(self):
-        r"""Returns the features for each timestamp"""
+    def get_all_features(self: MontevideoBusDataLoader) -> np.ndarray:
+        r"""Return the features for each timestamp."""
         return self._all_features

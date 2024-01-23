@@ -171,7 +171,7 @@ class METRLADataLoader(STGraphTemporalDataset):
             node_set.add(edge[1])
             max_node_id = max(max_node_id, edge[0], edge[1])
 
-        if max_node_id == len(node_set) - 1:
+        if max_node_id != len(node_set) - 1:
             raise RuntimeError("Node ID labelling is not continuous")
 
         self.gdata["num_nodes"] = len(node_set)
