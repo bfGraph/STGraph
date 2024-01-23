@@ -33,23 +33,23 @@ def main(args):
         Graph = GPMAGraph([[(0,0)]],1)
     
     if args.dataset == "math":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "wikitalk":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'wiki-talk-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "askubuntu":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-askubuntu-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-askubuntu-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "superuser":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-superuser-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "stackoverflow":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-stackoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-stackoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "reddit_title":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-title-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-title-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "reddit_body":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-body-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'reddit-body-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "email":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'email-eu-core-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'email-eu-core-temporal-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     elif args.dataset == "bitcoin_otc":
-        dataloader = LinkPredDataLoader('dynamic-temporal', f'bitcoin-otc-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True)
+        dataloader = LinkPredDataLoader('dynamic-temporal', f'bitcoin-otc-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
     else:
         print("😔 Unrecognized dataset")
         quit()
@@ -70,7 +70,7 @@ def main(args):
     elif args.type == "pcsr":
         G = PCSRGraph(edge_lists, dataloader.max_num_nodes)
     elif args.type == "gpma":
-        G = GPMAGraph(edge_lists, dataloader.max_num_nodes)
+        G = GPMAGraph(edge_lists, dataloader.max_num_nodes, is_snapshot_fmt=True)
     else:
         print("Error: Invalid Type")
         quit()

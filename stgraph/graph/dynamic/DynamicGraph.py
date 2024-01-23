@@ -3,11 +3,17 @@ from abc import abstractmethod
 import time
 
 class DynamicGraph(STGraphBase):
-    def __init__(self, edge_list, max_num_nodes):
+    def __init__(self, edge_list, max_num_nodes, is_snapshot_fmt=False):
         super().__init__()
         self.graph_updates = {}
         self.max_num_nodes = max_num_nodes
-        self.graph_attr = {str(t): (self.max_num_nodes, len(set(edge_list[t]))) for t in range(len(edge_list))}
+
+        if is_snapshot_fmt:
+            self.graph_attr = {key_t: (self.max_num_nodes, edge_list[key_t]["edge_count"]) for key_t in edge_list.keys()}
+            self.graph_updates = edge_list
+        else:
+            self.graph_attr = {str(t): (self.max_num_nodes, len(set(edge_list[t]))) for t in range(len(edge_list))}
+            self._preprocess_graph_structure(edge_list)
 
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
@@ -17,8 +23,6 @@ class DynamicGraph(STGraphBase):
         self.get_fwd_graph_time = 0
         self.get_bwd_graph_time = 0
         self.move_to_gpu_time = 0
-
-        self._preprocess_graph_structure(edge_list)
 
     def _preprocess_graph_structure(self, edge_list):
         edge_dict = {}
