@@ -87,6 +87,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
+    overall_cost_arr = []
     table = BenchmarkTable(f"(STGraph Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
     
     # normalization
@@ -139,12 +140,13 @@ def main(args):
             if epoch >= 3:
                 dur.append(run_time_this_epoch)
                 max_gpu.append(max(gpu_mem_arr))
+                overall_cost_arr.append(sum(cost_arr)/len(cost_arr))
 
             table.add_row([epoch, "{:.5f}".format(run_time_this_epoch), "{:.4f}".format(sum(cost_arr)/len(cost_arr)), "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2)))])
 
         table.display()
         print('Average Time taken: {:6f}'.format(np.mean(dur)))
-        return np.mean(dur), (max(max_gpu) * 1.0 / (1024**2))
+        return np.mean(dur), (max(max_gpu) * 1.0 / (1024**2)), (sum(overall_cost_arr)/len(overall_cost_arr))
     
     except RuntimeError as e:
         if 'out of memory' in str(e):
@@ -152,14 +154,14 @@ def main(args):
             table.display()
         else:
             print("😔 Something went wrong")
-        return "OOM", "OOM"
+        return "OOM", "OOM", "OOM"
 
-def write_results(args, time_taken, max_gpu):
+def write_results(args, time_taken, max_gpu, avg_cost):
     cutoff = "whole"
     if args.cutoff_time < sys.maxsize:
         cutoff = str(args.cutoff_time)
     file_name = f"stgraph_{args.dataset}_T{cutoff}_B{args.backprop_every}_H{args.num_hidden}_F{args.feat_size}"
-    df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu}])
+    df_data = pd.DataFrame([{'Filename': file_name, 'Time Taken (s)': time_taken, 'Max GPU Usage (MB)': max_gpu, 'Overall Cost': avg_cost}])
     
     if os.path.exists('../../results/static-temporal.csv'):
         df = pd.read_csv('../../results/static-temporal.csv')
@@ -191,5 +193,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     print(args)
-    time_taken, max_gpu = main(args)
-    write_results(args, time_taken, max_gpu)
+    time_taken, max_gpu, avg_cost = main(args)
+    write_results(args, time_taken, max_gpu, avg_cost)
