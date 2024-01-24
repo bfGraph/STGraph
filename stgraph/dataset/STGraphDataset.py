@@ -1,18 +1,21 @@
-"""Base class for all STGraph dataset loaders"""
+"""Base class for all STGraph dataset loaders."""
 
-import os
+from __future__ import annotations
+
 import json
+import os
 import ssl
 import urllib.request
-
 from abc import ABC, abstractmethod
+from pathlib import Path
+
 from rich.console import Console
 
 console = Console()
 
 
 class STGraphDataset(ABC):
-    r"""Abstract base class for graph dataset loaders
+    r"""Abstract base class for graph dataset loaders.
 
     The dataset handling is done as follows
 
@@ -24,7 +27,6 @@ class STGraphDataset(ABC):
 
     Attributes
     ----------
-
     name : str
         The name of the dataset
     gdata : dict
@@ -43,7 +45,6 @@ class STGraphDataset(ABC):
 
     Methods
     -------
-
     _has_dataset_cache()
         Checks if the dataset is stored in cache
 
@@ -66,7 +67,8 @@ class STGraphDataset(ABC):
         Loads the dataset from cache
     """
 
-    def __init__(self) -> None:
+    def __init__(self: STGraphDataset) -> None:
+        r"""Abstract base class for graph dataset loaders."""
         self.name = ""
         self.gdata = {}
 
@@ -76,30 +78,29 @@ class STGraphDataset(ABC):
         self._cache_folder = "/dataset_cache/"
         self._cache_file_type = "json"
 
-    def _has_dataset_cache(self) -> bool:
-        r"""Checks if the dataset is stored in cache
+    def _has_dataset_cache(self: STGraphDataset) -> bool:
+        r"""Check if the dataset is stored in cache.
 
         This private method checks whether the graph dataset cache file exists
         in the dataset cache folder. The cache .json file is found in the following
         directory ``~/.stgraph/dataset_cache/.
 
-        Returns
+        Returns:
         -------
         bool
             ``True`` if the cache file exists, else ``False``
 
-        Notes
+        Notes:
         -----
-        The cache file is usually stored as a json file named as ``dataset_name.json`` and is stored
-        inside the ``~/.stgraph/dataset_cache/``. Incase the directory does not exists, it
-        is created by this method.
+        The cache file is usually stored as a json file named as
+        ``dataset_name.json`` and is stored inside the ``~/.stgraph/dataset_cache/``.
+        Incase the directory does not exists, it is created by this method.
 
-        This private method is intended for internal use within the class and should not be
-        called directly from outside the class.
+        This private method is intended for internal use within the class and
+        should not be called directly from outside the class.
 
-        Example
+        Example:
         -------
-
         .. code-block:: python
 
             if self._has_dataset_cache():
@@ -107,109 +108,110 @@ class STGraphDataset(ABC):
             else:
                 # The dataset is not cached, continue load and save operations
         """
-
-        user_home_dir = os.path.expanduser("~")
+        user_home_dir = Path("~").expanduser()
         stgraph_dir = user_home_dir + "/.stgraph"
         cache_dir = stgraph_dir + self._cache_folder
 
-        if os.path.exists(stgraph_dir) == False:
+        if not Path(stgraph_dir).exists():
             os.system("mkdir " + stgraph_dir)
 
-        if os.path.exists(cache_dir) == False:
+        if not Path(cache_dir).exists():
             os.system("mkdir " + cache_dir)
 
         cache_file_name = self.name + "." + self._cache_file_type
 
-        return os.path.exists(cache_dir + cache_file_name)
+        return Path(cache_dir + cache_file_name).exists()
 
-    def _get_cache_file_path(self) -> str:
-        r"""Returns the absolute path of the cached dataset file
+    def _get_cache_file_path(self: STGraphDataset) -> str:
+        r"""Return the absolute path of the cached dataset file.
 
         Returns
         -------
         str
             The absolute path of the cached dataset file
         """
-
-        user_home_dir = os.path.expanduser("~")
+        user_home_dir = Path("~").expanduser()
         stgraph_dir = user_home_dir + "/.stgraph"
         cache_dir = stgraph_dir + self._cache_folder
         cache_file_name = self.name + "." + self._cache_file_type
 
         return cache_dir + cache_file_name
 
-    def _delete_cached_dataset(self) -> None:
-        r"""Deletes the cached dataset file"""
-
-        os.remove(self._get_cache_file_path())
+    def _delete_cached_dataset(self: STGraphDataset) -> None:
+        r"""Delete the cached dataset file."""
+        Path(self._get_cache_file_path()).unlink()
 
     @abstractmethod
-    def _init_graph_data(self) -> None:
-        r"""Initialises the ``gdata`` attribute with all necessary meta data
+    def _init_graph_data(self: STGraphDataset) -> None:
+        r"""Initialise the ``gdata`` attribute with all necessary meta data.
 
         This is an abstract method that is implemented by ``STGraphStaticDataset``.
         The meta data is initialised based on the type of the graph dataset. The values
         are calculated as key-value pairs by the respective dataloaders when they
         are initialised.
         """
-        pass
 
     @abstractmethod
-    def _process_dataset(self) -> None:
-        r"""Processes the dataset to be used by STGraph
+    def _process_dataset(self: STGraphDataset) -> None:
+        r"""Process the dataset to be used by STGraph.
 
         This is an abstract method that is to be implemented by each dataset loader.
-        The implementation in specific to the nature of the dataset itself. The dataset is
-        processed in such a way that it can be smoothly used within STGraph.
+        The implementation in specific to the nature of the dataset itself.
+        The dataset is processed in such a way that it can be smoothly used
+        within STGraph.
         """
-        pass
 
-    def _download_dataset(self) -> None:
-        r"""Downloads the dataset using the URL
+    def _download_dataset(self: STGraphDataset) -> None:
+        r"""Download the dataset using the URL.
 
-        Downloads the dataset files from the URL set by default for each data loader or
-        by one provided by the user. If verbose mode is enabled, it displays download status.
+        Downloads the dataset files from the URL set by default for each data loader
+        or by one provided by the user. If verbose mode is enabled, it displays
+        download status.
         """
         if self._verbose:
             console.log(
-                f"[cyan bold]{self.name}[/cyan bold] not present in cache. Downloading right now."
+                f"[cyan bold]{self.name}[/cyan bold] not present in cache."
+                " Downloading right now.",
             )
 
         context = ssl._create_unverified_context()
-        self._dataset = json.loads(
-            urllib.request.urlopen(self._url, context=context).read()
-        )
+
+        if not self._url.startswith(("http:", "https:")):
+            raise ValueError("URL must start with 'http:' or 'https:'")
+
+        with urllib.request.urlopen(self._url, context=context) as response:
+            self._dataset = json.loads(response.read())
 
         if self._verbose:
             console.log(f"[cyan bold]{self.name}[/cyan bold] download complete.")
 
-    def _save_dataset(self) -> None:
-        r"""Saves the dataset to cache
+    def _save_dataset(self: STGraphDataset) -> None:
+        r"""Save the dataset to cache.
 
-        Saves the downloaded dataset file to the cache folder. If verbose mode is enabled,
-        it displays the save information.
+        Saves the downloaded dataset file to the cache folder. If verbose mode
+        is enabled, it displays the save information.
         """
-        with open(self._get_cache_file_path(), "w") as cache_file:
+        with Path(self._get_cache_file_path()).open("w") as cache_file:
             json.dump(self._dataset, cache_file)
 
             if self._verbose:
                 console.log(
-                    f"[cyan bold]{self.name}[/cyan bold] dataset saved to cache"
+                    f"[cyan bold]{self.name}[/cyan bold] dataset saved to cache",
                 )
 
-    def _load_dataset(self) -> None:
-        r"""Loads the dataset from cache
+    def _load_dataset(self: STGraphDataset) -> None:
+        r"""Load the dataset from cache.
 
-        Loads the caches dataset json file as a python dictionary. If verbose mode is enabled,
-        it displays the loading status.
+        Loads the caches dataset json file as a python dictionary. If verbose
+        mode is enabled, it displays the loading status.
         """
         if self._verbose:
             console.log(f"Loading [cyan bold]{self.name}[/cyan bold] from cache")
 
-        with open(self._get_cache_file_path()) as cache_file:
+        with Path(self._get_cache_file_path()).open() as cache_file:
             self._dataset = json.load(cache_file)
 
         if self._verbose:
             console.log(
-                f"Successfully loaded [cyan bold]{self.name}[/cyan bold] from cache"
+                f"Successfully loaded [cyan bold]{self.name}[/cyan bold] from cache",
             )
