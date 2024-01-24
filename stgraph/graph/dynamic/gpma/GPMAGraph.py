@@ -20,8 +20,8 @@ from stgraph.graph.dynamic.gpma.gpma import (
 
 
 class GPMAGraph(DynamicGraph):
-    def __init__(self, edge_list, max_num_nodes, is_snapshot_fmt = False):
-        super().__init__(edge_list, max_num_nodes, is_snapshot_fmt)
+    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list):
+        super().__init__(edge_list, max_num_nodes, snapshot_edge_list)
 
         # forward graph for GPMA
         self._forward_graph = GPMA()

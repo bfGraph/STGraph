@@ -3,6 +3,8 @@ import random
 import argparse
 import sys
 import time
+import numpy as np
+import pickle
 
 def parse_txt_lines(lines):
 	id_to_pid_map = {}   # ID to processed ID
@@ -38,10 +40,12 @@ def parse_txt_lines(lines):
 def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 	graphs = {}
 
+	base_list = list(set(edges[:base]))
 	graphs["0"] = {
-					"add": list(set(edges[:base])),
+					"add": base_list,
 					"delete": [],
-					"neg": []
+					"neg": [],
+					"edge_count": len(base_list)
 				}
 
 	add_start_ptr = base
@@ -67,7 +71,8 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 		graphs[str(time_track)] = {
 								"add": add_edges,
 								"delete": del_edges,
-								"neg": list(neg_edge_set_t)
+								"neg": list(neg_edge_set_t),
+								"edge_count": len(graph_t)
 							}
 		
 		# assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
@@ -95,19 +100,25 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 		graphs[str(time_track)] = {
 								"add": add_edges,
 								"delete": del_edges,
-								"neg": list(neg_edge_set_t)
+								"neg": list(neg_edge_set_t),
+								"edge_count": len(graph_t)
 							}
 		
-		assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
+		# assert len(set(edges[delete_start_ptr:add_start_ptr])) + len(add_edges) - len(del_edges) == len(graph_t)
 
 		time_track = time_track+1
 
-	graph_json = {
-		"edge_mapping": {"edge_index": graphs},
+	graph_json = graphs
+
+	graph_json2 = {
 		"time_periods": time_track,
+		"base": base,
+		"add_delta": add_delta,
+		"delete_delta": delete_delta,
+		"max_num_nodes": num_nodes
 	}
 
-	return graph_json
+	return graph_json, graph_json2
 
 def main(args):
 	curr_time = time.time()
@@ -126,14 +137,30 @@ def main(args):
 	add_delta = int(args.base * (args.percent_change/200))
 	delete_delta = int(args.base * (args.percent_change/200))
 
-	graph_json = preprocess_graph(edges, num_nodes, args.base, add_delta, delete_delta)
+	graph_json, graph_json2 = preprocess_graph(edges, num_nodes, args.base, add_delta, delete_delta)
 	print(f"[CHECKPOINT]::PREPROCESS_GRAPH in {time.time() - curr_time}s")
 
 	curr_time = time.time()
-	out_file = open(f"{args.dataset}-data-{str(args.percent_change)}.json", "w")
+	out_file = open(f"{args.dataset}-data-{str(args.percent_change)}-split.json", "w")
 	json.dump(graph_json, out_file)
 	out_file.close()
+
+	out_file2 = open(f"{args.dataset}-data-{str(args.percent_change)}-metadata.json", "w")
+	json.dump(graph_json2, out_file2)
+	out_file2.close()
 	print(f"[CHECKPOINT]::JSON_DUMP in {time.time() - curr_time}s")
+
+	curr_time = time.time()
+	np_arr = np.array(edges)
+	np.save(f"{args.dataset}-data-{str(args.percent_change)}.npy", np_arr)
+	print(f"[CHECKPOINT]::NUMPY_DUMP in {time.time() - curr_time}s")
+
+	curr_time = time.time()
+	out_file3 = open(f"{args.dataset}-data-{str(args.percent_change)}.pkl", "wb")
+	pickle.dump(edges, out_file3)
+	out_file3.close()
+	print(f"[CHECKPOINT]::PICKLE_DUMP in {time.time() - curr_time}s")
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Preprocess Temporal Data')

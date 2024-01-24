@@ -26,11 +26,11 @@ def main(args):
     # dummy object to account for initial CUDA context object
     Graph = None
     if args.type == "naive":
-        Graph = NaiveGraph([[(0,0)]],1)
-    elif args.type == "pcsr":
-        Graph = PCSRGraph([[(0,1)]],2) # PCSRGraph([[(0,1)]],2)
+        Graph = NaiveGraph([[(0,0)]],1,{"0":{"edge_count":1}})
+    # elif args.type == "pcsr":
+    #     Graph = PCSRGraph([[(0,1)]],2) # PCSRGraph([[(0,1)]],2)
     elif args.type == "gpma":
-        Graph = GPMAGraph([[(0,0)]],1)
+        Graph = GPMAGraph(None,1,{"0":{"edge_count":1,"add":[[0,0]],"delete":[]}})
     
     if args.dataset == "math":
         dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")
@@ -66,11 +66,11 @@ def main(args):
 
     initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
     if args.type == "naive":
-        G = NaiveGraph(edge_lists, dataloader.max_num_nodes)
-    elif args.type == "pcsr":
-        G = PCSRGraph(edge_lists, dataloader.max_num_nodes)
+        G = NaiveGraph(edge_lists, dataloader.max_num_nodes, dataloader.get_snapshot_edges())
+    # elif args.type == "pcsr":
+    #     G = PCSRGraph(edge_lists, dataloader.max_num_nodes)
     elif args.type == "gpma":
-        G = GPMAGraph(edge_lists, dataloader.max_num_nodes, is_snapshot_fmt=True)
+        G = GPMAGraph(edge_lists, dataloader.max_num_nodes, dataloader.get_snapshot_edges())
     else:
         print("Error: Invalid Type")
         quit()
