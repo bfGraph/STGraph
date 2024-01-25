@@ -25,7 +25,7 @@ class LinkPredDataLoader:
         self._preprocess_pos_neg_edges()
 
     def _load_dataset(self) -> None:
-        if os.path.exists(f"{self.name}-metadata.json") and os.path.exists(f"{self.name}.npy") and os.path.exists(f"{self.name}-split.json"):
+        if os.path.exists(f"{self._local_path}-metadata.json") and os.path.exists(f"{self._local_path}.npy") and os.path.exists(f"{self._local_path}-split.json"):
 
             # This includes metadata for splitting edges into snapshots
             dataset_file = open(f"{self.name}-metadata.json")
