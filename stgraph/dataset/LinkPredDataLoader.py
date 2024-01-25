@@ -28,19 +28,19 @@ class LinkPredDataLoader:
         if os.path.exists(f"{self._local_path}-metadata.json") and os.path.exists(f"{self._local_path}.npy") and os.path.exists(f"{self._local_path}-split.json"):
 
             # This includes metadata for splitting edges into snapshots
-            dataset_file = open(f"{self.name}-metadata.json")
+            dataset_file = open(f"{self._local_path}-metadata.json")
             self._dataset = json.load(dataset_file)
             dataset_file.close()
 
             if self.for_stgraph and not self.for_stgraph_gpma:
-                dataset_file = open(f"{self.name}.pkl","rb")
+                dataset_file = open(f"{self._local_path}.pkl","rb")
                 self._edges = pickle.load(dataset_file)
                 dataset_file.close()
             elif not self.for_stgraph:
-                self._edges = np.load(f"{self.name}.npy")
+                self._edges = np.load(f"{self._local_path}.npy")
             
             # This includes edge list split as add, del and neg edges
-            dataset_file = open(f"{self.name}-split.json")
+            dataset_file = open(f"{self._local_path}-split.json")
             self.split_dataset = json.load(dataset_file)
             dataset_file.close()
 
