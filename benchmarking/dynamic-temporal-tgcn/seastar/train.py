@@ -26,11 +26,11 @@ def main(args):
     # dummy object to account for initial CUDA context object
     Graph = None
     if args.type == "naive":
-        Graph = NaiveGraph([[(0,0)]],1,{"0":{"edge_count":1}})
+        Graph = NaiveGraph([[(0,0)]],1,{"0":{"edge_count":1, "neg": [[]]}})
     # elif args.type == "pcsr":
     #     Graph = PCSRGraph([[(0,1)]],2) # PCSRGraph([[(0,1)]],2)
     elif args.type == "gpma":
-        Graph = GPMAGraph(None,1,{"0":{"edge_count":1,"add":[[0,0]],"delete":[]}})
+        Graph = GPMAGraph(None,1,{"0":{"edge_count":1,"add":[[0,0]],"delete":[[]], "neg": [[]]}})
     
     if args.dataset == "math":
         dataloader = LinkPredDataLoader('dynamic-temporal', f'sx-mathoverflow-data-{args.slide_size}', args.cutoff_time, verbose=True, for_stgraph=True, for_stgraph_gpma = args.type == "gpma")

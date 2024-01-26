@@ -126,6 +126,7 @@ def main(args):
 
         table.display()
         print('Average Time taken: {:6f}'.format(np.mean(dur)))
+        # breakpoint()
         return np.mean(dur), (max(max_gpu) * 1.0 / (1024**2)), (sum(overall_cost_arr)/len(overall_cost_arr))
 
     except RuntimeError as e:

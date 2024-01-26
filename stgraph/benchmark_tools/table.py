@@ -1,10 +1,12 @@
 from rich.console import Console
 from rich.table import Table
 
+from typing import List
+
 console = Console()
 
 class BenchmarkTable:
-    def __init__(self, title: str, col_name_list: list[str]):
+    def __init__(self, title: str, col_name_list: List[str]):
         self.title = '\n' + title + '\n'
         self.col_name_list = col_name_list
         self._table = Table(title=self.title, show_edge=False, style="black bold")
