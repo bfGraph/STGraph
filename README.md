@@ -69,7 +69,7 @@ pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -
 ```
 
 ```bash
-pip install <add-pygt>
+pip install torch-geometric-temporal
 ```
 
 
