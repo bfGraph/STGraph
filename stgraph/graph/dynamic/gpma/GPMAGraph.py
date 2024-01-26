@@ -80,7 +80,7 @@ class GPMAGraph(DynamicGraph):
 
     def _update_graph_forward(self):
         # if we went through the entire time-stamps
-        if self.current_timestamp + 1 < self.total_timestamps:
+        if self.current_timestamp + 1 >= self.total_timestamps:
             raise Exception(
                 "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )

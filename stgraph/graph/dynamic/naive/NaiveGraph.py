@@ -91,7 +91,7 @@ class NaiveGraph(DynamicGraph):
 
     def _update_graph_forward(self):
         """Updates the current base graph to the next timestamp"""
-        if self.current_timestamp + 1 < self.total_timestamps:
+        if self.current_timestamp + 1 >= self.total_timestamps:
             raise Exception(
                 "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
