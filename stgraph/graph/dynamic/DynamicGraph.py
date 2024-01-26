@@ -3,7 +3,7 @@ from abc import abstractmethod
 import time
 
 class DynamicGraph(STGraphBase):
-    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list):
+    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list, total_timestamps):
         super().__init__()
         self.graph_updates = {}
         self.max_num_nodes = max_num_nodes
@@ -16,6 +16,7 @@ class DynamicGraph(STGraphBase):
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
         self.current_timestamp = 0
+        self.total_timestamps = total_timestamps
 
         # Measuring time for operations
         self.get_fwd_graph_time = 0

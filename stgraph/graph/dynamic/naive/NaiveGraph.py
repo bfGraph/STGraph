@@ -9,8 +9,8 @@ import time
 
 
 class NaiveGraph(DynamicGraph):
-    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list):
-        super().__init__(edge_list, max_num_nodes, snapshot_edge_list)
+    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list, total_timestamps):
+        super().__init__(edge_list, max_num_nodes, snapshot_edge_list, total_timestamps)
 
         self._prepare_edge_lst_fwd(edge_list)
         self._prepare_edge_lst_bwd(self.fwd_edge_list)
@@ -91,7 +91,7 @@ class NaiveGraph(DynamicGraph):
 
     def _update_graph_forward(self):
         """Updates the current base graph to the next timestamp"""
-        if str(self.current_timestamp + 1) not in self.graph_updates:
+        if self.current_timestamp + 1 < self.total_timestamps:
             raise Exception(
                 "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )

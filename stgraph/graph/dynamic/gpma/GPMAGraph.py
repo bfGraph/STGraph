@@ -20,8 +20,8 @@ from stgraph.graph.dynamic.gpma.gpma import (
 
 
 class GPMAGraph(DynamicGraph):
-    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list):
-        super().__init__(edge_list, max_num_nodes, snapshot_edge_list)
+    def __init__(self, edge_list, max_num_nodes, snapshot_edge_list, total_timestamps):
+        super().__init__(edge_list, max_num_nodes, snapshot_edge_list, total_timestamps)
 
         # forward graph for GPMA
         self._forward_graph = GPMA()
@@ -80,7 +80,7 @@ class GPMAGraph(DynamicGraph):
 
     def _update_graph_forward(self):
         # if we went through the entire time-stamps
-        if str(self.current_timestamp + 1) not in self.graph_updates:
+        if self.current_timestamp + 1 < self.total_timestamps:
             raise Exception(
                 "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
