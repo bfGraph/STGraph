@@ -41,6 +41,7 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 	graphs = {}
 
 	base_list = list(set(edges[:base]))
+	base_list.sort(key=lambda x: (x[1], x[0]))
 	graphs["0"] = {
 					"add": base_list,
 					"delete": [],
