@@ -11,7 +11,8 @@ class DynamicGraph(STGraphBase):
 
         # Non-naive variants will hit this
         if edge_list is None:
-            self.graph_updates = snapshot_edge_list
+            for key_t in snapshot_edge_list.keys():
+                self.graph_updates[key_t] = {"add": snapshot_edge_list[key_t]["add"], "delete": snapshot_edge_list[key_t]["delete"]}
 
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
