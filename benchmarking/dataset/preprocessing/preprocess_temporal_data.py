@@ -58,9 +58,11 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 
 		# No need to add an edge thats already there in the potion carried over from previous snapshot
 		add_edges = list(set(edges[add_start_ptr:add_start_ptr + add_delta]).difference(common_with_prev_graph))
+		add_edges.sort(key=lambda x: (x[1], x[0]))
 
 		# Difference to prevent the deletion of an edge that is present in the snapshot
 		del_edges = list(set(edges[delete_start_ptr:delete_start_ptr + delete_delta]).difference(graph_t))
+		del_edges.sort(key=lambda x: (x[1], x[0]))
 
 		neg_edge_set_t = set()
 		while len(neg_edge_set_t) != len(add_edges):
@@ -87,9 +89,11 @@ def preprocess_graph(edges, num_nodes, base, add_delta, delete_delta):
 
 		# No need to add an edge thats already there in the potion carried over from previous snapshot
 		add_edges = list(set(edges[add_start_ptr:]).difference(common_with_prev_graph))
+		add_edges.sort(key=lambda x: (x[1], x[0]))
 
 		# Difference to prevent the deletion of an edge that is going to be added
 		del_edges = list(set(edges[delete_start_ptr:delete_start_ptr + delete_delta]).difference(graph_t))
+		del_edges.sort(key=lambda x: (x[1], x[0]))
 
 		neg_edge_set_t = set()
 		while len(neg_edge_set_t) != len(add_edges):
