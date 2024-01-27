@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from stgraph.dataset.STGraphDataset import STGraphDataset
+from stgraph.dataset.stgraph_dataset import STGraphDataset
 
 
 class STGraphDynamicDataset(STGraphDataset):

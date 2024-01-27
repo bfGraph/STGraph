@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from stgraph.dataset.STGraphDataset import STGraphDataset
+from stgraph.dataset.stgraph_dataset import STGraphDataset
 
 console = Console()
 
