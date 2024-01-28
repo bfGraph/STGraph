@@ -1,4 +1,4 @@
-"""Temporal dataset of inflow passenger at bus stop level from Montevideo city."""
+"""Passenger inflow at bus stops in Montevideo city."""
 
 from __future__ import annotations
 
@@ -8,7 +8,79 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class MontevideoBusDataLoader(STGraphTemporalDataset):
-    r"""Temporal dataset of inflow passenger at bus stop level from Montevideo city."""
+    r"""Passenger inflow at bus stops in Montevideo city.
+
+    This dataset compiles hourly passenger inflow data for 11 key bus lines
+    in Montevideo, Uruguay, during October 2020. Focused on routes to the city
+    center, it encompasses bus stop vertices, interlinked by edges representing
+    connections with weights indicating road distances. The target variable
+    is passenger inflow, sourced from diverse data outlets within Montevideo's
+    Metropolitan Transportation System (STM).
+
+    This class provides functionality for loading, processing, and accessing the
+    Montevideo Bus dataset for use in deep learning tasks such as
+    passenger inflow prediction.
+
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 675
+          - 690
+          - 744
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import MontevideoBusDataLoader
+
+        monte = MontevideoBusDataLoader(verbose=True)
+        num_nodes = monte.gdata["num_nodes"]
+        num_edges = monte.gdata["num_edges"]
+        total_timestamps = monte.gdata["total_timestamps"]
+
+        edge_list = monte.get_edges()
+        edge_weights = monte.get_edge_weights()
+        feats = monte.get_all_features()
+        targets = monte.get_all_targets()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 4)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    _all_features : numpy.ndarray
+        Numpy array of the node feature value
+    """
 
     def __init__(
         self: MontevideoBusDataLoader,
@@ -18,79 +90,7 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Temporal dataset of inflow passenger at bus stop level from Montevideo city.
-
-        This dataset compiles hourly passenger inflow data for 11 key bus lines
-        in Montevideo, Uruguay, during October 2020. Focused on routes to the city
-        center, it encompasses bus stop vertices, interlinked by edges representing
-        connections with weights indicating road distances. The target variable
-        is passenger inflow, sourced from diverse data outlets within Montevideo's
-        Metropolitan Transportation System (STM).
-
-        This class provides functionality for loading, processing, and accessing the
-        Montevideo Bus dataset for use in deep learning tasks such as
-        passenger inflow prediction.
-
-        .. list-table:: gdata
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 675
-              - 690
-              - 744
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import MontevideoBusDataLoader
-
-            monte = MontevideoBusDataLoader(verbose=True)
-            num_nodes = monte.gdata["num_nodes"]
-            num_edges = monte.gdata["num_edges"]
-            total_timestamps = monte.gdata["total_timestamps"]
-
-            edge_list = monte.get_edges()
-            edge_weights = monte.get_edge_weights()
-            feats = monte.get_all_features()
-            targets = monte.get_all_targets()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 4)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        _all_features : numpy.ndarray
-            Numpy array of the node feature value
-        """
+        r"""Passenger inflow at bus stops in Montevideo city."""
         super().__init__()
 
         if not isinstance(lags, int):
