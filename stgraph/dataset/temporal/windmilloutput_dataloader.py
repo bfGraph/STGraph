@@ -67,8 +67,6 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
     ----------
     verbose : bool, optional
         Flag to control whether to display verbose info (default is False)
-    url : str, optional
-        The URL from where the dataset is downloaded online (default is None)
     lags : int, optional
         The number of time lags (default is 8)
     cutoff_time : int, optional
@@ -82,24 +80,13 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _lags : int
-        The number of time lags
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset
-    _edge_weights : numpy.ndarray
-        Numpy array of the edge weights
-    _all_targets : numpy.ndarray
-        Numpy array of the node target value
+    gdata : dict
+        Graph meta data.
     """
 
     def __init__(
         self: WindmillOutputDataLoader,
         verbose: bool = False,
-        url: str | None = None,
         lags: int = 8,
         cutoff_time: int | None = None,
         size: str = "large",
@@ -138,10 +125,7 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
             "small": "https://graphmining.ai/temporal_datasets/windmill_output_small.json",
         }
 
-        if not url:
-            self._url = size_urls[self._size]
-        else:
-            self._url = url
+        self._url = size_urls[self._size]
 
         if redownload and self._has_dataset_cache():
             self._delete_cached_dataset()

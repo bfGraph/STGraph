@@ -40,8 +40,6 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
     ----------
     verbose : bool, optional
         Flag to control whether to display verbose info (default is False)
-    url : str, optional
-        The URL from where the dataset is downloaded online (default is None)
     lags : int, optional
         The number of time lags (default is 8)
     cutoff_time : int, optional
@@ -53,26 +51,13 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _lags : int
-        The number of time lags
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset for each timestamp
-    _edge_weights : list
-        List of edge weights for each timestamp
-    _all_features : list
-        Node features for each timestamp minus lags
-    _all_targets : list
-        Node target value for each timestamp minus lags
+    gdata : dict
+        Graph meta data.
     """
 
     def __init__(
         self: EnglandCovidDataLoader,
         verbose: bool = False,
-        url: str | None = None,
         lags: int = 8,
         cutoff_time: int | None = None,
         redownload: bool = False,
@@ -81,6 +66,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         super().__init__()
 
         self.name = "England_COVID"
+        self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
@@ -88,11 +74,6 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         self._all_targets = None
         self._edge_list = None
         self._edge_weights = None
-
-        if not url:
-            self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
-        else:
-            self._url = url
 
         if redownload and self._has_dataset_cache():
             self._delete_cached_dataset()
