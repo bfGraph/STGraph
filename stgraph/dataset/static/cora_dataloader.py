@@ -12,7 +12,64 @@ console = Console()
 
 
 class CoraDataLoader(STGraphStaticDataset):
-    """Citation network consisting of scientific publications."""
+    r"""Citation network consisting of scientific publications.
+
+    The Cora dataset consists of 2708 scientific publications classified into
+    one of seven classes. The citation network consists of 5429 links. Each
+    publication in the dataset is described by a 0/1-valued word vector
+    indicating the absence/presence of the corresponding word from the dictionary.
+    The dictionary consists of 1433 unique words.
+
+    This class provides functionality for loading, processing, and accessing the
+    Cora dataset for use in deep learning tasks such as graph-based
+    node classification.
+
+    .. list-table:: gdata
+        :widths: 25 25 25 25
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - num_feats
+          - num_classes
+        * - 2708
+          - 10556
+          - 1433
+          - 7
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import CoraDataLoader
+
+        cora = CoraDataLoader()
+        num_nodes = cora.gdata["num_nodes"]
+        edge_list = cora.get_edges()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _edge_list : np.ndarray
+        The edge list of the graph dataset
+    _all_features : np.ndarray
+        Numpy array of the node features
+    _all_targets : np.ndarray
+        Numpy array of the node target features
+    """
 
     def __init__(
         self: CoraDataLoader,
@@ -20,64 +77,7 @@ class CoraDataLoader(STGraphStaticDataset):
         url: str | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Citation network consisting of scientific publications.
-
-        The Cora dataset consists of 2708 scientific publications classified into
-        one of seven classes. The citation network consists of 5429 links. Each
-        publication in the dataset is described by a 0/1-valued word vector
-        indicating the absence/presence of the corresponding word from the dictionary.
-        The dictionary consists of 1433 unique words.
-
-        This class provides functionality for loading, processing, and accessing the
-        Cora dataset for use in deep learning tasks such as graph-based
-        node classification.
-
-        .. list-table:: gdata
-            :widths: 25 25 25 25
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - num_feats
-              - num_classes
-            * - 2708
-              - 10556
-              - 1433
-              - 7
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import CoraDataLoader
-
-            cora = CoraDataLoader()
-            num_nodes = cora.gdata["num_nodes"]
-            edge_list = cora.get_edges()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _edge_list : np.ndarray
-            The edge list of the graph dataset
-        _all_features : np.ndarray
-            Numpy array of the node features
-        _all_targets : np.ndarray
-            Numpy array of the node target features
-        """
+        """Citation network consisting of scientific publications."""
         super().__init__()
 
         self.name = "Cora"

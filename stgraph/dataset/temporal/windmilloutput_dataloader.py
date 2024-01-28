@@ -1,4 +1,4 @@
-r"""Temporal dataset of hourly energy output of windmills."""
+r"""Hourly energy output of windmills."""
 
 from __future__ import annotations
 
@@ -8,7 +8,93 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class WindmillOutputDataLoader(STGraphTemporalDataset):
-    r"""Temporal dataset of hourly energy output of windmills."""
+    r"""Hourly energy output of windmills.
+
+    This class provides functionality for loading, processing, and accessing
+    the Windmill output dataset for use in deep learning such as
+    regression tasks.
+
+    .. list-table:: gdata for Windmill Output Small
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 11
+          - 121
+          - 17472
+
+    .. list-table:: gdata for Windmill Output Medium
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 26
+          - 676
+          - 17472
+
+    .. list-table:: gdata for Windmill Output Large
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 319
+          - 101761
+          - 17472
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import WindmillOutputDataLoader
+
+        wind_small = WindmillOutputDataLoader(verbose=True, size="small")
+        num_nodes = wind_small.gdata["num_nodes"]
+        num_edges = wind_small.gdata["num_edges"]
+        total_timestamps = wind_small.gdata["total_timestamps"]
+
+        edge_list = wind_small.get_edges()
+        edge_weights = wind_small.get_edge_weights()
+        targets = wind_small.get_all_targets()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 8)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    size : str, optional
+        The dataset size among large, medium and small (default is large)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    """
 
     def __init__(
         self: WindmillOutputDataLoader,
@@ -19,93 +105,7 @@ class WindmillOutputDataLoader(STGraphTemporalDataset):
         size: str = "large",
         redownload: bool = False,
     ) -> None:
-        r"""Temporal dataset of hourly energy output of windmills.
-
-        This class provides functionality for loading, processing, and accessing
-        the Windmill output dataset for use in deep learning such as
-        regression tasks.
-
-        .. list-table:: gdata for Windmill Output Small
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 11
-              - 121
-              - 17472
-
-        .. list-table:: gdata for Windmill Output Medium
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 26
-              - 676
-              - 17472
-
-        .. list-table:: gdata for Windmill Output Large
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 319
-              - 101761
-              - 17472
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import WindmillOutputDataLoader
-
-            wind_small = WindmillOutputDataLoader(verbose=True, size="small")
-            num_nodes = wind_small.gdata["num_nodes"]
-            num_edges = wind_small.gdata["num_edges"]
-            total_timestamps = wind_small.gdata["total_timestamps"]
-
-            edge_list = wind_small.get_edges()
-            edge_weights = wind_small.get_edge_weights()
-            targets = wind_small.get_all_targets()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 8)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        size : str, optional
-            The dataset size among large, medium and small (default is large)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        """
+        r"""Hourly energy output of windmills."""
         super().__init__()
 
         if not isinstance(lags, int):

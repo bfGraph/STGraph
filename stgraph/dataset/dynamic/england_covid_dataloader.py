@@ -1,4 +1,4 @@
-"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions."""
+"""COVID-19 cases in England's NUTS3 regions."""
 
 from __future__ import annotations
 
@@ -8,7 +8,66 @@ from stgraph.dataset.dynamic.stgraph_dynamic_dataset import STGraphDynamicDatase
 
 
 class EnglandCovidDataLoader(STGraphDynamicDataset):
-    """Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions."""
+    r"""COVID-19 cases in England's NUTS3 regions.
+
+    This dataset captures the interplay between COVID-19 cases and mobility
+    in England's NUTS3 regions from March 3rd to May 12th. It is a directed
+    and weighted graph that offers daily case count and movement of people
+    between each region through node and edge features respectively.
+
+    This class provides functionality for loading, processing, and accessing
+    the England Covid dataset for use in deep learning tasks such as predicting
+    the COVID cases in a region.
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import EnglandCovidDataLoader
+
+        eng_covid = EnglandCovidDataLoader(verbose=True)
+        num_nodes_dict = eng_covid.gdata["num_nodes"]
+        num_edges_dict = eng_covid.gdata["num_edges"]
+        total_timestamps = eng_covid.gdata["total_timestamps"]
+
+        edge_list = eng_covid.get_edges()
+        edge_weights = eng_covid.get_edge_weights()
+        feats = eng_covid.get_all_features()
+        targets = eng_covid.get_all_targets()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 8)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset for each timestamp
+    _edge_weights : list
+        List of edge weights for each timestamp
+    _all_features : list
+        Node features for each timestamp minus lags
+    _all_targets : list
+        Node target value for each timestamp minus lags
+    """
 
     def __init__(
         self: EnglandCovidDataLoader,
@@ -18,66 +77,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions.
-
-        This dataset captures the interplay between COVID-19 cases and mobility
-        in England's NUTS3 regions from March 3rd to May 12th. It is a directed
-        and weighted graph that offers daily case count and movement of people
-        between each region through node and edge features respectively.
-
-        This class provides functionality for loading, processing, and accessing
-        the England Covid dataset for use in deep learning tasks such as predicting
-        the COVID cases in a region.
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import EnglandCovidDataLoader
-
-            eng_covid = EnglandCovidDataLoader(verbose=True)
-            num_nodes_dict = eng_covid.gdata["num_nodes"]
-            num_edges_dict = eng_covid.gdata["num_edges"]
-            total_timestamps = eng_covid.gdata["total_timestamps"]
-
-            edge_list = eng_covid.get_edges()
-            edge_weights = eng_covid.get_edge_weights()
-            feats = eng_covid.get_all_features()
-            targets = eng_covid.get_all_targets()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 8)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset for each timestamp
-        _edge_weights : list
-            List of edge weights for each timestamp
-        _all_features : list
-            Node features for each timestamp minus lags
-        _all_targets : list
-            Node target value for each timestamp minus lags
-        """
+        """COVID-19 cases in England's NUTS3 regions."""
         super().__init__()
 
         self.name = "England_COVID"

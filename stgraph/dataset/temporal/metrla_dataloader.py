@@ -1,4 +1,4 @@
-"""Temporal dataset for traffic forecasting based on Los Angeles city."""
+"""Traffic forecasting based on Los Angeles city."""
 
 from __future__ import annotations
 
@@ -9,7 +9,81 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class METRLADataLoader(STGraphTemporalDataset):
-    """Temporal dataset for traffic forecasting based on the Los Angeles city."""
+    r"""Traffic forecasting dataset based on the Los Angeles city..
+
+    A dataset for predicting traffic patterns in the Los Angeles Metropolitan area,
+    comprising traffic data obtained from 207 loop detectors on highways in Los
+    Angeles County. The dataset includes aggregated 5-minute interval readings
+    spanning a four-month period from March 2012 to June 2012.
+
+    This class provides functionality for loading, processing, and accessing
+    the METRLA dataset for use in deep learning tasks such as traffic
+    forecasting.
+
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 207
+          - 1722
+          - 100
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import METRLADataLoader
+
+        metrla = METRLADataLoader(verbose=True)
+        num_nodes = metrla.gdata["num_nodes"]
+        num_edges = metrla.gdata["num_edges"]
+        total_timestamps = metrla.gdata["total_timestamps"]
+
+        edge_list = metrla.get_edges()
+        edge_weights = metrla.get_edge_weights()
+        feats = metrla.get_all_features()
+        targets = metrla.get_all_targets()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    num_timesteps_in : int, optional
+        The number of timesteps the sequence model sees (default is 12)
+    num_timesteps_out : int, optional
+        The number of timesteps the sequence model has to predict (default is 12)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _num_timesteps_in : int
+        The number of timesteps the sequence model sees
+    _num_timesteps_out : int
+        The number of timesteps the sequence model has to predict
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_features : numpy.ndarray
+        Numpy array of the node feature value
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    """
 
     def __init__(
         self: METRLADataLoader,
@@ -20,81 +94,7 @@ class METRLADataLoader(STGraphTemporalDataset):
         cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Traffic forecasting dataset based on the Los Angeles city..
-
-        A dataset for predicting traffic patterns in the Los Angeles Metropolitan area,
-        comprising traffic data obtained from 207 loop detectors on highways in Los
-        Angeles County. The dataset includes aggregated 5-minute interval readings
-        spanning a four-month period from March 2012 to June 2012.
-
-        This class provides functionality for loading, processing, and accessing
-        the METRLA dataset for use in deep learning tasks such as traffic
-        forecasting.
-
-        .. list-table:: gdata
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 207
-              - 1722
-              - 100
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import METRLADataLoader
-
-            metrla = METRLADataLoader(verbose=True)
-            num_nodes = metrla.gdata["num_nodes"]
-            num_edges = metrla.gdata["num_edges"]
-            total_timestamps = metrla.gdata["total_timestamps"]
-
-            edge_list = metrla.get_edges()
-            edge_weights = metrla.get_edge_weights()
-            feats = metrla.get_all_features()
-            targets = metrla.get_all_targets()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        num_timesteps_in : int, optional
-            The number of timesteps the sequence model sees (default is 12)
-        num_timesteps_out : int, optional
-            The number of timesteps the sequence model has to predict (default is 12)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _num_timesteps_in : int
-            The number of timesteps the sequence model sees
-        _num_timesteps_out : int
-            The number of timesteps the sequence model has to predict
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_features : numpy.ndarray
-            Numpy array of the node feature value
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        """
+        """Traffic forecasting based on the Los Angeles city."""
         super().__init__()
 
         if not isinstance(num_timesteps_in, int):
