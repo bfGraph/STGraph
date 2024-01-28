@@ -52,8 +52,6 @@ class METRLADataLoader(STGraphTemporalDataset):
     ----------
     verbose : bool, optional
         Flag to control whether to display verbose info (default is False)
-    url : str, optional
-        The URL from where the dataset is downloaded online (default is None)
     num_timesteps_in : int, optional
         The number of timesteps the sequence model sees (default is 12)
     num_timesteps_out : int, optional
@@ -67,28 +65,13 @@ class METRLADataLoader(STGraphTemporalDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _num_timesteps_in : int
-        The number of timesteps the sequence model sees
-    _num_timesteps_out : int
-        The number of timesteps the sequence model has to predict
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset
-    _edge_weights : numpy.ndarray
-        Numpy array of the edge weights
-    _all_features : numpy.ndarray
-        Numpy array of the node feature value
-    _all_targets : numpy.ndarray
-        Numpy array of the node target value
+    gdata : dict
+        Graph meta data.
     """
 
     def __init__(
         self: METRLADataLoader,
         verbose: bool = True,
-        url: str | None = None,
         num_timesteps_in: int = 12,
         num_timesteps_out: int = 12,
         cutoff_time: int | None = None,
@@ -113,6 +96,7 @@ class METRLADataLoader(STGraphTemporalDataset):
             raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "METRLA"
+        self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/METRLA.json"
         self._verbose = verbose
         self._num_timesteps_in = num_timesteps_in
         self._num_timesteps_out = num_timesteps_out
@@ -121,11 +105,6 @@ class METRLADataLoader(STGraphTemporalDataset):
         self._edge_weights = None
         self._all_features = None
         self._all_targets = None
-
-        if not url:
-            self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/METRLA.json"
-        else:
-            self._url = url
 
         if redownload and self._has_dataset_cache():
             self._delete_cached_dataset()

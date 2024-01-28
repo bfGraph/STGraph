@@ -52,8 +52,6 @@ class CoraDataLoader(STGraphStaticDataset):
     ----------
     verbose : bool, optional
         Flag to control whether to display verbose info (default is False)
-    url : str, optional
-        The URL from where the dataset is downloaded online (default is None)
     redownload : bool, optional (default is False)
         Redownload the dataset online and save to cache
 
@@ -61,35 +59,26 @@ class CoraDataLoader(STGraphStaticDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _edge_list : np.ndarray
-        The edge list of the graph dataset
-    _all_features : np.ndarray
-        Numpy array of the node features
-    _all_targets : np.ndarray
-        Numpy array of the node target features
+    gdata : dict
+        Graph meta data.
     """
 
     def __init__(
         self: CoraDataLoader,
         verbose: bool = False,
-        url: str | None = None,
         redownload: bool = False,
     ) -> None:
         """Citation network consisting of scientific publications."""
         super().__init__()
 
         self.name = "Cora"
+        self._url = (
+            "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json"
+        )
         self._verbose = verbose
         self._edge_list = None
         self._all_features = None
         self._all_targets = None
-
-        if not url:
-            self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json"
-        else:
-            self._url = url
 
         if redownload and self._has_dataset_cache():
             self._delete_cached_dataset()

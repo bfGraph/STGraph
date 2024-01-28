@@ -53,8 +53,6 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
     ----------
     verbose : bool, optional
         Flag to control whether to display verbose info (default is False)
-    url : str, optional
-        The URL from where the dataset is downloaded online (default is None)
     lags : int, optional
         The number of time lags (default is 4)
     cutoff_time : int, optional
@@ -66,26 +64,13 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
     ----------
     name : str
         The name of the dataset.
-    _verbose : bool
-        Flag to control whether to display verbose info.
-    _lags : int
-        The number of time lags
-    _cutoff_time : int
-        The cutoff timestamp for the temporal dataset
-    _edge_list : list
-        The edge list of the graph dataset
-    _edge_weights : numpy.ndarray
-        Numpy array of the edge weights
-    _all_targets : numpy.ndarray
-        Numpy array of the node target value
-    _all_features : numpy.ndarray
-        Numpy array of the node feature value
+    gdata : dict
+        Graph meta data.
     """
 
     def __init__(
         self: MontevideoBusDataLoader,
         verbose: bool = False,
-        url: str | None = None,
         lags: int = 4,
         cutoff_time: int | None = None,
         redownload: bool = False,
@@ -106,14 +91,10 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
             raise ValueError("cutoff_time must be greater than lags")
 
         self.name = "Montevideo_Bus"
+        self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/montevideobus.json"
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
-
-        if not url:
-            self._url = "https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/montevideobus.json"
-        else:
-            self._url = url
 
         if redownload and self._has_dataset_cache():
             self._delete_cached_dataset()
