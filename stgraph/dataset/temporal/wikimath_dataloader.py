@@ -1,4 +1,4 @@
-r"""Temporal dataset of vital mathematical articles sourced from Wikipedia."""
+r"""Vital mathematical articles sourced from Wikipedia."""
 
 from __future__ import annotations
 
@@ -8,7 +8,76 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class WikiMathDataLoader(STGraphTemporalDataset):
-    r"""Temporal dataset of vital mathematical articles sourced from Wikipedia."""
+    r"""Vital mathematical articles sourced from Wikipedia.
+
+    The graph dataset is static, with vertices representing Wikipedia pages and
+    edges representing links. The graph is both directed and weighted, where
+    the weights indicate the number of links originating from the source page
+    connecting to the target page. The target is the daily user visits to the
+    Wikipedia pages between March 16th 2019 and March 15th 2021 which results
+    in 731 periods.
+
+    This class provides functionality for loading, processing, and accessing
+    the Hungary Chickenpox dataset for use in deep learning tasks such as County
+    level case count prediction.
+
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 1068
+          - 27079
+          - 731
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import WikiMathDataLoader
+
+        wiki = WikiMathDataLoader(verbose=True)
+        num_nodes = wiki.gdata["num_nodes"]
+        num_edges = wiki.gdata["num_edges"]
+        total_timestamps = wiki.gdata["total_timestamps"]
+
+        edge_list = wiki.get_edges()
+        edge_weights = wiki.get_edge_weights()
+        targets = wiki.get_all_targets()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 8)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    """
 
     def __init__(
         self: WikiMathDataLoader,
@@ -18,76 +87,7 @@ class WikiMathDataLoader(STGraphTemporalDataset):
         cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Temporal dataset of vital mathematical articles sourced from Wikipedia.
-
-        The graph dataset is static, with vertices representing Wikipedia pages and
-        edges representing links. The graph is both directed and weighted, where
-        the weights indicate the number of links originating from the source page
-        connecting to the target page. The target is the daily user visits to the
-        Wikipedia pages between March 16th 2019 and March 15th 2021 which results
-        in 731 periods.
-
-        This class provides functionality for loading, processing, and accessing
-        the Hungary Chickenpox dataset for use in deep learning tasks such as County
-        level case count prediction.
-
-        .. list-table:: gdata
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 1068
-              - 27079
-              - 731
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import WikiMathDataLoader
-
-            wiki = WikiMathDataLoader(verbose=True)
-            num_nodes = wiki.gdata["num_nodes"]
-            num_edges = wiki.gdata["num_edges"]
-            total_timestamps = wiki.gdata["total_timestamps"]
-
-            edge_list = wiki.get_edges()
-            edge_weights = wiki.get_edge_weights()
-            targets = wiki.get_all_targets()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 8)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        """
+        r"""Vital mathematical articles sourced from Wikipedia."""
         super().__init__()
 
         if not isinstance(lags, int):

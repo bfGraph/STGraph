@@ -1,4 +1,4 @@
-"""Temporal dataset for County level chicken pox cases in Hungary."""
+"""County level chicken pox cases in Hungary."""
 
 from __future__ import annotations
 
@@ -8,7 +8,69 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class HungaryCPDataLoader(STGraphTemporalDataset):
-    """Temporal dataset provided for County level chicken pox cases in Hungary."""
+    r"""County level chicken pox cases in Hungary.
+
+    This dataset comprises information on weekly occurrences of chickenpox
+    in Hungary from 2005 to 2015. The graph structure is static with nodes
+    representing the counties and edges are neighbourhoods between them.
+    Vertex features are lagged weekly counts of the chickenpox cases.
+
+    This class provides functionality for loading, processing, and accessing
+    the Hungary Chickenpox dataset for use in deep learning tasks such as
+    County level case count prediction.
+
+    .. list-table:: gdata
+        :widths: 33 33 33
+        :header-rows: 1
+
+        * - num_nodes
+          - num_edges
+          - total_timestamps
+        * - 20
+          - 102
+          - 521
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from stgraph.dataset import HungaryCPDataLoader
+
+        hungary = HungaryCPDataLoader(verbose=True)
+        num_nodes = hungary.gdata["num_nodes"]
+        edge_list = hungary.get_edges()
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Flag to control whether to display verbose info (default is False)
+    url : str, optional
+        The URL from where the dataset is downloaded online (default is None)
+    lags : int, optional
+        The number of time lags (default is 4)
+    cutoff_time : int, optional
+        The cutoff timestamp for the temporal dataset (default is None)
+    redownload : bool, optional (default is False)
+        Redownload the dataset online and save to cache
+
+    Attributes
+    ----------
+    name : str
+        The name of the dataset.
+    _verbose : bool
+        Flag to control whether to display verbose info.
+    _lags : int
+        The number of time lags
+    _cutoff_time : int
+        The cutoff timestamp for the temporal dataset
+    _edge_list : list
+        The edge list of the graph dataset
+    _edge_weights : numpy.ndarray
+        Numpy array of the edge weights
+    _all_targets : numpy.ndarray
+        Numpy array of the node target value
+    """
 
     def __init__(
         self: HungaryCPDataLoader,
@@ -18,69 +80,7 @@ class HungaryCPDataLoader(STGraphTemporalDataset):
         cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""County level chicken pox cases in Hungary.
-
-        This dataset comprises information on weekly occurrences of chickenpox
-        in Hungary from 2005 to 2015. The graph structure is static with nodes
-        representing the counties and edges are neighbourhoods between them.
-        Vertex features are lagged weekly counts of the chickenpox cases.
-
-        This class provides functionality for loading, processing, and accessing
-        the Hungary Chickenpox dataset for use in deep learning tasks such as
-        County level case count prediction.
-
-        .. list-table:: gdata
-            :widths: 33 33 33
-            :header-rows: 1
-
-            * - num_nodes
-              - num_edges
-              - total_timestamps
-            * - 20
-              - 102
-              - 521
-
-        Example
-        -------
-
-        .. code-block:: python
-
-            from stgraph.dataset import HungaryCPDataLoader
-
-            hungary = HungaryCPDataLoader(verbose=True)
-            num_nodes = hungary.gdata["num_nodes"]
-            edge_list = hungary.get_edges()
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Flag to control whether to display verbose info (default is False)
-        url : str, optional
-            The URL from where the dataset is downloaded online (default is None)
-        lags : int, optional
-            The number of time lags (default is 4)
-        cutoff_time : int, optional
-            The cutoff timestamp for the temporal dataset (default is None)
-        redownload : bool, optional (default is False)
-            Redownload the dataset online and save to cache
-
-        Attributes
-        ----------
-        name : str
-            The name of the dataset.
-        _verbose : bool
-            Flag to control whether to display verbose info.
-        _lags : int
-            The number of time lags
-        _cutoff_time : int
-            The cutoff timestamp for the temporal dataset
-        _edge_list : list
-            The edge list of the graph dataset
-        _edge_weights : numpy.ndarray
-            Numpy array of the edge weights
-        _all_targets : numpy.ndarray
-            Numpy array of the node target value
-        """
+        """County level chicken pox cases in Hungary."""
         super().__init__()
 
         if not isinstance(lags, int):
