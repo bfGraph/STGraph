@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 import numpy as np
 
 from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDataset
@@ -186,7 +185,6 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
 
     def _set_features(self: MontevideoBusDataLoader) -> None:
         r"""Calculate and set the feature attributes."""
-
         features = [
             np.array(node.get("X").get(feature_var)[: self.gdata["total_timestamps"]])
             for node in self._dataset["nodes"]
