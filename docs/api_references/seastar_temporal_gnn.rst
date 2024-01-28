@@ -1,2 +1,0 @@
-STGraph Temporal GNN
-####################

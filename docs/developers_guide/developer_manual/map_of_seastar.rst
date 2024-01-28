@@ -1,2 +1,0 @@
-Map of STGraph Repository
-#########################
