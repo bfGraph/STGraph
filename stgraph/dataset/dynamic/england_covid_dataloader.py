@@ -1,27 +1,33 @@
+"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions."""
+
+from __future__ import annotations
+
 import numpy as np
 
-from stgraph.dataset.dynamic.STGraphDynamicDataset import STGraphDynamicDataset
+from stgraph.dataset.dynamic.stgraph_dynamic_dataset import STGraphDynamicDataset
 
 
 class EnglandCovidDataLoader(STGraphDynamicDataset):
+    """Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions."""
+
     def __init__(
-        self,
+        self: EnglandCovidDataLoader,
         verbose: bool = False,
-        url: str = None,
+        url: str | None = None,
         lags: int = 8,
-        cutoff_time: int = None,
+        cutoff_time: int | None = None,
         redownload: bool = False,
     ) -> None:
-        r"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions
+        r"""Dynamic dataset tracking COVID-19 cases in England's NUTS3 regions.
 
         This dataset captures the interplay between COVID-19 cases and mobility
         in England's NUTS3 regions from March 3rd to May 12th. It is a directed
         and weighted graph that offers daily case count and movement of people
         between each region through node and edge features respectively.
 
-        This class provides functionality for loading, processing, and accessing the England
-        Covid dataset for use in deep learning tasks such as predicting the COVID cases
-        in a region.
+        This class provides functionality for loading, processing, and accessing
+        the England Covid dataset for use in deep learning tasks such as predicting
+        the COVID cases in a region.
 
         Example
         -------
@@ -42,7 +48,6 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
 
         Parameters
         ----------
-
         verbose : bool, optional
             Flag to control whether to display verbose info (default is False)
         url : str, optional
@@ -56,7 +61,6 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
 
         Attributes
         ----------
-
         name : str
             The name of the dataset.
         _verbose : bool
@@ -80,6 +84,10 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         self._verbose = verbose
         self._lags = lags
         self._cutoff_time = cutoff_time
+        self._all_features = None
+        self._all_targets = None
+        self._edge_list = None
+        self._edge_weights = None
 
         if not url:
             self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
@@ -97,29 +105,30 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
 
         self._process_dataset()
 
-    def _process_dataset(self) -> None:
+    def _process_dataset(self: EnglandCovidDataLoader) -> None:
         self._set_total_timestamps()
         self._set_targets_and_features()
         self._set_edge_info()
         self._presort_edge_weights()
 
-    def _set_total_timestamps(self) -> None:
-        r"""Sets the total timestamps present in the dataset
+    def _set_total_timestamps(self: EnglandCovidDataLoader) -> None:
+        r"""Set the total timestamps present in the dataset.
 
         It sets the total timestamps present in the dataset into the
         gdata attribute dictionary. It is the minimum of the cutoff time
         choosen by the user and the total time periods present in the
         original dataset.
         """
-        if self._cutoff_time != None:
+        if self._cutoff_time:
             self.gdata["total_timestamps"] = min(
-                self._dataset["time_periods"], self._cutoff_time
+                self._dataset["time_periods"],
+                self._cutoff_time,
             )
         else:
             self.gdata["total_timestamps"] = self._dataset["time_periods"]
 
-    def _set_targets_and_features(self):
-        r"""Calculates and sets the target and feature attributes"""
+    def _set_targets_and_features(self: EnglandCovidDataLoader) -> None:
+        r"""Calculate and set the target and feature attributes."""
         stacked_target = np.array(self._dataset["y"])
         standardized_target = (stacked_target - np.mean(stacked_target, axis=0)) / (
             np.std(stacked_target, axis=0) + 10**-10
@@ -134,32 +143,35 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             for i in range(self.gdata["total_timestamps"] - self._lags)
         ]
 
-    def _set_edge_info(self):
-        r"""Sets edge info such as edge list and edge weights"""
+    def _set_edge_info(self: EnglandCovidDataLoader) -> None:
+        r"""Set edge info such as edge list and edge weights."""
         self._edge_list = []
         self._edge_weights = []
 
         for time in range(self.gdata["total_timestamps"]):
-            time_edge_list = []
             time_edge_weights = []
 
-            for edge in self._dataset["edge_mapping"]["edge_index"][str(time)]:
-                time_edge_list.append((edge[0], edge[1]))
+            time_edge_list = [
+                (edge[0], edge[1])
+                for edge in self._dataset["edge_mapping"]["edge_index"][str(time)]
+            ]
 
-            for weight in self._dataset["edge_mapping"]["edge_weight"][str(time)]:
-                time_edge_weights.append(weight)
+            time_edge_weights = list(
+                self._dataset["edge_mapping"]["edge_weight"][str(time)],
+            )
 
             self._edge_list.append(time_edge_list)
             self._edge_weights.append(time_edge_weights)
             self.gdata["num_edges"][str(time)] = len(time_edge_list)
             self.gdata["num_nodes"][str(time)] = len(
-                {node for edge in time_edge_list for node in edge}
+                {node for edge in time_edge_list for node in edge},
             )
 
-    def _presort_edge_weights(self):
-        r"""
+    def _presort_edge_weights(self: EnglandCovidDataLoader) -> None:
+        r"""Presorting the edges.
+
         Presorting edges according to (dest,src) since that is how eids are formed
-        allowing forward and backward kernel to access edge weights
+        allowing forward and backward kernel to access edge weights.
         """
         final_edges_lst = []
         final_edge_weights_lst = []
@@ -172,13 +184,13 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
             edge_info_list = []
             sorted_edge_weights_lst = []
 
-            for j in range(len(weights)):
-                edge_info = (src_list[j], dst_list[j], weights[j])
-                edge_info_list.append(edge_info)
+            for src, dst, weight in zip(src_list, dst_list, weights):
+                edge_info_list.append((src, dst, weight))
 
             # since it has to be sorted according to the reverse order
             sorted_edge_info_list = sorted(
-                edge_info_list, key=lambda element: (element[1], element[0])
+                edge_info_list,
+                key=lambda element: (element[1], element[0]),
             )
 
             time_edge = []
@@ -193,18 +205,18 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         self._edge_list = final_edges_lst
         self._edge_weights = final_edge_weights_lst
 
-    def get_edges(self):
-        r"""Returns the edge list"""
+    def get_edges(self: EnglandCovidDataLoader) -> list:
+        r"""Return the edge list."""
         return self._edge_list
 
-    def get_edge_weights(self):
-        r"""Returns the edge weights"""
+    def get_edge_weights(self: EnglandCovidDataLoader) -> list:
+        r"""Return the edge weights."""
         return self._edge_weights
 
-    def get_all_features(self):
-        r"""Returns the features for each timestamp"""
+    def get_all_features(self: EnglandCovidDataLoader) -> list:
+        r"""Return the features for each timestamp."""
         return self._all_features
 
-    def get_all_targets(self):
-        r"""Returns the targets for each timestamp"""
+    def get_all_targets(self: EnglandCovidDataLoader) -> list:
+        r"""Return the targets for each timestamp."""
         return self._all_targets
