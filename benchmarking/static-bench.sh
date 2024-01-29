@@ -100,7 +100,7 @@ done
 cd ../..
 
 # (Static Temporal STGraph)
-cd static-temporal-tgcn/stgraph
+cd static-temporal-tgcn/seastar
 
 #  ---- (STGraph) WikiMaths ----
 

@@ -59,7 +59,7 @@ done
 cd ../..
 
 # Dynamic Temporal STGraph
-cd dynamic-temporal-tgcn/stgraph
+cd dynamic-temporal-tgcn/seastar
 
 echo "Running STGraph on all script for different slide sizes"
 
