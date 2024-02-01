@@ -3,10 +3,9 @@ import numpy as np
 import torch
 import snoop
 import pynvml
-import torch.nn as nn
 import torch.nn.functional as F
-from stgraph.graph.static.StaticGraph_old import StaticGraph
-from stgraph.dataset.CoraDataLoader import CoraDataLoader
+from stgraph.graph import CSRGraph
+from stgraph.dataset import CoraDataLoader
 from utils import to_default_device, accuracy
 from model import GCN
 
@@ -15,7 +14,7 @@ def main(args):
     cora = CoraDataLoader(verbose=True)
 
     # To account for the initial CUDA Context object for pynvml
-    tmp = StaticGraph([(0, 0)], [1], 1)
+    tmp = CSRGraph([(0, 0)], [1], 1)
 
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())

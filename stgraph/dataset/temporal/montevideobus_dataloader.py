@@ -66,6 +66,7 @@ class MontevideoBusDataLoader(STGraphTemporalDataset):
         The name of the dataset.
     gdata : dict
         Graph meta data.
+
     """
 
     def __init__(
