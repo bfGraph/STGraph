@@ -19,11 +19,8 @@ def CoraDataCheck(cora: CoraDataLoader):
 
 
 def test_CoraDataLoader():
-    cora = CoraDataLoader()
-
-    cora_1 = CoraDataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/cora.json",
-    )
+    cora = CoraDataLoader(verbose=True)
+    cora_1 = CoraDataLoader(redownload=True)
 
     CoraDataCheck(cora)
     CoraDataCheck(cora_1)

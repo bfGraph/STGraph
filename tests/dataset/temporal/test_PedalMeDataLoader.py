@@ -29,18 +29,14 @@ def PedalMeDataCheck(pedal: PedalMeDataLoader):
 
 def test_PedalMeDataLoader():
     pedal_1 = PedalMeDataLoader(verbose=True)
-    pedal_2 = PedalMeDataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/pedalme.json"
-    )
+    pedal_2 = PedalMeDataLoader(redownload=True)
     pedal_3 = PedalMeDataLoader(lags=6)
     pedal_4 = PedalMeDataLoader(cutoff_time=20)
-    # pedal_5 = PedalMeDataLoader(redownload=True)
 
     PedalMeDataCheck(pedal_1)
     PedalMeDataCheck(pedal_2)
     PedalMeDataCheck(pedal_3)
     PedalMeDataCheck(pedal_4)
-    # PedalMeDataCheck(pedal_5)
 
     with pytest.raises(TypeError) as exec:
         PedalMeDataLoader(lags="lags")

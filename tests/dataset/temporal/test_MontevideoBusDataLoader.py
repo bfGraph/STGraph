@@ -36,12 +36,9 @@ def MontevideoBusDataCheck(monte: MontevideoBusDataLoader):
 
 def test_MontevideoBusDataLoader():
     monte_1 = MontevideoBusDataLoader(verbose=True)
-    monte_2 = MontevideoBusDataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/montevideobus.json"
-    )
+    monte_2 = MontevideoBusDataLoader(redownload=True)
     monte_3 = MontevideoBusDataLoader(lags=6)
     monte_4 = MontevideoBusDataLoader(cutoff_time=50)
-    # monte_5 = MontevideoBusDataLoader(redownload=True)
 
     MontevideoBusDataCheck(monte_1)
     MontevideoBusDataCheck(monte_2)
