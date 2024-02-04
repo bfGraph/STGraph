@@ -44,7 +44,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black",
-    "pytest",
+    "pytest >= 7.4.3",
+    "pytest-cov >= 4.1.0",
     "tqdm >= 4.64.1",
     "build >= 0.10.0",
     "gdown >= 4.6.6",

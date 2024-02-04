@@ -67,6 +67,7 @@ class STGraphDataset(ABC):
 
         _load_dataset()
         Loads the dataset from cache
+
         """
         self.name = ""
         self.gdata = {}
@@ -106,6 +107,7 @@ class STGraphDataset(ABC):
                 # The dataset is cached, continue cached operations
             else:
                 # The dataset is not cached, continue load and save operations
+
         """
         user_home_dir = os.path.expanduser("~")
         stgraph_dir = user_home_dir + "/.stgraph"
@@ -128,6 +130,7 @@ class STGraphDataset(ABC):
         -------
         str
             The absolute path of the cached dataset file
+
         """
         user_home_dir = os.path.expanduser("~")
         stgraph_dir = user_home_dir + "/.stgraph"

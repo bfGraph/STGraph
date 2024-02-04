@@ -28,14 +28,12 @@ def test_HungaryCPDataLoader():
     hungary_1 = HungaryCPDataLoader(verbose=True)
     hungary_2 = HungaryCPDataLoader(lags=6)
     hungary_3 = HungaryCPDataLoader(cutoff_time=100)
-    hungary_4 = HungaryCPDataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/HungaryCP.json"
-    )
+    hungary_4 = HungaryCPDataLoader(redownload=True)
 
     HungaryCPDataChecker(hungary_1)
     HungaryCPDataChecker(hungary_2)
     HungaryCPDataChecker(hungary_3)
-    # HungaryCPDataChecker(hungary_4)
+    HungaryCPDataChecker(hungary_4)
 
     with pytest.raises(TypeError) as exec:
         HungaryCPDataLoader(lags="lags")

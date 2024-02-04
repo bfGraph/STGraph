@@ -38,24 +38,16 @@ def WindmillOutputDataCheck(wind: WindmillOutputDataLoader):
 
 
 def test_WindmillOutputDataLoader():
-    urls = {
-        "large": "https://graphmining.ai/temporal_datasets/windmill_output.json",
-        "medium": "https://graphmining.ai/temporal_datasets/windmill_output_medium.json",
-        "small": "https://graphmining.ai/temporal_datasets/windmill_output_small.json",
-    }
-
     for size in ["large", "medium", "small"]:
         wind_1 = WindmillOutputDataLoader(verbose=True, size=size)
-        wind_2 = WindmillOutputDataLoader(url=urls[size], size=size)
+        wind_2 = WindmillOutputDataLoader(redownload=True, size=size)
         wind_3 = WindmillOutputDataLoader(lags=4, size=size)
         wind_4 = WindmillOutputDataLoader(cutoff_time=100, size=size)
-        # wind_5 = WindmillOutputDataLoader(redownload=True, size=size)
 
         WindmillOutputDataCheck(wind_1)
         WindmillOutputDataCheck(wind_2)
         WindmillOutputDataCheck(wind_3)
         WindmillOutputDataCheck(wind_4)
-        # WindmillOutputDataCheck(wind_5)
 
         with pytest.raises(TypeError) as exec:
             WindmillOutputDataLoader(lags="lags", size=size)
@@ -72,3 +64,14 @@ def test_WindmillOutputDataLoader():
         with pytest.raises(ValueError) as exec:
             WindmillOutputDataLoader(cutoff_time=-1, size=size)
         assert str(exec.value) == "cutoff_time must be a positive integer"
+
+    with pytest.raises(TypeError) as exec:
+        WindmillOutputDataLoader(size=1)
+    assert str(exec.value) == "size must be of type string"
+
+    with pytest.raises(ValueError) as exec:
+        WindmillOutputDataLoader(size="big")
+    assert (
+        str(exec.value) == "size must take either of the following values : "
+        "large, medium or small"
+    )
