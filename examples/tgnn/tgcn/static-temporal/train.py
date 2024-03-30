@@ -36,12 +36,26 @@ def main(args):
         dataloader = WikiMathDataLoader(
             verbose=True, lags=args.feat_size, cutoff_time=args.cutoff_time
         )
-    elif args.dataset == "windmill":
+    elif args.dataset == "windmill_small":
         dataloader = WindmillOutputDataLoader(
             verbose=True,
             lags=args.feat_size,
             cutoff_time=args.cutoff_time,
             size="small",
+        )
+    elif args.dataset == "windmill_medium":
+        dataloader = WindmillOutputDataLoader(
+            verbose=True,
+            lags=args.feat_size,
+            cutoff_time=args.cutoff_time,
+            size="medium",
+        )
+    elif args.dataset == "windmill_large":
+        dataloader = WindmillOutputDataLoader(
+            verbose=True,
+            lags=args.feat_size,
+            cutoff_time=args.cutoff_time,
+            size="large",
         )
     elif args.dataset == "hungarycp":
         dataloader = HungaryCPDataLoader(
@@ -146,6 +160,7 @@ def main(args):
                     y_out, y_hat, hidden_state = model(
                         G, y_hat, edge_weight, hidden_state
                     )
+                    breakpoint()
                     cost = cost + torch.mean((y_out - targets[t]) ** 2)
 
                 if cost == 0:
@@ -233,12 +248,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-hidden", type=int, default=100, help="Number of hidden units"
     )
-    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
+    parser.add_argument("--lr", type=float, default=1e-2, help="Learning rate")
     parser.add_argument(
-        "--cutoff-time", type=int, default=sys.maxsize, help="learning rate"
+        "--cutoff-time",
+        type=int,
+        default=sys.maxsize,
+        help="Cutoff time for the dataset",
     )
     parser.add_argument(
-        "--num-epochs", type=int, default=1, help="number of training epochs"
+        "--num-epochs", type=int, default=1, help="Number of training epochs"
     )
     args = parser.parse_args()
 
