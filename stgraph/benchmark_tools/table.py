@@ -3,8 +3,6 @@ from __future__ import annotations
 from rich.console import Console
 from rich.table import Table
 
-console = Console()
-
 
 class BenchmarkTable:
     def __init__(self, title: str, col_name_list: list[str]):
@@ -24,5 +22,9 @@ class BenchmarkTable:
         values_str = tuple([str(val) for val in values])
         self._table.add_row(*values_str)
 
-    def display(self):
+    def display(self, output_file=None):
+        if not output_file:
+            console = Console()
+        else:
+            console = Console(file=output_file)
         console.print(self._table)
