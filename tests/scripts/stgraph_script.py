@@ -31,7 +31,7 @@ if __name__ == "__main__":
         "-t",
         "--testpack-names",
         nargs="*",
-        default=["temporal_tgcn_dataloaders"],
+        default=["temporal_tgcn_dataloaders", "gcn_dataloaders"],
         help="Names of the testpacks to be executed",
     )
 

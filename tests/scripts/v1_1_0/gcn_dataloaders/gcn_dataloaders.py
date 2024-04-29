@@ -4,7 +4,7 @@ import argparse
 
 from rich.console import Console
 from rich.table import Table
-from tgcn.train import train
+from gcn.train import train
 
 console = Console()
 
@@ -13,37 +13,25 @@ def main(args):
     output_folder_path = args.output
 
     testpack_properties = {
-        "Name": "Temporal TGCN",
-        "Description": "Testing the TGCN model on temporal datasets",
+        "Name": "GCN",
+        "Description": "Testing the GCN model on static datasets",
     }
 
     console.rule(
         f"[bold yellow]{testpack_properties['Name']}: {testpack_properties['Description']}"
     )
 
-    # for prop_name, prop_value in testpack_properties.items():
-    #     console.print(f"[cyan bold]{prop_name}[/cyan bold] : {prop_value}")
-
     # if the value if set to "Y", then the tests are executed for the given
     # dataset. Else if set to "N", then it is ignored.
-    temporal_datasets = {
-        "Hungary_Chickenpox": "Y",
-        "METRLA": "N",
-        "Montevideo_Bus": "Y",
-        "PedalMe": "Y",
-        "WikiMath": "Y",
-        "WindMill_large": "Y",
+    gcn_datasets = {
+        "Cora": "Y",
     }
 
     dataset_results = {}
 
-    for dataset_name, execute_choice in temporal_datasets.items():
+    for dataset_name, execute_choice in gcn_datasets.items():
         if execute_choice == "Y":
             print(f"Started training TGCN on {dataset_name}")
-
-            # train_process = subprocess.run(
-            #     ["bash", "train_tgcn.sh", dataset_name, "8", "16"]
-            # )
 
             output_file_path = output_folder_path + "/" + dataset_name + ".txt"
             if os.path.exists(output_file_path):
@@ -52,21 +40,19 @@ def main(args):
             result = train(
                 dataset=dataset_name,
                 num_hidden=16,
-                feat_size=8,
                 lr=0.01,
-                backprop_every=0,
                 num_epochs=30,
+                num_layers=1,
+                weight_decay=5e-4,
+                self_loops=False,
                 output_file_path=output_file_path,
             )
-
-            # breakpoint()
 
             dataset_results[dataset_name] = result
 
             print(f"Finished training TGCN on {dataset_name}")
 
-    # printing the summary of the run
-    table = Table(title="Temporal-TGCN Results")
+    table = Table(title="GCN Results")
 
     table.add_column("Dataset", justify="right")
     table.add_column("Status", justify="left")
@@ -84,7 +70,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="STGraph Test Script for temporal_tgcn_dataloaders"
+        description="STGraph Test Script for gcn_dataloaders"
     )
 
     parser.add_argument(
