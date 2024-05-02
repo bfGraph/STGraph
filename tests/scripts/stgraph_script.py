@@ -24,6 +24,7 @@ if __name__ == "__main__":
         "--version",
         type=str,
         default="1_1_0",
+        choices=["1_1_0"],
         help="Version of STGraph",
     )
 
@@ -32,6 +33,7 @@ if __name__ == "__main__":
         "--testpack-names",
         nargs="*",
         default=["temporal_tgcn_dataloaders", "gcn_dataloaders"],
+        choices=["temporal_tgcn_dataloaders", "gcn_dataloaders"],
         help="Names of the testpacks to be executed",
     )
 
