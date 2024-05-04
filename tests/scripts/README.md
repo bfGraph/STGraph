@@ -65,14 +65,14 @@ To get a better idea on how to develop your scripts, it is advised to refer to p
 
 ## List of Modules Tested
 
-| Module                   | Test Pack Name               | Initial Version Release |
-| ------------------------ | ---------------------------- | ----------------------- |
-| GraphConv                | gcn_dataloaders.py           | `v1.1.0`                |
-| CoraDataLoader           | gcn_dataloaders.py           | `v1.1.0`                |
-| TGCN                     | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| HungaryCPDataLoader      | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| METRLADataLoader         | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| MontevideoBusDataLoader  | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| PedalMeDataLoader        | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| WikiMathDataLoader       | temporal_tgcn_dataloaders.py | `v1.1.0`                |
-| WindmillOutputDataLoader | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| Module                   | Test Pack Name            | Initial Version Release |
+| ------------------------ | ------------------------- | ----------------------- |
+| GraphConv                | gcn_dataloaders           | `v1.1.0`                |
+| CoraDataLoader           | gcn_dataloaders           | `v1.1.0`                |
+| TGCN                     | temporal_tgcn_dataloaders | `v1.1.0`                |
+| HungaryCPDataLoader      | temporal_tgcn_dataloaders | `v1.1.0`                |
+| METRLADataLoader         | temporal_tgcn_dataloaders | `v1.1.0`                |
+| MontevideoBusDataLoader  | temporal_tgcn_dataloaders | `v1.1.0`                |
+| PedalMeDataLoader        | temporal_tgcn_dataloaders | `v1.1.0`                |
+| WikiMathDataLoader       | temporal_tgcn_dataloaders | `v1.1.0`                |
+| WindmillOutputDataLoader | temporal_tgcn_dataloaders | `v1.1.0`                |
