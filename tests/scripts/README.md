@@ -54,3 +54,16 @@ tests/
 ```
 
 By adhering to this protocol, the project maintains a structured and reliable testing framework, ensuring correctness and stability across successive releases.
+
+### Test Script Creation Protocol
+
+When preparing to write test scripts for newly implemented functionalities, ensure adherence to the following protocol
+
+1. **Choose a Descriptive Name:** Select a meaningful and self-documenting name for your testpack, following the lower snake-case convention.
+2. **Create Testpack Folder**: Within the current development version of STGraph, create a folder bearing the chosen testpack name.
+3. **Script Creation**: Craft a Python script named `<testpack_name>.py`, containing the necessary testing logic.
+4. **Supplementary Files**: Include any additional folders and files deemed necessary for testing within the testpack folder.
+5. **Status Reporting**: Ensure that the Python script incorporates a mechanism to display the status of test cases effectively on the screen.
+6. **Integration with STGraph Script**: Incorporate your newly created testpack as a selectable option for the `--testpack-names` command-line argument within `stgraph_script.py`
+
+To get a better idea on how to develop your scripts, it is advised to refer to previously maintained scripts. This practice ensures uniformity and easier maintenance across all scripts.
