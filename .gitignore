@@ -28,3 +28,6 @@ dist
 .coverage
 dev-stgraph/
 htmlconv/
+*.txt
+egl_kernel.cu
+egl_kernel.ptx
