@@ -1,11 +1,6 @@
 # STGraph Script Testing
 
-Within this directory are scripts intended for manual execution by users or developers outside of the automated testing suite for STGraph. These scripts are primarily designed to assess the functionality of the following modules, whose correctness cannot be directly unit tested using PyTest:
-
-1. Graph Neural Network (GNN) Layers
-2. Temporal Graph Neural Network (TGNN) Layers
-3. GNN Dataloaders
-4. TGNN Dataloaders
+Within this directory are scripts intended for manual execution by users or developers outside of the automated testing suite for STGraph. These scripts are primarily designed to assess the functionality of the following modules, whose correctness cannot be directly unit tested using PyTest. A table containing such modules can be found in the [List of Modules Tested](#list-of-modules-tested) section.
 
 Additional scripts may be added as the project evolves.
 
@@ -67,3 +62,17 @@ When preparing to write test scripts for newly implemented functionalities, ensu
 6. **Integration with STGraph Script**: Incorporate your newly created testpack as a selectable option for the `--testpack-names` command-line argument within `stgraph_script.py`
 
 To get a better idea on how to develop your scripts, it is advised to refer to previously maintained scripts. This practice ensures uniformity and easier maintenance across all scripts.
+
+## List of Modules Tested
+
+| Module                   | Test Pack Name               | Initial Version Release |
+| ------------------------ | ---------------------------- | ----------------------- |
+| GraphConv                | gcn_dataloaders.py           | `v1.1.0`                |
+| CoraDataLoader           | gcn_dataloaders.py           | `v1.1.0`                |
+| TGCN                     | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| HungaryCPDataLoader      | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| METRLADataLoader         | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| MontevideoBusDataLoader  | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| PedalMeDataLoader        | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| WikiMathDataLoader       | temporal_tgcn_dataloaders.py | `v1.1.0`                |
+| WindmillOutputDataLoader | temporal_tgcn_dataloaders.py | `v1.1.0`                |
