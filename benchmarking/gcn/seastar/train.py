@@ -20,8 +20,8 @@ def main(args):
     features = torch.FloatTensor(cora.get_all_features())
     labels = torch.LongTensor(cora.get_all_targets())
 
-    train_mask = cora.get_train_mask()
-    test_mask = cora.get_test_mask()
+    train_mask = generate_train_mask(len(features), 0.6)
+    test_mask = generate_test_mask(len(features), 0.6)
 
     train_mask = torch.BoolTensor(train_mask)
     test_mask = torch.BoolTensor(test_mask)
@@ -47,9 +47,7 @@ def main(args):
 
     # A simple sanity check
     print("Measuerd Graph Size (pynvml): ", graph_mem, " B", flush=True)
-    print(
-        "Measuerd Graph Size (pynvml): ", (graph_mem) / (1024**2), " MB", flush=True
-    )
+    print("Measuerd Graph Size (pynvml): ", (graph_mem) / (1024**2), " MB", flush=True)
 
     # normalization
     degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)
