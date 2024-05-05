@@ -11,15 +11,6 @@ class STGraphBase(ABC):
     Attributes
     ----------
 
-    _ndata : dict
-        Dictionary that stores node related data
-
-    _forward_graph
-        The forward graph object used for forward propagation
-
-    _backward_graph
-        The backward graph object used for backward propagation
-
     fwd_row_offset_ptr
         Pointer to the forward graphs row offset array
 
