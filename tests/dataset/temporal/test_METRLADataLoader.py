@@ -25,12 +25,9 @@ def METRLADataCheck(metrla: METRLADataLoader):
 
 def test_METRLADataLoader():
     metrla_1 = METRLADataLoader(verbose=True)
-    metrla_2 = METRLADataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/METRLA.json"
-    )
+    metrla_2 = METRLADataLoader(redownload=True)
     metrla_3 = METRLADataLoader(num_timesteps_in=8, num_timesteps_out=8)
     metrla_4 = METRLADataLoader(cutoff_time=50)
-    # metrla_5 = METRLADataLoader(redownload=True)
 
     METRLADataCheck(metrla_1)
     METRLADataCheck(metrla_2)

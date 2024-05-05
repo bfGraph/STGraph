@@ -26,18 +26,14 @@ def WikiMathDataCheck(wiki: WikiMathDataLoader):
 
 def test_WikiMathDataLoader():
     wiki_1 = WikiMathDataLoader(verbose=True)
-    wiki_2 = WikiMathDataLoader(
-        url="https://raw.githubusercontent.com/bfGraph/STGraph-Datasets/main/wikivital_mathematics.json"
-    )
+    wiki_2 = WikiMathDataLoader(redownload=True)
     wiki_3 = WikiMathDataLoader(lags=4)
     wiki_4 = WikiMathDataLoader(cutoff_time=500)
-    # wiki_5 = WikiMathDataLoader(redownload=True)
 
     WikiMathDataCheck(wiki_1)
     WikiMathDataCheck(wiki_2)
     WikiMathDataCheck(wiki_3)
     WikiMathDataCheck(wiki_4)
-    # WikiMathDataCheck(wiki_5)
 
     with pytest.raises(TypeError) as exec:
         WikiMathDataLoader(lags="lags")

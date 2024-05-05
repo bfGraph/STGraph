@@ -53,6 +53,7 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
         The name of the dataset.
     gdata : dict
         Graph meta data.
+
     """
 
     def __init__(
@@ -64,6 +65,16 @@ class EnglandCovidDataLoader(STGraphDynamicDataset):
     ) -> None:
         """COVID-19 cases in England's NUTS3 regions."""
         super().__init__()
+
+        if not isinstance(lags, int):
+            raise TypeError("lags must be of type int")
+        if lags < 0:
+            raise ValueError("lags must be a positive integer")
+
+        if cutoff_time is not None and not isinstance(cutoff_time, int):
+            raise TypeError("cutoff_time must be of type int")
+        if cutoff_time is not None and cutoff_time < 0:
+            raise ValueError("cutoff_time must be a positive integer")
 
         self.name = "England_COVID"
         self._url = "https://raw.githubusercontent.com/benedekrozemberczki/pytorch_geometric_temporal/master/dataset/england_covid.json"
