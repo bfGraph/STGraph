@@ -1,3 +1,5 @@
+"""The auto-differentiation module"""
+
 from collections import deque, defaultdict
 import copy
 
@@ -12,7 +14,8 @@ from .passes import optimize, fuse, visualize
 from stgraph.compiler.debugging.stgraph_logger import print_log
 
 def diff(vars, grads, forward_units, fprog):
-    '''
+    """The forward graph differentiator
+    
     For each var we find the statment that computes it, then we use itself as well as its grad
     to get the statements to calculate or accumulate the gradient for each of its imputs. 
 
@@ -23,15 +26,17 @@ def diff(vars, grads, forward_units, fprog):
     variable. If the var is in stopping var, there is no need to propogate further as the task will
     be delegated to backend system.
     
-    args:
-        vars : the var that has gradient to propogate back. Determined by zoomOut
-        grads : the coresponding gradient for each var
-        forward_units : forward execution units
-
-    return:
-        BProg : differentiated program to compute the gradients
-        grad_map : the gradient map of vars
-    '''
+    :param vars: The var that has gradient to propogate back, determined by zoomOut
+    :type vars: Var
+    
+    :param grads: The coresponding gradient for each var
+    
+    :param forward_units: Forward execution units
+    
+    :return: The differentiated program to compute the gradients
+    :rtype: BProg
+    """
+    
     assert len(vars) == len(grads), 'Each var must have a corresponding grad'
     BProg = Program()
     q = deque() 
