@@ -1,4 +1,4 @@
-from stgraph.graph.STGraphBase import STGraphBase
+from stgraph.graph.stgraph_base import STGraphBase
 
 from stgraph.graph.static.StaticGraph import StaticGraph
 

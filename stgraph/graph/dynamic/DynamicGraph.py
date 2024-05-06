@@ -1,13 +1,17 @@
-from stgraph.graph.STGraphBase import STGraphBase
+from stgraph.graph.stgraph_base import STGraphBase
 from abc import abstractmethod
 import time
+
 
 class DynamicGraph(STGraphBase):
     def __init__(self, edge_list, max_num_nodes):
         super().__init__()
         self.graph_updates = {}
         self.max_num_nodes = max_num_nodes
-        self.graph_attr = {str(t): (self.max_num_nodes, len(set(edge_list[t]))) for t in range(len(edge_list))}
+        self.graph_attr = {
+            str(t): (self.max_num_nodes, len(set(edge_list[t])))
+            for t in range(len(edge_list))
+        }
 
         # Indicates whether the graph is currently undergoing backprop
         self._is_backprop_state = False
@@ -43,7 +47,7 @@ class DynamicGraph(STGraphBase):
                 "add": additions,
                 "delete": deletions,
             }
-    
+
     def reset_graph(self):
         self._get_cached_graph("base")
         self.current_timestamp = 0
@@ -61,14 +65,14 @@ class DynamicGraph(STGraphBase):
             raise Exception(
                 "⏰ Invalid timestamp during STGraphBase.update_graph_forward()"
             )
-        
+
         if self._get_cached_graph(timestamp - 1):
             self.current_timestamp = timestamp - 1
 
         while self.current_timestamp < timestamp:
             self._update_graph_forward()
             self.current_timestamp += 1
-        
+
         self.get_fwd_graph_time += time.time() - t0
 
     def get_backward_graph(self, timestamp: int):
@@ -87,7 +91,7 @@ class DynamicGraph(STGraphBase):
         while self.current_timestamp > timestamp:
             self._update_graph_backward()
             self.current_timestamp -= 1
-        
+
         self.get_bwd_graph_time += time.time() - t0
 
     def get_num_nodes(self):
@@ -95,9 +99,12 @@ class DynamicGraph(STGraphBase):
 
     def get_num_edges(self):
         return self.graph_attr[str(self.current_timestamp)][1]
-    
+
     def get_ndata(self, field):
-        if str(self.current_timestamp) in self._ndata and field in self._ndata[str(self.current_timestamp)]:
+        if (
+            str(self.current_timestamp) in self._ndata
+            and field in self._ndata[str(self.current_timestamp)]
+        ):
             return self._ndata[str(self.current_timestamp)][field]
         else:
             return None

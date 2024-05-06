@@ -7,7 +7,7 @@ from rich.console import Console
 
 console = Console()
 
-from stgraph.graph.STGraphBase import STGraphBase
+from stgraph.graph.stgraph_base import STGraphBase
 
 
 from stgraph.graph.static.csr import CSR
