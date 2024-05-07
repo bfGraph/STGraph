@@ -13,7 +13,7 @@ from .model import GCN
 from .utils import accuracy, generate_test_mask, generate_train_mask, to_default_device
 
 from stgraph.dataset import CoraDataLoader
-from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.graph.static.static_graph import StaticGraph
 from stgraph.benchmark_tools.table import BenchmarkTable
 
 

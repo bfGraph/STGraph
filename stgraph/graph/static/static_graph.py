@@ -1,28 +1,27 @@
-from abc import ABC, abstractmethod
+"""Represent Static graphs in STGraph."""
+
+from __future__ import annotations
+
 import copy
 
 import numpy as np
-
 from rich.console import Console
+
+from stgraph.graph.static.csr import CSR
+from stgraph.graph.stgraph_base import STGraphBase
 
 console = Console()
 
-from stgraph.graph.stgraph_base import STGraphBase
-
-
-from stgraph.graph.static.csr import CSR
-
 
 class StaticGraph(STGraphBase):
-    r"""An abstract base class used to represent static graphs in STGraph.
+    r"""Represent Static graphs in STGraph.
 
     This abstract class outlines the interface for defining a static graphs
     used in STGraph. As of now the static graph is implemented using the
     Compressed Sparse Row (CSR) format.
 
-    Example
+    Example:
     -------
-
     .. code-block:: python
 
         from stgraph.graph import StaticGraph
@@ -38,15 +37,23 @@ class StaticGraph(STGraphBase):
 
     """
 
-    def __init__(self, edge_list, edge_weights, num_nodes):
-        """An abstract base class used to represent static graphs in STGraph."""
+    def __init__(
+        self: StaticGraph,
+        edge_list: list,
+        edge_weights: list,
+        num_nodes: int,
+    ) -> None:
+        r"""Represent Static graphs in STGraph."""
         super().__init__()
         self._num_nodes = num_nodes
         self._num_edges = len(set(edge_list))
 
         self._prepare_edge_lst_fwd(edge_list)
         self._forward_graph = CSR(
-            self.fwd_edge_list, edge_weights, self._num_nodes, is_edge_reverse=True
+            self.fwd_edge_list,
+            edge_weights,
+            self._num_nodes,
+            is_edge_reverse=True,
         )
 
         self._prepare_edge_lst_bwd(self.fwd_edge_list)
@@ -54,8 +61,8 @@ class StaticGraph(STGraphBase):
 
         self._get_graph_csr_ptrs()
 
-    def _prepare_edge_lst_fwd(self, edge_list):
-        r"""TODO:"""
+    def _prepare_edge_lst_fwd(self: STGraphBase, edge_list: list) -> None:
+        r"""TODO:."""
         edge_list_for_t = edge_list
         edge_list_for_t.sort(key=lambda x: (x[1], x[0]))
         edge_list_for_t = [
@@ -64,14 +71,14 @@ class StaticGraph(STGraphBase):
         ]
         self.fwd_edge_list = edge_list_for_t
 
-    def _prepare_edge_lst_bwd(self, edge_list):
-        r"""TODO:"""
+    def _prepare_edge_lst_bwd(self: STGraphBase, edge_list: list) -> None:
+        r"""TODO:."""
         edge_list_for_t = copy.deepcopy(edge_list)
         edge_list_for_t.sort()
         self.bwd_edge_list = edge_list_for_t
 
-    def _get_graph_csr_ptrs(self):
-        r"""TODO:"""
+    def _get_graph_csr_ptrs(self: STGraphBase) -> None:
+        r"""TODO:."""
         self.fwd_row_offset_ptr = self._forward_graph.row_offset_ptr
         self.fwd_column_indices_ptr = self._forward_graph.column_indices_ptr
         self.fwd_eids_ptr = self._forward_graph.eids_ptr
@@ -82,37 +89,37 @@ class StaticGraph(STGraphBase):
         self.bwd_eids_ptr = self._backward_graph.eids_ptr
         self.bwd_node_ids_ptr = self._backward_graph.node_ids_ptr
 
-    def get_num_nodes(self):
+    def get_num_nodes(self: STGraphBase) -> int:
         r"""Return the number of nodes in the static graph."""
         return self._num_nodes
 
-    def get_num_edges(self):
+    def get_num_edges(self: STGraphBase) -> int:
         r"""Return the number of edges in the static graph."""
         return self._num_edges
 
-    def get_ndata(self, field):
-        r"""Returns the graph metadata."""
+    def get_ndata(self: STGraphBase, field: any) -> any:
+        r"""Return the graph metadata."""
         if field in self._ndata:
             return self._ndata[field]
-        else:
-            return None
 
-    def set_ndata(self, field, val):
-        r"""Sets the graph metadata."""
+        return None
+
+    def set_ndata(self: STGraphBase, field: str, val: any) -> None:
+        r"""Set the graph metadata."""
         self._ndata[field] = val
 
-    def graph_type(self):
-        r"""Returns the graph type."""
+    def graph_type(self: STGraphBase) -> str:
+        r"""Return the graph type."""
         return "csr_unsorted"
 
-    def in_degrees(self):
-        r"""Returns the graph inwards node degree array."""
+    def in_degrees(self: STGraphBase) -> np.ndarray:
+        r"""Return the graph inwards node degree array."""
         return np.array(self._forward_graph.out_degrees, dtype="int32")
 
-    def out_degrees(self):
-        r"""Returns the graph outwards node degree array."""
+    def out_degrees(self: STGraphBase) -> np.ndarray:
+        r"""Return the graph outwards node degree array."""
         return np.array(self._forward_graph.in_degrees, dtype="int32")
 
-    def weighted_in_degrees(self):
-        r"""TODO:"""
+    def weighted_in_degrees(self: STGraphBase) -> np.ndarray:
+        r"""TODO:."""
         return np.array(self._forward_graph.weighted_out_degrees, dtype="int32")
