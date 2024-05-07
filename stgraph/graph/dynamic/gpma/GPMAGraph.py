@@ -4,7 +4,7 @@ import time
 import numpy as np
 from rich import inspect
 
-from stgraph.graph.dynamic.DynamicGraph import DynamicGraph
+from stgraph.graph.dynamic.dynamic_graph import DynamicGraph
 from stgraph.graph.dynamic.gpma.gpma import (
     GPMA,
     init_gpma,
@@ -15,7 +15,7 @@ from stgraph.graph.dynamic.gpma.gpma import (
     free_backward_csr,
     get_csr_ptrs,
     get_out_degrees,
-    get_in_degrees
+    get_in_degrees,
 )
 
 
@@ -41,7 +41,9 @@ class GPMAGraph(DynamicGraph):
         return "gpma"
 
     def _cache_graph(self):
-        self.graph_cache[str(self.current_timestamp)] = copy.deepcopy(self._forward_graph)
+        self.graph_cache[str(self.current_timestamp)] = copy.deepcopy(
+            self._forward_graph
+        )
 
     def _get_cached_graph(self, timestamp):
         if timestamp == "base":
@@ -56,10 +58,10 @@ class GPMAGraph(DynamicGraph):
                 return True
             else:
                 return False
-    
+
     def in_degrees(self):
         return np.array(get_out_degrees(self._forward_graph), dtype="int32")
-    
+
     def out_degrees(self):
         return np.array(get_in_degrees(self._forward_graph), dtype="int32")
 
@@ -103,9 +105,7 @@ class GPMAGraph(DynamicGraph):
 
         # Freeing resources from previous CSR
         free_backward_csr(self._forward_graph)
-        edge_update_t(
-            self._forward_graph, self.current_timestamp, revert_update=True
-        )
+        edge_update_t(self._forward_graph, self.current_timestamp, revert_update=True)
         label_edges(self._forward_graph)
         build_backward_csr(self._forward_graph)
         self._get_graph_csr_ptrs()

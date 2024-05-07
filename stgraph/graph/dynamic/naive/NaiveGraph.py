@@ -2,7 +2,7 @@ import copy
 import numpy as np
 from rich import inspect
 
-from stgraph.graph.dynamic.DynamicGraph import DynamicGraph
+from stgraph.graph.dynamic.dynamic_graph import DynamicGraph
 from stgraph.graph.static.csr import CSR
 from collections import deque
 import time
@@ -59,7 +59,7 @@ class NaiveGraph(DynamicGraph):
 
     def graph_type(self):
         return "csr"
-    
+
     def _cache_graph(self):
         pass
 
@@ -67,11 +67,15 @@ class NaiveGraph(DynamicGraph):
         return False
 
     def in_degrees(self):
-        return np.array(self._forward_graph[self.current_timestamp].out_degrees, dtype="int32")
-    
+        return np.array(
+            self._forward_graph[self.current_timestamp].out_degrees, dtype="int32"
+        )
+
     def out_degrees(self):
-        return np.array(self._forward_graph[self.current_timestamp].in_degrees, dtype="int32")
-    
+        return np.array(
+            self._forward_graph[self.current_timestamp].in_degrees, dtype="int32"
+        )
+
     # def weighted_in_degrees(self):
     #     return np.array(self._forward_graph[self.current_timestamp].weighted_out_degrees, dtype="float32")
 
