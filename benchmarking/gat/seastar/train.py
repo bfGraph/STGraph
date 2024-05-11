@@ -13,7 +13,7 @@ import time
 import torch
 import torch.nn.functional as F
 import pynvml
-from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.graph.static.static_graph import StaticGraph
 from stgraph.dataset.CoraDataLoader import CoraDataLoader
 from utils import EarlyStopping, accuracy
 import snoop

@@ -10,7 +10,7 @@ import os
 import traceback
 
 from .model import STGraphTGCN
-from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.graph.static.static_graph import StaticGraph
 
 from stgraph.dataset import WindmillOutputDataLoader
 from stgraph.dataset import WikiMathDataLoader

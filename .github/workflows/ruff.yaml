@@ -23,3 +23,6 @@ jobs:
         cd stgraph/dataset/
         ruff check .
         cd ../../
+        cd stgraph/graph
+        ruff check .
+        cd ../../

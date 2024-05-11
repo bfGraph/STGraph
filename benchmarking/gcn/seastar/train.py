@@ -5,7 +5,7 @@ import snoop
 import pynvml
 import torch.nn as nn
 import torch.nn.functional as F
-from stgraph.graph.static.StaticGraph import StaticGraph
+from stgraph.graph.static.static_graph import StaticGraph
 from stgraph.dataset import CoraDataLoader
 from utils import to_default_device, accuracy, generate_test_mask, generate_train_mask
 from model import GCN
@@ -47,9 +47,7 @@ def main(args):
 
     # A simple sanity check
     print("Measuerd Graph Size (pynvml): ", graph_mem, " B", flush=True)
-    print(
-        "Measuerd Graph Size (pynvml): ", (graph_mem) / (1024**2), " MB", flush=True
-    )
+    print("Measuerd Graph Size (pynvml): ", (graph_mem) / (1024**2), " MB", flush=True)
 
     # normalization
     degs = torch.from_numpy(g.weighted_in_degrees()).type(torch.int32)
