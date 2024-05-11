@@ -24,11 +24,11 @@ def main(args):
     # for prop_name, prop_value in testpack_properties.items():
     #     console.print(f"[cyan bold]{prop_name}[/cyan bold] : {prop_value}")
 
-    # if the value if set to "Y", then the tests are executed for the given
+    # if the value is set to "Y", then the tests are executed for the given
     # dataset. Else if set to "N", then it is ignored.
     temporal_datasets = {
         "Hungary_Chickenpox": "Y",
-        "METRLA": "N",
+        "METRLA": "Y",
         "Montevideo_Bus": "Y",
         "PedalMe": "Y",
         "WikiMath": "Y",
