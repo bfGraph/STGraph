@@ -11,7 +11,7 @@ from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
 from stgraph.benchmark_tools.table import BenchmarkTable
 from stgraph.graph.dynamic.gpma.gpma_graph import GPMAGraph
 from stgraph.graph.dynamic.pcsr.PCSRGraph import PCSRGraph
-from stgraph.graph.dynamic.naive.NaiveGraph import NaiveGraph
+from stgraph.graph.dynamic.naive.naive_graph import NaiveGraph
 from model import STGraphTGCN
 from utils import to_default_device, get_default_device
 
