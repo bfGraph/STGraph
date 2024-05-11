@@ -166,7 +166,7 @@ class DynamicGraph(STGraphBase):
         pass
 
     @abstractmethod
-    def _get_cached_graph(self: DynamicGraph, timestamp: str | int) -> None:
+    def _get_cached_graph(self: DynamicGraph, timestamp: str | int) -> bool:
         r"""TODO:."""
         pass
 
