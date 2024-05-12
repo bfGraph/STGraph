@@ -31,7 +31,7 @@ def main(args):
 
     for dataset_name, execute_choice in gcn_datasets.items():
         if execute_choice == "Y":
-            print(f"Started training TGCN on {dataset_name}")
+            print(f"Started training {testpack_properties['Name']} on {dataset_name}")
 
             output_file_path = output_folder_path + "/" + dataset_name + ".txt"
             if os.path.exists(output_file_path):
@@ -50,7 +50,7 @@ def main(args):
 
             dataset_results[dataset_name] = result
 
-            print(f"Finished training TGCN on {dataset_name}")
+            print(f"Finished training {testpack_properties['Name']} on {dataset_name}")
 
     table = Table(title="GCN Results")
 

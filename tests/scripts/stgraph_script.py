@@ -10,6 +10,14 @@ def main(args):
     for testpack in testpack_names:
         script_path = "v" + version_number + "/" + testpack + "/" + testpack + ".py"
         output_folder_path = "v" + version_number + "/" + testpack + "/outputs"
+
+        # create the script outputs folder if it doesn't exist
+        if not os.path.exists(output_folder_path):
+            try:
+                os.makedirs(output_folder_path)
+            except OSError as e:
+                print(f"Failed to create the script outputs folder at {output_folder_path}: {e}")
+
         if os.path.exists(script_path):
             subprocess.run(["python3", script_path, "-o", output_folder_path])
         else:

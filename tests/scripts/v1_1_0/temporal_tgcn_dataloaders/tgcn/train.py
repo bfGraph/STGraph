@@ -131,6 +131,9 @@ def train(
                         if t >= total_timestamps - dataloader._lags:
                             break
 
+                        if dataset == "METRLA" and t >= total_timestamps - (dataloader._num_timesteps_out + dataloader._num_timesteps_in):
+                            break
+
                         y_out, y_hat, hidden_state = model(
                             G, y_hat, edge_weight, hidden_state
                         )

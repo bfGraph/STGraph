@@ -22,11 +22,11 @@ def to_default_device(data):
     return data.to(get_default_device(), non_blocking=True)
 
 
-def generate_train_mask(size: int, train_test_split: int) -> list:
+def generate_train_mask(size: int, train_test_split: float) -> list:
     cutoff = size * train_test_split
     return [1 if i < cutoff else 0 for i in range(size)]
 
 
-def generate_test_mask(size: int, train_test_split: int) -> list:
+def generate_test_mask(size: int, train_test_split: float) -> list:
     cutoff = size * train_test_split
     return [0 if i < cutoff else 1 for i in range(size)]
