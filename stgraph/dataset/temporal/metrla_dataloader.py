@@ -9,7 +9,7 @@ from stgraph.dataset.temporal.stgraph_temporal_dataset import STGraphTemporalDat
 
 
 class METRLADataLoader(STGraphTemporalDataset):
-    r"""Traffic forecasting dataset based on the Los Angeles city..
+    r"""Traffic forecasting dataset based on the Los Angeles city.
 
     A dataset for predicting traffic patterns in the Los Angeles Metropolitan area,
     comprising traffic data obtained from 207 loop detectors on highways in Los
@@ -72,7 +72,7 @@ class METRLADataLoader(STGraphTemporalDataset):
 
     def __init__(
         self: METRLADataLoader,
-        verbose: bool = True,
+        verbose: bool = False,
         num_timesteps_in: int = 12,
         num_timesteps_out: int = 12,
         cutoff_time: int | None = None,
