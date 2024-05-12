@@ -72,7 +72,7 @@ class METRLADataLoader(STGraphTemporalDataset):
 
     def __init__(
         self: METRLADataLoader,
-        verbose: bool = True,
+        verbose: bool = False,
         num_timesteps_in: int = 12,
         num_timesteps_out: int = 12,
         cutoff_time: int | None = None,
