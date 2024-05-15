@@ -6,3 +6,5 @@ Package Reference
 
     stgraph.dataset
     stgraph.compiler
+    stgraph.graph
+    stgraph.benchmark_tools
