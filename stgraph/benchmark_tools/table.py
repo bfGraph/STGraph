@@ -14,8 +14,9 @@ class BenchmarkTable:
     This class provides functionality to create and display tables for
     benchmarking data along with other relevant information.
 
-    Example:
-    --------
+    Example
+    -------
+
     .. code-block:: python
 
         from stgraph.benchmark_tools import BenchmarkTable
