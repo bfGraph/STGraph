@@ -53,9 +53,9 @@ def main(args):
                 dataset=dataset_name,
                 num_hidden=16,
                 feat_size=8,
-                lr=0.01,
+                lr=1e-4,
                 backprop_every=0,
-                num_epochs=30,
+                num_epochs=5,
                 output_file_path=output_file_path,
             )
 
