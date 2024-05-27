@@ -1,38 +1,31 @@
-import argparse
 import time
-import numpy as np
-import pandas as pd
-import torch
-import snoop
-import pynvml
-import sys
-import os
 import traceback
 
-from .model import STGraphTGCN
-from stgraph.graph.static.static_graph import StaticGraph
-
-from stgraph.dataset import WindmillOutputDataLoader
-from stgraph.dataset import WikiMathDataLoader
-from stgraph.dataset import HungaryCPDataLoader
-from stgraph.dataset import PedalMeDataLoader
-from stgraph.dataset import METRLADataLoader
-from stgraph.dataset import MontevideoBusDataLoader
+import numpy as np
+import pynvml
+import torch
+from rich.progress import Progress
 
 from stgraph.benchmark_tools.table import BenchmarkTable
-from .utils import to_default_device, get_default_device
-
-from rich import inspect
+from stgraph.dataset import HungaryCPDataLoader
+from stgraph.dataset import METRLADataLoader
+from stgraph.dataset import MontevideoBusDataLoader
+from stgraph.dataset import PedalMeDataLoader
+from stgraph.dataset import WikiMathDataLoader
+from stgraph.dataset import WindmillOutputDataLoader
+from stgraph.graph.static.static_graph import StaticGraph
+from .model import STGraphTGCN
+from .utils import to_default_device, get_default_device, init_weights
 
 
 def train(
-    dataset: str,
-    num_hidden: int,
-    feat_size: int,
-    lr: float,
-    backprop_every: int,
-    num_epochs: int,
-    output_file_path: str,
+        dataset: str,
+        num_hidden: int,
+        feat_size: int,
+        lr: float,
+        backprop_every: int,
+        num_epochs: int,
+        output_file_path: str,
 ) -> int:
     with open(output_file_path, "w") as f:
         if torch.cuda.is_available():
@@ -62,21 +55,36 @@ def train(
         edge_list = dataloader.get_edges()
         edge_weight_list = dataloader.get_edge_weights()
         targets = dataloader.get_all_targets()
+        assert not np.isnan(targets).any(), "Targets contain NaN values"
 
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         initial_used_gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used
-        G = StaticGraph(edge_list, edge_weight_list, dataloader.gdata["num_nodes"])
-        graph_mem = pynvml.nvmlDeviceGetMemoryInfo(handle).used - initial_used_gpu_mem
+        G = StaticGraph(
+            edge_list,
+            edge_weight_list,
+            dataloader.gdata["num_nodes"]
+        )
+        graph_mem = pynvml.nvmlDeviceGetMemoryInfo(
+            handle).used - initial_used_gpu_mem
 
         edge_weight = to_default_device(
             torch.unsqueeze(torch.FloatTensor(edge_weight_list), 1)
         )
+
+        # Clamp edge weights to have min. value of 1e-6
+        edge_weight = torch.clamp(edge_weight, min=1e-6)
+
         targets = to_default_device(torch.FloatTensor(np.array(targets)))
 
         num_hidden_units = num_hidden
         num_outputs = 1
-        model = to_default_device(STGraphTGCN(feat_size, num_hidden_units, num_outputs))
+        model = to_default_device(
+            STGraphTGCN(feat_size, num_hidden_units, num_outputs))
+
+        # Apply custom weight initialization
+        model.apply(init_weights)
+
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
         # Logging Output
@@ -105,70 +113,89 @@ def train(
         norm = to_default_device(norm)
         G.set_ndata("norm", norm.unsqueeze(1))
 
-        # train
-        print("Training...\n", file=f)
+        print("Starting training...\n", file=f)
         try:
-            for epoch in range(num_epochs):
-                torch.cuda.synchronize()
-                torch.cuda.reset_peak_memory_stats(0)
-                model.train()
-
-                t0 = time.time()
-                gpu_mem_arr = []
-                cost_arr = []
-
-                for index in range(num_iter):
-                    optimizer.zero_grad()
-                    cost = 0
-                    hidden_state = None
-                    y_hat = torch.randn(
-                        (dataloader.gdata["num_nodes"], feat_size),
-                        device=get_default_device(),
-                    )
-                    for k in range(backprop_every):
-                        t = index * backprop_every + k
-
-                        if t >= total_timestamps - dataloader._lags:
-                            break
-
-                        if dataset == "METRLA" and t >= total_timestamps - (dataloader._num_timesteps_out + dataloader._num_timesteps_in):
-                            break
-
-                        y_out, y_hat, hidden_state = model(
-                            G, y_hat, edge_weight, hidden_state
-                        )
-                        # breakpoint()
-                        cost = cost + torch.mean((y_out - targets[t]) ** 2)
-
-                    if cost == 0:
-                        break
-
-                    cost = cost / (backprop_every + 1)
-                    cost.backward()
-                    optimizer.step()
-                    torch.cuda.synchronize()
-                    cost_arr.append(cost.item())
-
-                used_gpu_mem = torch.cuda.max_memory_allocated(0) + graph_mem
-                gpu_mem_arr.append(used_gpu_mem)
-
-                run_time_this_epoch = time.time() - t0
-
-                if epoch >= 3:
-                    dur.append(run_time_this_epoch)
-                    max_gpu.append(max(gpu_mem_arr))
-
-                table.add_row(
-                    [
-                        epoch,
-                        "{:.5f}".format(run_time_this_epoch),
-                        "{:.4f}".format(sum(cost_arr) / len(cost_arr)),
-                        "{:.4f}".format((max(gpu_mem_arr) * 1.0 / (1024**2))),
-                    ]
+            with Progress() as progress:
+                epoch_progress = progress.add_task(
+                    f"{dataset}",
+                    total=num_epochs
                 )
+
+                while not progress.finished:
+                    for epoch in range(num_epochs):
+                        torch.cuda.synchronize()
+                        torch.cuda.reset_peak_memory_stats(0)
+                        model.train()
+
+                        t0 = time.time()
+                        gpu_mem_arr = []
+                        cost_arr = []
+
+                        for index in range(num_iter):
+                            optimizer.zero_grad()
+                            cost = 0
+                            hidden_state = None
+                            y_hat = torch.randn(
+                                (dataloader.gdata["num_nodes"], feat_size),
+                                device=get_default_device(),
+                            )
+                            for k in range(backprop_every):
+                                t = index * backprop_every + k
+
+                                if t >= total_timestamps - dataloader._lags:
+                                    break
+
+                                if dataset == "METRLA" and t >= total_timestamps - (
+                                        dataloader._num_timesteps_out + dataloader._num_timesteps_in):
+                                    break
+
+                                y_out, y_hat, hidden_state = model(
+                                    G, y_hat, edge_weight, hidden_state
+                                )
+
+                                cost = cost + torch.mean(
+                                    (y_out - targets[t]) ** 2)
+
+                            if cost == 0:
+                                break
+
+                            cost = cost / (backprop_every + 1)
+                            cost.backward()
+
+                            torch.nn.utils.clip_grad_norm_(
+                                model.parameters(),
+                                1.0
+                            )
+
+                            optimizer.step()
+                            torch.cuda.synchronize()
+                            cost_arr.append(cost.item())
+
+                        used_gpu_mem = torch.cuda.max_memory_allocated(
+                            0) + graph_mem
+                        gpu_mem_arr.append(used_gpu_mem)
+
+                        run_time_this_epoch = time.time() - t0
+
+                        if epoch >= 3:
+                            dur.append(run_time_this_epoch)
+                            max_gpu.append(max(gpu_mem_arr))
+
+                        table.add_row(
+                            [
+                                epoch,
+                                "{:.5f}".format(run_time_this_epoch),
+                                "{:.4f}".format(sum(cost_arr) / len(cost_arr)),
+                                "{:.4f}".format(
+                                    (max(gpu_mem_arr) * 1.0 / (1024 ** 2))),
+                            ]
+                        )
+
+                        progress.update(epoch_progress, advance=1)
 
             table.display(output_file=f)
             print("Average Time taken: {:6f}".format(np.mean(dur)), file=f)
+
             return 0
 
         except Exception as e:

@@ -39,11 +39,6 @@ def main(args):
 
     for dataset_name, execute_choice in temporal_datasets.items():
         if execute_choice == "Y":
-            print(f"Started training TGCN on {dataset_name}")
-
-            # train_process = subprocess.run(
-            #     ["bash", "train_tgcn.sh", dataset_name, "8", "16"]
-            # )
 
             output_file_path = output_folder_path + "/" + dataset_name + ".txt"
             if os.path.exists(output_file_path):
@@ -53,17 +48,13 @@ def main(args):
                 dataset=dataset_name,
                 num_hidden=16,
                 feat_size=8,
-                lr=0.01,
+                lr=1e-4,
                 backprop_every=0,
-                num_epochs=30,
+                num_epochs=15,
                 output_file_path=output_file_path,
             )
 
-            # breakpoint()
-
             dataset_results[dataset_name] = result
-
-            print(f"Finished training TGCN on {dataset_name}")
 
     # printing the summary of the run
     table = Table(title="Temporal-TGCN Results")

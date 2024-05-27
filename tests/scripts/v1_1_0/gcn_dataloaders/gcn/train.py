@@ -1,20 +1,18 @@
-import argparse
 import time
+import traceback
 
 import numpy as np
 import pynvml
-import snoop
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import traceback
+from rich.progress import Progress
 
-from .model import GCN
-from .utils import accuracy, generate_test_mask, generate_train_mask, to_default_device
-
+from stgraph.benchmark_tools.table import BenchmarkTable
 from stgraph.dataset import CoraDataLoader
 from stgraph.graph.static.static_graph import StaticGraph
-from stgraph.benchmark_tools.table import BenchmarkTable
+from .model import GCN
+from .utils import accuracy, generate_test_mask, generate_train_mask, \
+    to_default_device
 
 
 def train(
@@ -90,35 +88,42 @@ def train(
         )
 
         try:
-            for epoch in range(num_epochs):
-                torch.cuda.reset_peak_memory_stats(0)
-                model.train()
-                if cuda:
-                    torch.cuda.synchronize()
-                t0 = time.time()
-
-                # forward
-                logits = model(g, features)
-                loss = loss_fcn(logits[train_mask], labels[train_mask])
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
-                Used_memory = max(now_mem, Used_memory)
-
-                if cuda:
-                    torch.cuda.synchronize()
-
-                run_time_this_epoch = time.time() - t0
-
-                if epoch >= 3:
-                    dur.append(run_time_this_epoch)
-
-                train_acc = accuracy(logits[train_mask], labels[train_mask])
-                table.add_row(
-                    [epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))]
+            with Progress() as progress:
+                epoch_progress = progress.add_task(
+                    f"{dataset}",
+                    total=num_epochs
                 )
+                for epoch in range(num_epochs):
+                    torch.cuda.reset_peak_memory_stats(0)
+                    model.train()
+                    if cuda:
+                        torch.cuda.synchronize()
+                    t0 = time.time()
+
+                    # forward
+                    logits = model(g, features)
+                    loss = loss_fcn(logits[train_mask], labels[train_mask])
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                    now_mem = torch.cuda.max_memory_allocated(0) + graph_mem
+                    Used_memory = max(now_mem, Used_memory)
+
+                    if cuda:
+                        torch.cuda.synchronize()
+
+                    run_time_this_epoch = time.time() - t0
+
+                    if epoch >= 3:
+                        dur.append(run_time_this_epoch)
+
+                    train_acc = accuracy(logits[train_mask], labels[train_mask])
+                    table.add_row(
+                        [epoch, run_time_this_epoch, train_acc, (now_mem * 1.0 / (1024**2))]
+                    )
+
+                    progress.update(epoch_progress, advance=1)
 
             table.display(output_file=f)
             print("Average Time taken: {:6f}".format(np.mean(dur)), file=f)

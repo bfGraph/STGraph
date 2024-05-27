@@ -12,3 +12,9 @@ def to_default_device(data):
     if isinstance(data, (list, tuple)):
         return [to_default_device(x) for x in data]
     return data.to(get_default_device(), non_blocking=True)
+
+
+def init_weights(layer):
+    if isinstance(layer, torch.nn.Linear):
+        torch.nn.init.xavier_uniform_(layer.weight)
+        layer.bias.data.fill_(0.01)
