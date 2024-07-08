@@ -29,3 +29,6 @@ jobs:
         cd stgraph/benchmark_tools
         ruff check .
         cd ../../
+        cd stgraph/nn
+        ruff check .
+        cd ../../

@@ -43,6 +43,7 @@ Explore the STGraph documentation and tutorials to get started with writing and 
    package_reference/stgraph.compiler
    package_reference/stgraph.graph
    package_reference/stgraph.benchmark_tools
+   package_reference/stgraph.nn
 
 .. toctree::
    :maxdepth: 1

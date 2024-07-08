@@ -9,9 +9,10 @@ In this beginner friendly tutorial, you will be writing your first GNN and TGNN 
 Open up your favourite text editor or Python IDE and create a file named `model.py` with the following code which defines a GCN layer with PyTorch as the backend.
 
 **model.py**
+
 ```python
 import torch.nn as nn
-from stgraph.nn.pytorch.graph_conv import GraphConv
+from stgraph.nn.pytorch.gcn_conv import GCNConv
 
 
 class GCN(nn.Module):
@@ -20,12 +21,12 @@ class GCN(nn.Module):
 
         self.g = g
         self.layers = nn.ModuleList()
-        self.layers.append(GraphConv(in_feats, n_hidden, activation))
+        self.layers.append(GCNConv(in_feats, n_hidden, activation))
 
         for i in range(n_layers - 1):
-            self.layers.append(GraphConv(n_hidden, n_hidden, activation))
-        
-        self.layers.append(GraphConv(n_hidden, n_classes, None))
+            self.layers.append(GCNConv(n_hidden, n_hidden, activation))
+
+        self.layers.append(GCNConv(n_hidden, n_classes, None))
 
     def forward(self, g, features):
         h = features

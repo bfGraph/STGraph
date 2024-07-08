@@ -1,16 +1,16 @@
 import torch
-from stgraph.nn.pytorch.graph_conv import GraphConv
+from stgraph.nn.pytorch.gcn_conv import GCNConv
 
 class TGCN(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super(TGCN, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv_z = GraphConv(self.in_channels, self.out_channels, activation=None)
+        self.conv_z = GCNConv(self.in_channels, self.out_channels, activation=None)
         self.linear_z = torch.nn.Linear(2 * self.out_channels, self.out_channels)
-        self.conv_r = GraphConv(self.in_channels, self.out_channels, activation=None)
+        self.conv_r = GCNConv(self.in_channels, self.out_channels, activation=None)
         self.linear_r = torch.nn.Linear(2 * self.out_channels, self.out_channels)
-        self.conv_h = GraphConv(self.in_channels, self.out_channels, activation=None)
+        self.conv_h = GCNConv(self.in_channels, self.out_channels, activation=None)
         self.linear_h = torch.nn.Linear(2 * self.out_channels, self.out_channels)
 
     def _set_hidden_state(self, X, H):
