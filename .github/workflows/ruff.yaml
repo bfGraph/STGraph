@@ -29,6 +29,6 @@ jobs:
         cd stgraph/benchmark_tools
         ruff check .
         cd ../../
-        cd stgraph/nn/pytorch
+        cd stgraph/nn/pytorch/static
         ruff check gcn_conv.py
-        cd ../../../
+        cd ../../../../
