@@ -40,7 +40,7 @@ def main(args):
                 dataset=dataset_name,
                 num_hidden=16,
                 lr=0.01,
-                num_epochs=30,
+                num_epochs=200,
                 num_layers=1,
                 weight_decay=5e-4,
                 self_loops=False,
