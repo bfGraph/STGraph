@@ -1,3 +1,3 @@
-'''State of the art Graph Neural Networks written using STGraph'''
+"""State-of-the-art Graph Neural Networks written for PyTorch backend."""
 
-from stgraph.nn.pytorch.gcn_conv import GCNConv
+from stgraph.nn.pytorch.static.gcn_conv import GCNConv

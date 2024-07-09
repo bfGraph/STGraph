@@ -22,6 +22,7 @@ ignore = [
     "D212",
     "D213",
     "PIE790",
+    "E501",
 ]
 
 [lint.per-file-ignores]

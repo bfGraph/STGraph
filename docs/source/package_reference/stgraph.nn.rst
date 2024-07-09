@@ -7,6 +7,8 @@ stgraph.nn
 PyTorch
 =======
 
+GNN layer implementation for PyTorch specific backend
+
 .. autosummary::
     :toctree: ../generated/
     :nosignatures:

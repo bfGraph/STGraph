@@ -1,5 +1,5 @@
 import torch
-from stgraph.nn.pytorch.gcn_conv import GCNConv
+from stgraph.nn.pytorch.static.gcn_conv import GCNConv
 
 class TGCN(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
