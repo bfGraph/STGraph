@@ -33,18 +33,18 @@ def generate_test_mask(size: int, train_test_split: float) -> list:
     return [0 if i < cutoff else 1 for i in range(size)]
 
 
-def row_normalize_feature(mx):
+def row_normalize_feature(features):
     """Row-normalize PyTorch tensor"""
     # Compute the sum of each row
-    rowsum = mx.sum(dim=1, keepdim=True)
+    row_sum = features.sum(dim=1, keepdim=True)
 
     # Compute the inverse of the row sums, handling division by zero
-    r_inv = torch.where(rowsum != 0, 1.0 / rowsum, torch.zeros_like(rowsum))
+    r_inv = torch.where(row_sum != 0, 1.0 / row_sum, torch.zeros_like(row_sum))
 
     # Perform the row normalization
-    mx = mx * r_inv
+    norm_features = features * r_inv
 
-    return mx
+    return norm_features
 
 
 def get_node_norms(graph: StaticGraph):

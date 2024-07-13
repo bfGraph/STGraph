@@ -34,5 +34,5 @@ class GCN(nn.Module):
     def forward(self: GCN, features):
         h = features
         for layer in self._layers:
-            h = layer(self._graph, h)
+            h = layer.forward(self._graph, h)
         return h

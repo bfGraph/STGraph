@@ -60,6 +60,7 @@ class GCNConv(nn.Module):
     bias : bool, optional
         If set to *True*, learnable bias parameters are added to the layer
 
+    # TODO: Add required graph data to be passed
     """
 
     def __init__(
