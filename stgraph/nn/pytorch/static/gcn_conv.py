@@ -13,6 +13,7 @@ from torch import Tensor, nn
 
 from stgraph.compiler import STGraph
 from stgraph.compiler.backend.pytorch.torch_callback import STGraphBackendTorch
+from stgraph.utils.constants import SizeConstants
 
 
 class GCNConv(nn.Module):
@@ -49,6 +50,18 @@ class GCNConv(nn.Module):
     - :math:`\text{weight}_{\text{nb,v}}`: Weight of edge from :math:`nb` to :math:`v`. In case no edge weights are present, it is set to 1
     - :math:`norm`: Node wise normalization factor, :math:`v_{\text{norm}} = \text{in_degrees(v)}^{-0.5}`.
 
+    **Node Data**
+
+    The following node data needs to be set using :class:`StaticGraph.set_ndata <stgraph.graph.static.static_graph.StaticGraph>` before calling
+    the :func:`~stgraph.nn.pytorch.static.gcn_conv.GCNConv.forward` method.
+
+    +---------------+--------------------------------+---------------------------------------------------------------------------------------------------+
+    | Node Property | Description                    | Type                                                                                              |
+    +===============+================================+===================================================================================================+
+    | norm          | Node-wise normalization factor | A PyTorch Tensor of shape (num_nodes, 1), where dim=1 contains the node-wise normalization factor |
+    +---------------+--------------------------------+---------------------------------------------------------------------------------------------------+
+
+
     Parameters
     ----------
     in_channels : int
@@ -60,7 +73,6 @@ class GCNConv(nn.Module):
     bias : bool, optional
         If set to *True*, learnable bias parameters are added to the layer
 
-    # TODO: Add required graph data to be passed
     """
 
     def __init__(
@@ -97,7 +109,52 @@ class GCNConv(nn.Module):
         h: Tensor,
         edge_weight: Tensor | None = None,
     ) -> Tensor:
-        r"""Execute a single forward pass for the GCN layer."""
+        r"""Execute a single forward pass for the GCN layer.
+
+        Runs a single forward pass using the vertex-centric implementation of the GCN layer.
+
+        Parameters
+        ----------
+        graph : StaticGraph
+            A StaticGraph graph object
+        h : Tensor
+            Input for the GCN forward pass
+        edge_weight : Tensor, optional
+            Edge weights for each edge in the graph
+
+        Returns
+        -------
+        Tensor
+            The output after executing the GCN forward pass
+
+        Raises
+        ------
+        KeyError
+            If ``norm`` n_data is not present for the graph
+        ValueError
+            If ``norm`` n_data passed is not of the shape (num_nodes, 1)
+
+        Example
+        -------
+
+        Example usage::
+
+            # Defining a method to run forward pass with multiple GCN layers
+
+            def forward(input: Tensor, layers: List[GCNConv], graph: StaticGraph):
+                h = input
+                for layer in layers:
+                    h = layer.forward(graph, h)
+                return h
+
+        """
+        if graph.get_ndata("norm") is None:
+            raise KeyError("StaticGraph passed to GCNConv forward pass does not contain 'norm' node data")
+        if (len(graph.get_ndata("norm").shape) != SizeConstants.NODE_NORM_SIZE or
+                graph.get_ndata("norm").shape[1] != 1 or
+                graph.get_ndata("norm").shape[0] != graph.get_num_nodes()):
+            raise ValueError("Node data 'norm' passed to GCNConv should be of shape (num_nodes, 1)")
+
         h = torch.mm(h, self.weight)
 
         if edge_weight is None:
