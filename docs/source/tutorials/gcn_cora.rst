@@ -1,5 +1,5 @@
-Training a GCN on the Cora dataset
-==================================
+Cora Publication Prediction using Graph Convolutional Networks (GCN)
+====================================================================
 
 Graph Neural Networks (GNNs) are specially designed to understand and learn from data organized in graphs, 
 making them incredibly versatile and powerful. Graph Convolutional Networks (GCNs) is a widely adopted
