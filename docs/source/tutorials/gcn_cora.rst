@@ -11,6 +11,8 @@ In this introductory tutorial, you will be able to
 2. Load the Cora dataset provided by STGraph.
 3. Train and evaluate the GCN model for node classification task on the GPU.
 
+You can find the entire source code for this tutorial under the ``tutorials`` directory in our GitHub `repo <https://github.com/bfGraph/STGraph/tree/main/tutorials>`_
+
 The Task At Hand
 ----------------
 

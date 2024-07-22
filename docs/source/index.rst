@@ -32,7 +32,7 @@ Explore the STGraph documentation and tutorials to get started with writing and 
    :caption: Tutorials
    :glob:
 
-   tutorials/gnn
+   tutorials/gcn_cora
 
 .. toctree::
    :maxdepth: 1

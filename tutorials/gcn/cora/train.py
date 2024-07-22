@@ -1,19 +1,22 @@
+r"""Script to train GCN on Cora dataset."""
+
+import sys
 import traceback
 
 import torch
-import torch.nn.functional as F
-
-from stgraph.benchmark_tools.table import BenchmarkTable
-from stgraph.dataset import CoraDataLoader
-from stgraph.graph.static.static_graph import StaticGraph
 from model import GCN
+from torch.nn.functional import cross_entropy
 from utils import (
     accuracy,
     generate_test_mask,
     generate_train_mask,
-    row_normalize_feature,
     get_node_norms,
+    row_normalize_feature,
 )
+
+from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.dataset import CoraDataLoader
+from stgraph.graph.static.static_graph import StaticGraph
 
 
 def train(
@@ -21,25 +24,41 @@ def train(
     num_epochs: int,
     num_hidden: int,
     num_hidden_layers: int,
-    weight_decay: float
-):
+    weight_decay: float,
+) -> None:
+    r"""Script to train GCN on Cora dataset.
+
+    Parameters
+    ----------
+    lr : float
+        Learning Rate.
+    num_epochs : int
+        Number of Epochs.
+    num_hidden : int
+        Number of hidden units in hidden layer.
+    num_hidden_layers : int
+        Number of hidden layers.
+    weight_decay : float
+        Weight decay value for L2 regularization.
+
+    """
     if not torch.cuda.is_available():
         print("CUDA is not available")
-        exit(1)
+        sys.exit(1)
 
     cora = CoraDataLoader()
 
     node_features = row_normalize_feature(
-        torch.FloatTensor(cora.get_all_features())
+        torch.FloatTensor(cora.get_all_features()),
     )
     node_labels = torch.LongTensor(cora.get_all_targets())
     edge_weights = [1 for _ in range(cora.gdata["num_edges"])]
 
     train_mask = torch.BoolTensor(
-        generate_train_mask(cora.gdata["num_nodes"], 0.7)
+        generate_train_mask(cora.gdata["num_nodes"], 0.7),
     )
     test_mask = torch.BoolTensor(
-        generate_test_mask(cora.gdata["num_nodes"], 0.7)
+        generate_test_mask(cora.gdata["num_nodes"], 0.7),
     )
 
     torch.cuda.set_device(0)
@@ -51,7 +70,7 @@ def train(
     cora_graph = StaticGraph(
         edge_list=cora.get_edges(),
         edge_weights=edge_weights,
-        num_nodes=cora.gdata["num_nodes"]
+        num_nodes=cora.gdata["num_nodes"],
     )
 
     cora_graph.set_ndata("norm", get_node_norms(cora_graph))
@@ -61,16 +80,16 @@ def train(
         in_feats=cora.gdata["num_feats"],
         n_hidden=num_hidden,
         n_classes=cora.gdata["num_classes"],
-        n_hidden_layers=num_hidden_layers
+        n_hidden_layers=num_hidden_layers,
     ).cuda()
 
-    loss_function = F.cross_entropy
+    loss_function = cross_entropy
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=lr, weight_decay=weight_decay
+        model.parameters(), lr=lr, weight_decay=weight_decay,
     )
 
     table = BenchmarkTable(
-        f"STGraph GCN on CORA dataset",
+        "STGraph GCN on CORA dataset",
         ["Epoch", "Train Accuracy %", "Loss"],
     )
 
@@ -91,7 +110,7 @@ def train(
             train_acc = accuracy(logits[train_mask], node_labels[train_mask])
 
             table.add_row(
-                [epoch, float(f"{train_acc * 100:.2f}"), float(f"{loss.item():.5f}")]
+                [epoch, float(f"{train_acc * 100:.2f}"), float(f"{loss.item():.5f}")],
             )
         print("Training Ended")
         table.display()

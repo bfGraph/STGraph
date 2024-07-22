@@ -150,7 +150,7 @@ class GCNConv(nn.Module):
         """
         if graph.get_ndata("norm") is None:
             raise KeyError("StaticGraph passed to GCNConv forward pass does not contain 'norm' node data")
-        if (len(graph.get_ndata("norm").shape) != SizeConstants.NODE_NORM_SIZE or
+        if (len(graph.get_ndata("norm").shape) != SizeConstants.NODE_NORM_SIZE.value or
                 graph.get_ndata("norm").shape[1] != 1 or
                 graph.get_ndata("norm").shape[0] != graph.get_num_nodes()):
             raise ValueError("Node data 'norm' passed to GCNConv should be of shape (num_nodes, 1)")
