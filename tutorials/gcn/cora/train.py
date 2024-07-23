@@ -14,7 +14,7 @@ from utils import (
     row_normalize_feature,
 )
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from stgraph.dataset import CoraDataLoader
 from stgraph.graph.static.static_graph import StaticGraph
 
@@ -88,7 +88,7 @@ def train(
         model.parameters(), lr=lr, weight_decay=weight_decay,
     )
 
-    table = BenchmarkTable(
+    table = DataTable(
         "STGraph GCN on CORA dataset",
         ["Epoch", "Train Accuracy %", "Loss"],
     )

@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 
-class BenchmarkTable:
+class DataTable:
     r"""Table that can display benchmarking data and other info.
 
     This class provides functionality to create and display tables for
@@ -19,9 +19,9 @@ class BenchmarkTable:
 
     .. code-block:: python
 
-        from stgraph.benchmark_tools import BenchmarkTable
+        from stgraph.utils import DataTable
 
-        table = BenchmarkTable(
+        table = DataTable(
             title = "GCN Benchmark Data",
             col_name_list = ["Model", "Time", "MSE"]
         )
@@ -47,7 +47,7 @@ class BenchmarkTable:
 
     """
 
-    def __init__(self: BenchmarkTable, title: str, col_name_list: list[str]) -> None:
+    def __init__(self: DataTable, title: str, col_name_list: list[str]) -> None:
         r"""Table that can display benchmarking data and other info."""
         self.title = "\n" + title + "\n"
         self.col_name_list = col_name_list
@@ -57,12 +57,12 @@ class BenchmarkTable:
 
         self._table_add_columns()
 
-    def _table_add_columns(self: BenchmarkTable) -> None:
+    def _table_add_columns(self: DataTable) -> None:
         r"""Prepare the table by adding all the columns."""
         for col_name in self.col_name_list:
             self._table.add_column(col_name, justify="left")
 
-    def add_row(self: BenchmarkTable, values: list) -> None:
+    def add_row(self: DataTable, values: list) -> None:
         r"""Add a row of data to the table.
 
         Parameters
@@ -74,7 +74,7 @@ class BenchmarkTable:
         values_str = tuple([str(val) for val in values])
         self._table.add_row(*values_str)
 
-    def display(self: BenchmarkTable, output_file: IO[str] | None = None) -> None:
+    def display(self: DataTable, output_file: IO[str] | None = None) -> None:
         r"""Display entire table with data.
 
         Parameters

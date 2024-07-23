@@ -144,7 +144,7 @@ necessary modules first.
     import torch
     import torch.nn.functional as F
 
-    from stgraph.benchmark_tools.table import BenchmarkTable
+    from stgraph.utils import DataTable
     from stgraph.dataset import CoraDataLoader
     from stgraph.graph.static.static_graph import StaticGraph
     from model import GCN
@@ -297,7 +297,7 @@ To help visualize various metrics such as accuracy, loss, etc. during training, 
 
     # train.py
 
-    table = BenchmarkTable(
+    table = DataTable(
         f"STGraph GCN on CORA dataset",
         ["Epoch", "Train Accuracy %", "Loss"],
     )

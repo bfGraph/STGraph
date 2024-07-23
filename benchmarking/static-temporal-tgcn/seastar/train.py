@@ -18,7 +18,7 @@ from stgraph.dataset.PedalMeDataLoader import PedalMeDataLoader
 from stgraph.dataset.METRLADataLoader import METRLADataLoader
 from stgraph.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from utils import to_default_device, get_default_device
 
 from rich import inspect
@@ -135,7 +135,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(
+    table = DataTable(
         f"(STGraph Static-Temporal) TGCN on {dataloader.name} dataset",
         ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"],
     )

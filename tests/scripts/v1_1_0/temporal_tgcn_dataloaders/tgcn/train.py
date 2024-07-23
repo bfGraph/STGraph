@@ -6,7 +6,7 @@ import pynvml
 import torch
 from rich.progress import Progress
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from stgraph.dataset import HungaryCPDataLoader
 from stgraph.dataset import METRLADataLoader
 from stgraph.dataset import MontevideoBusDataLoader
@@ -101,7 +101,7 @@ def train(
         # metrics
         dur = []
         max_gpu = []
-        table = BenchmarkTable(
+        table = DataTable(
             f"(STGraph Static-Temporal) TGCN on {dataloader.name} dataset",
             ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"],
         )

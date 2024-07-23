@@ -15,7 +15,7 @@ from stgraph.dataset.PedalMeDataLoader import PedalMeDataLoader
 from stgraph.dataset.METRLADataLoader import METRLADataLoader
 from stgraph.dataset.MontevideoBusDataLoader import MontevideoBusDataLoader
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from utils import to_default_device, get_default_device
 
 def main(args):
@@ -74,7 +74,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(f"(PyGT Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
+    table = DataTable(f"(PyGT Static-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
 
     try:
         # train
