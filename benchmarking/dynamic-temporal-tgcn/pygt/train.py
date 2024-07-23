@@ -9,7 +9,7 @@ import sys
 import os
 from model import PyGT_TGCN
 from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from utils import to_default_device, get_default_device
 
 def main(args):
@@ -71,7 +71,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(f"(PyGT Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
+    table = DataTable(f"(PyGT Dynamic-Temporal) TGCN on {dataloader.name} dataset", ["Epoch", "Time(s)", "MSE", "Used GPU Memory (Max MB)"])
 
     try:
         # train

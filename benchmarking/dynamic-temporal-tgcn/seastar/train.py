@@ -8,7 +8,8 @@ import pynvml
 import sys
 import os
 from stgraph.dataset.LinkPredDataLoader import LinkPredDataLoader
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.benchmark_tools.table import DataTable
+from stgraph.utils import DataTable
 from stgraph.graph.dynamic.gpma.gpma_graph import GPMAGraph
 from stgraph.graph.dynamic.pcsr.pcsr_graph import PCSRGraph
 from stgraph.graph.dynamic.naive.naive_graph import NaiveGraph
@@ -159,7 +160,7 @@ def main(args):
     # metrics
     dur = []
     max_gpu = []
-    table = BenchmarkTable(
+    table = DataTable(
         f"(STGraph Dynamic-Temporal) TGCN on {dataloader.name} dataset",
         [
             "Epoch",

@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from rich.progress import Progress
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 from stgraph.dataset import CoraDataLoader
 from stgraph.graph.static.static_graph import StaticGraph
 from .model import GCN
@@ -82,7 +82,7 @@ def train(
 
         dur = []
         Used_memory = 0
-        table = BenchmarkTable(
+        table = DataTable(
             f"STGraph GCN on {dataloader.name} dataset",
             ["Epoch", "Time(s)", "Train Accuracy", "Used GPU Memory (Max MB)"],
         )

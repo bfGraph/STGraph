@@ -1,7 +1,7 @@
 import csv
 from rich import inspect
 
-from stgraph.benchmark_tools.table import BenchmarkTable
+from stgraph.utils import DataTable
 
 all_results = []
 
@@ -43,7 +43,7 @@ for dataset in dataset_names:
     
             
     # forming the Table 1: Time measurements for varying feature sizes 
-    table_1 = BenchmarkTable(f"Time measurements (s) for varying feature sizes - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
+    table_1 = DataTable(f"Time measurements (s) for varying feature sizes - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
     pygt_results_table_1 = {}
     seastar_results_table_1 = {}
 
@@ -72,7 +72,7 @@ for dataset in dataset_names:
         table_1.display()
 
     # forming the Table 2: Memory measurements for varying feature sizes 
-    table_2 = BenchmarkTable(f"Memory taken (MB) for varying feature sizes - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
+    table_2 = DataTable(f"Memory taken (MB) for varying feature sizes - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
     pygt_results_table_2 = {}
     seastar_results_table_2 = {}
 
@@ -103,7 +103,7 @@ for dataset in dataset_names:
 for dataset in dataset_names:
         
     # forming the Table 1: Time measurements for varying sequence lengths
-    table_1 = BenchmarkTable(f"Time measurements (s) for varying sequence lengths - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
+    table_1 = DataTable(f"Time measurements (s) for varying sequence lengths - {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
     pygt_results_table_1 = {}
     seastar_results_table_1 = {}
 
@@ -132,7 +132,7 @@ for dataset in dataset_names:
         table_1.display()
 
     # forming the Table 2: Memory measurements for varying sequence lengths
-    table_2 = BenchmarkTable(f"Memory taken (MB) for varying sequence lengths- {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
+    table_2 = DataTable(f"Memory taken (MB) for varying sequence lengths- {dataset}", ["Hidden Dimension", "PyG-T", "STGraph"])
     pygt_results_table_2 = {}
     seastar_results_table_2 = {}
 
