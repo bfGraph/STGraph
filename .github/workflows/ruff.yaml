@@ -26,7 +26,7 @@ jobs:
         cd stgraph/graph
         ruff check .
         cd ../../
-        cd stgraph/benchmark_tools
+        cd stgraph/utils
         ruff check .
         cd ../../
         cd stgraph/nn/pytorch/static
