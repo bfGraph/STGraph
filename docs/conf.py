@@ -27,14 +27,14 @@ html_theme_options = {
 html_css_files = ["custom.css"]
 
 project = "STGraph"
-copyright = "2023, Joel Mathew Cherian, Nithin Puthalath Manoj"
+copyright = "2024, Joel Mathew Cherian, Nithin Puthalath Manoj"
 author = "Joel Mathew Cherian, Nithin Puthalath Manoj"
-release = "0.2.0"
+release = "1.1.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.autodoc", "sphinx_copybutton", "sphinx.ext.viewcode"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
