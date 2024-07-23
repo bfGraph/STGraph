@@ -7,7 +7,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
 [![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://neurips.cc/virtual/2023/76335)
-[![GrAPL - @IPDPS'24](https://img.shields.io/badge/GrAPL-%40IPDPS'24-#282792)](https://hpc.pnl.gov/grapl/index.html)
+[![GrAPL - @IPDPS'24](https://img.shields.io/badge/GrAPL-%40IPDPS'24-282792)](https://hpc.pnl.gov/grapl/index.html)
 [![PyPI - 1.0.0](https://img.shields.io/static/v1?label=PyPI&message=1.0.0&color=%23ffdf76&logo=Python)](https://pypi.org/project/stgraph/)
 
 <div align="center">
