@@ -61,8 +61,8 @@ class StaticGraph(STGraphBase):
 
         self._get_graph_csr_ptrs()
 
+    # TODO-DOCS:
     def _prepare_edge_lst_fwd(self: STGraphBase, edge_list: list) -> None:
-        r"""TODO:."""
         edge_list_for_t = edge_list
         edge_list_for_t.sort(key=lambda x: (x[1], x[0]))
         edge_list_for_t = [
@@ -71,14 +71,14 @@ class StaticGraph(STGraphBase):
         ]
         self.fwd_edge_list = edge_list_for_t
 
+    # TODO-DOCS @nithin:
     def _prepare_edge_lst_bwd(self: STGraphBase, edge_list: list) -> None:
-        r"""TODO:."""
         edge_list_for_t = copy.deepcopy(edge_list)
         edge_list_for_t.sort()
         self.bwd_edge_list = edge_list_for_t
 
+    # TODO-DOCS @nithin:
     def _get_graph_csr_ptrs(self: STGraphBase) -> None:
-        r"""TODO:."""
         self.fwd_row_offset_ptr = self._forward_graph.row_offset_ptr
         self.fwd_column_indices_ptr = self._forward_graph.column_indices_ptr
         self.fwd_eids_ptr = self._forward_graph.eids_ptr
@@ -120,6 +120,7 @@ class StaticGraph(STGraphBase):
         r"""Return the graph outwards node degree array."""
         return np.array(self._forward_graph.in_degrees, dtype="int32")
 
+    # TODO-DOCS @nithin:
     def weighted_in_degrees(self: STGraphBase) -> np.ndarray:
-        r"""TODO:."""
+        r"""weighted_in_degrees."""
         return np.array(self._forward_graph.weighted_out_degrees, dtype="int32")
