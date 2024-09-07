@@ -24,6 +24,8 @@ class DynamicGraph(STGraphBase):
     2. Packed Compressed Sparse Row (PCSR)
     3. GPMA
 
+    Please note that this documentation is still work in progress.
+
     """
 
     def __init__(
