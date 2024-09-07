@@ -1,8 +1,6 @@
 stgraph.graph
 #############
 
-Some intro regarding this module required here
-
 Building the Graphs
 ===================
 
