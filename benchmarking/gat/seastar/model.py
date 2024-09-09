@@ -1,5 +1,5 @@
 import torch.nn as nn
-from stgraph.nn.pytorch.gat_conv import GATConv
+from stgraph.nn.pytorch.static.gat_conv import GATConv
 
 class GAT(nn.Module):
     def __init__(self,

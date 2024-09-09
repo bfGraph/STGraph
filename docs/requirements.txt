@@ -1,0 +1,4 @@
+torch
+stgraph
+sphinx
+sphinx_rtd_theme

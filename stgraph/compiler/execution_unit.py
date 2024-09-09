@@ -1,3 +1,5 @@
+"""The fundamental execution unit of STGraph"""
+
 import math
 import snoop
 from .code_gen.cuda_driver import *
@@ -372,6 +374,28 @@ class Kernel():
             raise e
 
 class V2Kernel(Kernel):
+    r"""The Version 2 Kernel
+    
+    This class contains the parameters for the second version of the kernel
+    written for STGraph
+    
+    Parameters
+    ----------
+    
+    num_nodes : int
+        Number of nodes present in the graph
+    row_offsets_ptr : c_type
+        Pointer to the row offset array
+    col_indices_ptr : c_type
+        Pointer to the column indicies array
+    
+    Attributes
+    ----------
+    scalar_args : list[c_types]
+        List of the scalar arguments passed to the kernel
+    launch_config : list[int]
+        List of the kernel launch configurations
+    """
     def __init__(self, num_nodes, row_offsets_ptr, col_indices_ptr, eids_ptr, max_dims, kernel_name, compiled_module, launch_config, tile_sizes):
         self.scalar_args = [c_int(num_nodes), c_int(max_dims[1]), c_int(max_dims[0]), c_int(tile_sizes[0]), c_int(tile_sizes[1])]
         self.const_kernel_args =  [c_void_p(row_offsets_ptr), c_void_p(eids_ptr), c_void_p(col_indices_ptr)] + self.scalar_args

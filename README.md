@@ -7,6 +7,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/stgraph/badge/?version=latest)](https://stgraph.readthedocs.io/en/latest/?badge=latest)
 [![TGL Workshop - @ NeurIPS'23](https://img.shields.io/badge/TGL_Workshop-%40_NeurIPS'23-6d4a8f)](https://neurips.cc/virtual/2023/76335)
+[![GrAPL - @IPDPS'24](https://img.shields.io/badge/GrAPL-%40IPDPS'24-282792)](https://hpc.pnl.gov/grapl/index.html)
 [![PyPI - 1.0.0](https://img.shields.io/static/v1?label=PyPI&message=1.0.0&color=%23ffdf76&logo=Python)](https://pypi.org/project/stgraph/)
 
 <div align="center">
@@ -104,68 +105,7 @@ With this you have successfully installed STGraph locally to make development ch
 
 ## Running your first STGraph Program
 
-In this is quick mini tutorial, we will show you how to train a simple GCN model on the Cora dataset. After installing STGraph and entering the STGraph directory, enter the following commands to reach the GCN `benchmarking` folder
-
-```
-cd benchmarking/gcn/stgraph
-```
-
-Run the `train.py`, with 100 epochs and specify the dataset name. For this example, we shall use Cora
-
-```
-python3 train.py --num_epochs 100 --dataset cora
-```
-
-You should get an output like this. The initial prints are truncated.
-
-```
-.
-.
-.
-Epoch 00090 | Time(s) 0.0048 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00091 | Time(s) 0.0024 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00092 | Time(s) 0.0029 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00093 | Time(s) 0.0029 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00094 | Time(s) 0.0027 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00095 | Time(s) 0.0030 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00096 | Time(s) 0.0024 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00097 | Time(s) 0.0022 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00098 | Time(s) 0.0022 | train_acc 0.303791 | Used_Memory 32.975098 mb
-Epoch 00099 | Time(s) 0.0036 | train_acc 0.303791 | Used_Memory 32.975098 mb
-
-^^^0.032202^^^0.003098
-```
-
-If you don't get this output and have followed every single step in the setting up and installation section, please raise an issue we will look into it.
-
-## How to build STGraph
-
-This is for users who want to make changes to the STGraph codebase and get it build each time. Follow the steps mentioned to properly build STGraph.
-
-### Compiling the CUDA code
-
-The following steps need to be done if you made any changes to any CUDA files within the `stgraph/graph` directory for each graph representation.
-
-STGraph supports training dynamic and static graphs. To handle all the graph representations logic, it is written as a PyBind11 module over a CUDA file. As of now the following CUDA code for different graph representations exists
-
-1. `csr.cu`
-2. `pcsr.cu`
-3. `gpma.cu`
-
-To compile the `[name].cu` file, run the following command
-
-```
-/usr/local/cuda-11.7/bin/nvcc $(python3 -m pybind11 --includes) -shared -rdc=true --compiler-options '-fPIC' -D__CDPRT_SUPPRESS_SYNC_DEPRECATION_WARNING -o [name].so [name].cu
-```
-This would generate the [name].so shared object file, that is used in the STGraph module. 
-
-### Building STGraph
-
-Make sure to go back to the root directory and run the following to build and install STGraph
-
-```
- python3 -m build && pip uninstall stgraph -y && pip install dist/stgraph-1.0.0-py3-none-any.whl
-```
+Please have a look inside the `tutorials/` directory to write and train your own GNNs using STGraph
 
 ## Contributing
 

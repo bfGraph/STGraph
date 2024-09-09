@@ -1,1 +1,1 @@
-'''GPMA data structure to represent Dynamic Graphs in GPU'''
+"""Represent Dynamic Graphs using GPMA in STGraph."""

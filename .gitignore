@@ -13,7 +13,10 @@ benchmarking/results/
 *.egg-info/
 stgraph/build/
 stgraph/dist/
+dev-stgraph/
 docs/_build
+docs_old/
+docs_v2/
 __pycache__/
 .DS_Store
 build
@@ -25,4 +28,9 @@ dist
 *.svg
 *.json
 *.npy
+.coverage
 dev-stgraph/
+htmlconv/
+*.txt
+egl_kernel.cu
+egl_kernel.ptx
