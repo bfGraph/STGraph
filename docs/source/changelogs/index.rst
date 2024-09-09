@@ -9,7 +9,7 @@ overview of updates, enhancements, bug fixes, and new features introduced with e
 What's new in v1.1.0?
 ---------------------
 
-**Release Date**: 7th Sept, 2024
+**Release Date**: 9th Sept, 2024
 
 We’re excited to introduce version 1.1.0 of STGraph, featuring significant improvements in dataset loading, testing, and documentation. Below are the highlights
 
@@ -31,5 +31,5 @@ All Releases
    :maxdepth: 1
    :glob:
 
-   1_0_0
    1_1_0
+   1_0_0
